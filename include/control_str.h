@@ -2,14 +2,14 @@
 	> File Name: control_str.h
 	> Author: 
 	> Mail: 
-	> Created Time: 2017年08月10日 星期四 13时42分50秒
+	> Created Time: August 10th,2017 Thursday 13:42:50
  ************************************************************************/
 
 #ifndef __CONTROL_STR_H
 #define __CONTROL_STR_H
 
-#define CTL_STR_CHOOSE_LANG_ENGLISH         "English"
-#define CTL_STR_CHOOSE_LANG_CHINESE         "中文"
+#define CTL_STR_CHOOSE_LANG_EN              "English"
+#define CTL_STR_CHOOSE_LANG_CH              "中文"
 #define CTL_STR_NULL                        "                            "
 
 typedef enum CTL_STR_INFO
@@ -21,8 +21,6 @@ typedef enum CTL_STR_INFO
     CTL_STR_MENU_FUNC2,
     CTL_STR_MENU_FUNC3,
     CTL_STR_MENU_FUNC4,
-    CTL_STR_MENU_FUNC5,
-    CTL_STR_MENU_FUNC6,
     CTL_STR_INPUT_FILE_NAME,
     CTL_STR_INPUT_FILE_NAME_EG,
     CTL_STR_INPUT,
@@ -38,7 +36,7 @@ typedef enum CTL_STR_INFO
     CTL_STR_IN_DECRYPTING,
     CTL_STR_ANY_KEY,
     CTL_STR_SUCCESS,
-    CTL_STR_ERR_GET_FILE_INFO_ERR,
+    CTL_STR_ERR_FAIL_TO_GET_FILE_INFO,
     CTL_STR_ERR_FOPEN_ERR,
     CTL_STR_ERR_MALLOC_ERR,
     CTL_STR_ERR_FAIL_TO_READ_FILE,

@@ -2,7 +2,7 @@
 	> File Name: common.h
 	> Author: lvsenlv
 	> Mail: lvsen46000@163.com
-	> Created Time: 2017年03月06日 星期一 13时42分52秒
+	> Created Time: March 6th,2017 Monday 13:42:52
  ************************************************************************/
 
 #ifndef __COMMON_H
@@ -13,12 +13,6 @@
 
 /******************************modifiable*******************************/
 #define     BUF_SIZE                        128
-#define     CLEAR_IN_BUF                    {while(getchar() != '\n');}
-#ifdef __LINUX
-    #define CLEAR                           system("clear")
-#elif defined __WINDOWS
-    #define CLEAR                           system("cls")
-#endif
 
 //#include <stdint.h>
 //typedef     char                            int8_t;
@@ -28,16 +22,16 @@ typedef     unsigned char                   uint8_t;
 typedef     unsigned short                  uint16_t;
 typedef     unsigned int                    uint32_t;
 #ifdef __LINUX
-    #ifdef __32BIT
-        typedef     long long                       int64_t;
-        typedef     unsigned long long              uint64_t;
-    #elif defined __64BIT
-        typedef     long                            int64_t;
-        typedef     unsigned long                   uint64_t;
-    #endif
+#ifdef __32BIT
+typedef     long long                       int64_t;
+typedef     unsigned long long              uint64_t;
+#elif defined __64BIT
+typedef     long                            int64_t;
+typedef     unsigned long                   uint64_t;
+#endif
 #elif defined __WINDOWS
-    typedef     long long                       int64_t;
-    typedef     unsigned long long              uint64_t;
+typedef     long long                       int64_t;
+typedef     unsigned long long              uint64_t;
 #endif
 
 //#undef      NULL
@@ -54,9 +48,10 @@ typedef     unsigned int                    uint32_t;
 typedef enum {
     STAT_OK = 0,
     STAT_ERR,
+    
     STAT_GO_BACK,
     STAT_RETRY,
-    STAT_EXIT,          //exit project
+    STAT_EXIT,          //exit project with normal state
 }G_STATUS;
 
 #if 0

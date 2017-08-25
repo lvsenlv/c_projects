@@ -2,7 +2,7 @@
 	> File Name: main.c
 	> Author: lvsenlv
 	> Mail: lvsen46000@163.com
-	> Created Time: 2017年08月09日 星期三 08时48分52秒
+	> Created Time: August 9th,2017 Wednesday 08:48:52
  ************************************************************************/
 
 #include "common.h"
@@ -12,79 +12,42 @@
 int main(void)
 {
     G_STATUS status;
+    
     CTL_InitConsole();
+    
     status = CTL_ChooseLanguage();
-    if(STAT_EXIT == status)
-    {
+    if(status != STAT_OK)
         CTL_ExitConsole();
-        exit(0);
-    }
-    else if(STAT_ERR == status)
-    {
-        CTL_ExitConsole();
-        exit(-1);
-    }
     
     CTL_DrawStdScreen();
 
-    char func = 0;    
+    char func = 0;
     while(1)
     {
         status = CTL_ChooseFunc(&func);
-        if(STAT_EXIT == status)
-        {
+        if(status != STAT_OK)
             CTL_ExitConsole();
-            exit(0);
-        }
-        else if(STAT_ERR == status)
-        {
-            CTL_ExitConsole();
-            exit(-1);
-        }
 
-        if(CTL_MENU_FUNC_INSTRUCTION == func)
+        if(CTL_MENU_INSTRUCTION == func)
         {
-            status = CTL_ShowInstruction();
-            if(STAT_EXIT == status)
-            {
-                CTL_ExitConsole();
-                exit(0);
-            }
-            else if(STAT_ERR == status)
-            {
-                CTL_ExitConsole();
-                exit(-1);
-            }
+            CTL_ShowInstruction();
             continue;
         }
-        else if((func >= CTL_MENU_FUNC_ENCRYPT_FILE) && (func <= CTL_MENU_FUNC_DECRYPT_FOLDER))
+        else if((func == CTL_MENU_ENCRYPT) || (func == CTL_MENU_DECRYPT))
         {
             status = encrypt(func);
-            if(STAT_EXIT == status)
-            {
-                CTL_ExitConsole();
-                exit(0);
-            }
-            else if(STAT_ERR == status)
-            {
-                CTL_ExitConsole();
-                exit(-1);
-            }
-            else if(STAT_GO_BACK == status)
+            if(STAT_GO_BACK == status)
                 continue;
+            else
+                CTL_ExitConsole();
         }
-        else if(CTL_MENU_FUNC_CHOOSE_LANGUAGE == func)
+        else if(CTL_MENU_CHOOSE_LANGUAGE == func)
         {
             status = CTL_ChooseLanguage();
-            if(STAT_EXIT == status)
+            if(status != STAT_OK)
             {
                 CTL_ExitConsole();
                 exit(0);
-            }
-            else if(STAT_ERR == status)
-            {
-                CTL_ExitConsole();
-                exit(-1);
             }
             CTL_DrawStdScreen();
             continue;

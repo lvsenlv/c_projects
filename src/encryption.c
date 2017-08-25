@@ -2,7 +2,7 @@
 	> File Name: encryption.c
 	> Author: lvsenlv
 	> Mail: lvsen46000@163.com
-	> Created Time: 2017年08月03日 星期四 08时37分45秒
+	> Created Time: August 3rd,2017 Thursday 08:37:45
  ************************************************************************/
 
 #ifdef __LINUX
@@ -10,9 +10,10 @@
 #endif
 
 #include "encryption.h"
-#include "control.h"
 #include "control_str.h"
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 static G_STATUS EncryptDecryptFile(char func);
 static inline G_STATUS GetFileSize(const char *pFileName, int64_t *pFileSize);
@@ -20,9 +21,9 @@ static G_STATUS Encrypt_KB_File(const char *pFileName, int64_t FileSize);
 static G_STATUS Encrypt_MB_File(const char *pFileName, int64_t FileSize);
 static G_STATUS Encrypt_GB_File(const char *pFileName, int64_t FileSize);
 static G_STATUS Decrypt_KB_File(const char *pFileName, int64_t FileSize);
-static void ConvertFileFormat(char *pFileName);
+static inline void ConvertFileFormat(char *pFileName);
 
-char g_password[CYT_PASSWORD_LENGHT];
+char g_password[CTL_PASSWORD_LENGHT_MAX];
 /*************************************************************************
                             Redirect DISP
  ************************************************************************/
@@ -42,31 +43,57 @@ static char g_buf[BUF_SIZE];
 G_STATUS encrypt(char func)
 {
     G_STATUS status;
+    char FileName[CYT_FILE_NAME_LENGTH];
+#ifdef __LINUX
+        struct stat FileInfo; 
+#elif defined __WINDOWS
+        struct _stati64 FileInfo;
+#endif
 
-    switch(func)
+    while(1)
     {
-        case CTL_MENU_FUNC_ENCRYPT_FILE :                         
-            status = EncryptDecryptFile(func);
-            if(status != STAT_OK)
-                return status;
+        status = CTL_GetFileName(FileName);
+        if(status != STAT_OK)
+            return status;
+    
+#ifdef __LINUX
+        if(stat(FileName, &FileInfo) == 0)
+#elif defined __WINDOWS
+        if(_stati64(FileName, &FileInfo) != 0)            
+#endif
             break;
-        case CTL_MENU_FUNC_ENCRYPT_FOLDER :
-            break;
-        case CTL_MENU_FUNC_DECRYPT_FILE :
-            status = EncryptDecryptFile(func);
-            if(status != STAT_OK)
-                return status;
-            break;
-            break;
-        case CTL_MENU_FUNC_DECRYPT_FOLDER :
-            break;
-        default :
-            break;
+
+        if(g_FlagLanguage)
+            status = CTL_MakeChoice(NULL, 6, \
+            (COLS - strlen(g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO])*2/3), 
+            g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO]);
+        else
+            status = CTL_MakeChoice(NULL, 6, \
+            (COLS - strlen(g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO])), 
+            g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO]);
+        if(STAT_RETRY == status)
+            continue;
+        else
+           return status;
+    }
+
+    status = CTL_GetPassord(g_password);
+    if(status != STAT_OK)
+        return status;
+
+    if(S_IFREG & FileInfo.st_mode)
+    {
+        //ProcessSingleFile(FileName);
+    }
+    else if(S_IFDIR & FileInfo.st_mode)
+    {
+        //ProcessFolder(FileName);
     }
     
     return STAT_OK;
 }
 
+#if 0
 static G_STATUS EncryptDecryptFile(char func)
 {    
     G_STATUS status;
@@ -85,16 +112,16 @@ static G_STATUS EncryptDecryptFile(char func)
         return STAT_GO_BACK;
 
     WINDOW *win = newwin(LINES, COLS, 0, 0);
-    if(CTL_MENU_FUNC_ENCRYPT_FILE == func)
+    if(CTL_MENU_ENCRYPT == func)
         wprintw(win, "%s%s ", g_pStr[CTL_STR_IN_ENCRYPTING], FileName);
-    else if(CTL_MENU_FUNC_DECRYPT_FILE == func)
+    else if(CTL_MENU_DECRYPT == func)
         wprintw(win, "%s%s ", g_pStr[CTL_STR_IN_DECRYPTING], FileName);
     wrefresh(win);
     if(FileSize <= BUF_SIZE_SMALL)
     {
-        if(CTL_MENU_FUNC_ENCRYPT_FILE == func)
+        if(CTL_MENU_ENCRYPT == func)
             status = Encrypt_KB_File(FileName, FileSize);
-        else if(CTL_MENU_FUNC_DECRYPT_FILE == func)
+        else if(CTL_MENU_DECRYPT == func)
             status = Decrypt_KB_File(FileName, FileSize);
         if(status != STAT_OK)
         {
@@ -318,10 +345,10 @@ static G_STATUS Encrypt_KB_File(const char *pFileName, int64_t FileSize)
     fp = NULL;
 
 #ifdef __LINUX
-    snprintf(NewFileName, sizeof(NewFileName), "rm -f %s", pFileName);
-#elif defined __WINDOWS    
-    snprintf(NewFileName, sizeof(NewFileName), "del %s", pFileName);
+    snprintf(NewFileName, sizeof(NewFileName), "rm -rf %s", pFileName);
+#elif defined __WINDOWS
     ConvertFileFormat(NewFileName);
+    snprintf(NewFileName, sizeof(NewFileName), "del /a /f /q %s >nul 2>nul", pFileName);
 #endif
     fp = popen(NewFileName, "r");
     if(NULL == fp)
@@ -506,7 +533,7 @@ static G_STATUS Decrypt_KB_File(const char *pFileName, int64_t FileSize)
     return STAT_OK;
 }
 
-static void ConvertFileFormat(char *pFileName)
+static inline void ConvertFileFormat(char *pFileName)
 {
     while(*pFileName != '\0')
     {
@@ -515,3 +542,5 @@ static void ConvertFileFormat(char *pFileName)
         pFileName++;
     }
 }
+
+#endif

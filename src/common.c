@@ -2,7 +2,7 @@
 	> File Name: common.c
 	> Author: lvsenlv
 	> Mail: lvsen46000@163.com
-	> Created Time: 2017年03月09日 星期四 14时47分06秒
+	> Created Time: March 9th,2017 Thursday 14:47:06
  ************************************************************************/
 
 #include "common.h"
@@ -29,9 +29,8 @@
 
 #ifdef __REDIRECTION
     #pragma message("Activate __REDIRECTION")
-#else //__REDIRECTION
-    #pragma message("Deactivate __REDIRECTION")
 #endif //__REDIRECTION
+
 
 #if (defined __LINUX ) || (defined __WINDOWS)
     #ifdef __REDIRECTION

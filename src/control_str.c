@@ -2,7 +2,7 @@
 	> File Name: control_str.c
 	> Author: lvsenlv
 	> Mail: lvsen46000@163.com
-	> Created Time: 2017年08月18日 星期五 08时51分45秒
+	> Created Time: August 18th,2017 Friday 08:51:45
  ************************************************************************/
 
 #include "common.h"
@@ -13,16 +13,14 @@ char *pEnStr[] = {
     "Encryption System",
     "Press Esc to exit project | Version 1.0.0 | Copyright 2017-2017",
     "1. Instruction",
-    "2. Encrypt single file",
-    "3. Encrypt folder",
-    "4. Decrypt single file",
-    "5. Decrypt folder",
-    "6. Change language",    
-    "Please input the file name with full path",
+    "2. Encrypt",
+    "3. Decrypt",
+    "4. Change language",    
+    "Please input the file or folder name with full path",
 #ifdef __LINUX
-    "E.g, /root/document/file.txt",
+    "E.g, /root/document/...",
 #elif defined __WINDOWS
-    "E.g, C:/User/Administrator/file.txt",
+    "E.g, C:/User/Administrator/...",
 #endif    
     "Input: ",
     "[Retry]",
@@ -52,16 +50,14 @@ char *pChStr[] = {
     "加密系统",
     "按Esc键退出程序 | 版本号 1.0.0 | Copyright 2017-2017",
     "1. 使用说明", 
-    "2. 加密单个文件",
-    "3. 加密文件夹",
-    "4. 解密单个文件",
-    "5. 解密文件夹",
-    "6. 更改语言",       
-    "请输入文件名，若不在当前文件夹则需完整路径",
+    "2. 加密",
+    "3. 解密",
+    "4. 更改语言",       
+    "请输入文件或文件夹名（完整路径）",
 #ifdef __LINUX
-    "例如, /root/document/文件.txt",
+    "例如, /root/document/...",
 #elif defined __WINDOWS
-    "例如, C:/User/Administrator/文件.txt",
+    "例如, C:/User/Administrator/...",
 #endif
     "输入: ",
     "[重试]",
