@@ -54,7 +54,7 @@ typedef enum {
     STAT_EXIT,          //exit project with normal state
 }G_STATUS;
 
-#if 0
+
 #if (defined __LINUX) || (defined __WINDOWS)
     #ifdef __REDIRECTION
         extern FILE *g_pDispFile;
@@ -62,10 +62,10 @@ typedef enum {
                     fprintf(g_pDispFile, format, ##args)
         #ifdef __DEBUG
         #define     DISP_ERR(str) \
-                    fprintf(g_pDispFile, "[%s][%d]: %s \n", __func__, __LINE__, str)
+                    fprintf(g_pDispFile, "[%s][%d]: %s\n", __func__, __LINE__, str)
         #else //__DEBUG
         #define     DISP_ERR(str) \
-                    fprintf(g_pDispFile, "%s \n", str)
+                    fprintf(g_pDispFile, "%s\n", str)
         #endif //__DEBUG
         #define     DISP_ERR_PLUS(format, args...) \
                     fprintf(g_pDispFile, format, ##args)
@@ -74,10 +74,10 @@ typedef enum {
                     fprintf(stdout, format, ##args)
         #ifdef __DEBUG
         #define     DISP_ERR(str) \
-                    fprintf(stderr, "[%s][%d]: %s \n", __func__, __LINE__, str)
+                    fprintf(stderr, "[%s][%d]: %s\n", __func__, __LINE__, str)
         #else //__DEBUG
         #define     DISP_ERR(str) \
-                    fprintf(stderr, "%s \n", str)
+                    fprintf(stderr, "%s\n", str)
         #endif //__DEBUG
         #define     DISP_ERR_PLUS(format, args...) \
                     fprintf(stderr, format, ##args)
@@ -87,7 +87,6 @@ typedef enum {
     #define     DISP_ERR(str)                   ((void)0)
     #define     DISP_ERR_PLUS(format, args...)  ((void)0)
 #endif //(defined __LINUX) || (defined __WINDOWS)
-#endif //#if 0
 
 #ifdef __LINUX
     #include <sys/time.h>

@@ -6,17 +6,15 @@
  ************************************************************************/
 
 #include "control.h"
-#include "control_str.h"
-#include <string.h>
+#include "str.h"
 #include <locale.h>
-#include <sys/stat.h>
+#include <pthread.h>
 #include <unistd.h>
 
+#include <string.h>
+#include <sys/stat.h>
 
-char **g_pStr = pEnStr;
-char g_FlagLanguage = 0; //0 is English and 1 is Chinese
-
-void CTL_InitConsole(void)
+G_STATUS CTL_InitConsole(void)
 {
     setlocale(LC_ALL,"");
     initscr();
@@ -24,120 +22,72 @@ void CTL_InitConsole(void)
     nonl();
     noecho();
     keypad(stdscr, true);
-    attron(A_REVERSE | A_BOLD);
-    mvaddnstr(LINES-1, 0, g_pStr[CTL_STR_ESC_EXIT], COLS);
-    attroff(A_REVERSE | A_BOLD);
-    refresh();
-}
 
-void CTL_DrawStdScreen(void)
-{
+    if(COLS < CTL_CONSOLE_WIDTH)
+    {
+        endwin();
+        DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_COLS, CTL_CONSOLE_WIDTH);
+        return STAT_ERR;
+    }
+    if(LINES < CTL_CONSOLE_HEIGHT)
+    {
+        endwin();
+        DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_HEIGHT, CTL_CONSOLE_HEIGHT);
+        return STAT_ERR;
+    }
+
     clear();
     border('|', '|', '-', '-', '+', '+', '+', '+');
-    int LabelSize = strlen(g_pStr[CTL_STR_LABEL]);
-
-    attron(A_REVERSE);
-    if(g_FlagLanguage)
-    {
-        mvaddstr(0, (COLS-LabelSize*2/3)/2, g_pStr[CTL_STR_LABEL]);
-    }
-    else
-    {
-        mvaddstr(0, (COLS-LabelSize)/2, g_pStr[CTL_STR_LABEL]);
-    }
-
-    attron(A_BOLD);
-    mvaddstr(LINES-2, 2, g_pStr[CTL_STR_END_LINE]);
-    attroff(A_REVERSE | A_BOLD);
-    refresh();
-}
-
-
-G_STATUS CTL_ChooseLanguage(void)
-{
-    int lines = 6, cols = 20;
-    WINDOW *win = newwin(lines, cols, (LINES-lines)/2, (COLS-cols)/2);
-    wborder(win, '+', '+', '-', '-', '+', '+', '+', '+');
-
-    int EnStrStartX = 0, ChStrStartX = 0;
-    EnStrStartX = (cols - (sizeof(CTL_STR_CHOOSE_LANG_EN)-1)) / 2;
-    ChStrStartX = (cols - ((sizeof(CTL_STR_CHOOSE_LANG_CH)-1)*2/3)) / 2;
-    mvwaddstr(win, 3, ChStrStartX, CTL_STR_CHOOSE_LANG_CH);
-    wattron(win, A_REVERSE);
-    mvwaddstr(win, 2, EnStrStartX, CTL_STR_CHOOSE_LANG_EN);
-    wattroff(win, A_REVERSE);
-
-    keypad(win, true);
-    int key = 0;
-    char flag = 0;
-    while(1)
-    {
-        key = wgetch(win);
-        
-        if((KEY_UP == key) || (KEY_DOWN == key))
-        {
-            flag ^= 1;
-        }        
-        else if(27 == key) //Esc key
-        {
-            delwin(win);
-            return STAT_EXIT;
-        }
-        else if(13 == key) //Enter key
-            break;
-        else
-            continue;
-
-        if(flag)
-        {
-            mvwaddstr(win, 2, EnStrStartX, CTL_STR_CHOOSE_LANG_EN);
-            wattron(win, A_REVERSE);
-            mvwaddstr(win, 3, ChStrStartX, CTL_STR_CHOOSE_LANG_CH);
-            wattroff(win, A_REVERSE);
-        }
-        else
-        {
-            mvwaddstr(win, 3, ChStrStartX, CTL_STR_CHOOSE_LANG_CH);
-            wattron(win, A_REVERSE);
-            mvwaddstr(win, 2, EnStrStartX, CTL_STR_CHOOSE_LANG_EN);
-            wattroff(win, A_REVERSE);
-        }
-    }
-
-    g_pStr = (1 == flag) ? pChStr : pEnStr;
-    g_FlagLanguage = flag;
     
-    delwin(win);
-    touchline(stdscr, (LINES-lines)/2, lines);
-    refresh();
+    attron(A_REVERSE | A_BOLD);
+    mvaddstr(0, (COLS+1-sizeof(STR_CONSOLE_LABEL))/2, STR_CONSOLE_LABEL);
+    mvaddnstr(LINES-2, 2, STR_CONSOLE_END_LINE, COLS);
+    int i;
+    for(i = 0; i < (COLS-sizeof(STR_CONSOLE_END_LINE)-3); i++)
+    {
+        addch(' ');
+    }
+    attroff(A_REVERSE | A_BOLD);
+    refresh();    
+
     return STAT_OK;
 }
 
 G_STATUS CTL_ChooseFunc(char *pFunc)
 {
-    mvaddstr(2, 2, g_pStr[CTL_STR_MENU_FUNC2]);
-    mvaddstr(3, 2, g_pStr[CTL_STR_MENU_FUNC3]);
-    mvaddstr(4, 2, g_pStr[CTL_STR_MENU_FUNC4]);
-    attron(A_REVERSE);
-    mvaddstr(1, 2, g_pStr[CTL_STR_MENU_FUNC1]);
-    attroff(A_REVERSE);
-    refresh();
+    WINDOW *win = newwin(CTL_MENU_WIN_LINES, CTL_MENU_WIN_COLS, 
+        (LINES-CTL_MENU_WIN_LINES)/2, (COLS-CTL_MENU_WIN_COLS)/2);
+    wborder(win, '|', '|', '-', '-', '+', '+', '+', '+');
+    wattron(win, A_REVERSE);
+    mvwaddstr(win, 0, (CTL_MENU_WIN_COLS+1-sizeof(STR_MENU))/2, STR_MENU);
+    wattroff(win, A_REVERSE);
 
     int key;
-    int CurPosY = 1;
+    int CurPosY = 3, CurMenuPos = 1;
+
+    while(g_pMenuStr[CurMenuPos] != NULL)
+    {
+        mvwaddstr(win, CurPosY++, 2, g_pMenuStr[CurMenuPos++]);
+    }
+    wattron(win, A_REVERSE);
+    mvwaddstr(win, 2, 2, g_pMenuStr[0]);
+    wattroff(win, A_REVERSE);
+    wrefresh(win);
+
+    CurPosY = 2;
+    CurMenuPos = 0;
+    keypad(win, true);
     while(1)
     {
-        key = getch();
+        key = wgetch(win);
 
         if(KEY_DOWN == key)
         {
-            mvaddstr(CurPosY, 2, g_pStr[CTL_STR_MENU_FUNC1 - 1 + CurPosY]);
-            CurPosY++;
+            mvwaddstr(win, CurPosY++, 2, g_pMenuStr[CurMenuPos++]);
         }
         else if(KEY_UP == key)
         {
-            mvaddstr(CurPosY, 2, g_pStr[CTL_STR_MENU_FUNC1 - 1 + CurPosY]);
-            CurPosY--;
+            mvwaddstr(win, CurPosY--, 2, g_pMenuStr[CurMenuPos--]);
         }        
         else if(27 == key) //Esc key
             return STAT_EXIT;
@@ -146,24 +96,70 @@ G_STATUS CTL_ChooseFunc(char *pFunc)
         else
             continue;
 
-        if(0 == CurPosY)
+        if(CurMenuPos < 0)
         {
-            CurPosY = CTL_MENU_FUNC_NUM - 1;
+            CurMenuPos = CTL_MENU_COUNT - 2;
+            CurPosY = CurMenuPos + 2;
         }
-        else if(CurPosY >= CTL_MENU_FUNC_NUM)
+        else if(CurMenuPos >= (CTL_MENU_COUNT-1))
         {
-            CurPosY = 1;
+            CurMenuPos = 0;
+            CurPosY = 2;
         }
 
-        attron(A_REVERSE);
-        mvaddstr(CurPosY, 2, g_pStr[CTL_STR_MENU_FUNC1 - 1 + CurPosY]);
-        attroff(A_REVERSE);
+        wattron(win, A_REVERSE);
+        mvwaddstr(win, CurPosY, 2, g_pMenuStr[CurMenuPos]);
+        wattroff(win, A_REVERSE);
     }
 
-    *pFunc = (char)CurPosY;
+    *pFunc = CurMenuPos + 1;
+
+    delwin(win);
+    touchline(stdscr, (LINES-CTL_MENU_WIN_LINES)/2, CTL_MENU_WIN_LINES);
+    refresh();
+    
     return STAT_OK;
+    
 }
 
+void CTL_ShowInstruction(void)
+{
+    WINDOW *win = newwin(LINES, COLS, 0, 0);
+    char **ptr = pInstruction;
+
+    wattron(win, A_REVERSE);
+    mvwaddstr(win, 0, (COLS - strlen(*ptr))/2, *ptr);
+    ptr++;
+    wattroff(win, A_REVERSE);
+
+    wmove(win, 1, 0);
+    while(*ptr != NULL)
+    {
+        wprintw(win, "%s\n", *ptr++);
+    }
+
+    wattron(win, A_REVERSE);
+    mvwaddstr(win, LINES-1, 0, STR_GO_BACK);
+    wattroff(win, A_REVERSE);
+
+    int key;
+    keypad(win, true);
+    while(1)
+    {
+        key = wgetch(win);
+        if(13 == key) //Enter key
+            break;
+        else
+            continue;
+    }
+
+    delwin(win);
+    touchwin(stdscr);
+    refresh();
+}
+
+
+#if 0
 void CTL_ShowInstruction(void)
 {
     WINDOW *win = newwin(LINES, COLS, 0, 0);
@@ -178,7 +174,7 @@ void CTL_ShowInstruction(void)
     else
     {
         ptr = pEnInstruction;
-        mvwaddstr(win, 0, (COLS - strlen(*ptr))/2, *ptr);        
+        mvwaddstr(win, 0, (COLS - strlen(*ptr))/2, *ptr);
     }
     ptr++;
     wattroff(win, A_REVERSE);
@@ -242,7 +238,7 @@ G_STATUS CTL_GetFileName(char *pFileName)
         attroff(A_REVERSE | A_BOLD);
         refresh();
 
-        status = CTL_MakeChoice(NULL, lines, cols, g_pStr[CTL_STR_FILE_NOT_EXIST]);
+        status = CTL_MakeChoice(lines, cols, g_pStr[CTL_STR_FILE_NOT_EXIST]);
         if(STAT_EXIT == status)
         {
             delwin(win);
@@ -258,8 +254,7 @@ G_STATUS CTL_GetFileName(char *pFileName)
             refresh();
             return STAT_GO_BACK;
         }
-
-        wclear(win);
+        //wclear(win);
     }
 
     delwin(win);
@@ -337,7 +332,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
 
         if(i < CTL_PASSWORD_LENGHT_MIN)
         {
-            status = CTL_MakeChoice(win, lines, cols, g_pStr[CTL_STR_PASSWORD_TOO_SHORT]);
+            status = CTL_MakeChoice(lines, cols, g_pStr[CTL_STR_PASSWORD_TOO_SHORT]);
             if(STAT_EXIT == status)
             {
                 delwin(win);
@@ -397,7 +392,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
         if(strcmp(pPassword, buf) == 0)
             break;
 
-        status = CTL_MakeChoice(win, lines, cols, g_pStr[CTL_STR_PASSWORD_NOT_MATCH]);
+        status = CTL_MakeChoice(lines, cols, g_pStr[CTL_STR_PASSWORD_NOT_MATCH]);
         if(STAT_EXIT == status)
         {
             delwin(win);
@@ -420,7 +415,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
     return STAT_OK;
 }
 
-G_STATUS CTL_MakeChoice(WINDOW *pWin, int lines, int cols, char *pStr)
+G_STATUS CTL_MakeChoice(int lines, int cols, char *pStr)
 {
     if(cols < 18) //CTL_STR_RETRY and CTL_STR_BACK are about 12 bytes. Rest 6 bytes is space
         cols = COLS/2;
@@ -484,12 +479,10 @@ G_STATUS CTL_MakeChoice(WINDOW *pWin, int lines, int cols, char *pStr)
     delwin(win);
     touchline(stdscr, (LINES-lines)/2, lines);
     refresh();
-    touchline(pWin, (LINES-lines)/2, lines);
-    wrefresh(pWin);
 
     if(flag)
         return STAT_GO_BACK;
 
     return STAT_RETRY;
 }
-
+#endif

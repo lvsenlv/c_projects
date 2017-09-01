@@ -7,57 +7,30 @@
 
 #include "common.h"
 #include "control.h"
-#include "encryption.h"
+#include "str.h"
+//#include "encryption.h"
 
 int main(void)
-{
+{    
     G_STATUS status;
     
-    CTL_InitConsole();
-    
-    status = CTL_ChooseLanguage();
+    status = CTL_InitConsole();
     if(status != STAT_OK)
-        CTL_ExitConsole();
-    
-    CTL_DrawStdScreen();
+        exit(0);
 
     char func = 0;
+
     while(1)
     {
         status = CTL_ChooseFunc(&func);
         if(status != STAT_OK)
             CTL_ExitConsole();
 
-        if(CTL_MENU_INSTRUCTION == func)
-        {
+        if(CTL_MENU_SHOW_INSTRUCTION == func)
             CTL_ShowInstruction();
-            continue;
-        }
-        else if((func == CTL_MENU_ENCRYPT) || (func == CTL_MENU_DECRYPT))
-        {
-            status = encrypt(func);
-            if(STAT_GO_BACK == status)
-                continue;
-            else
-                CTL_ExitConsole();
-        }
-        else if(CTL_MENU_CHOOSE_LANGUAGE == func)
-        {
-            status = CTL_ChooseLanguage();
-            if(status != STAT_OK)
-            {
-                CTL_ExitConsole();
-                exit(0);
-            }
-            CTL_DrawStdScreen();
-            continue;
-        }        
-        
     }
-
     while(1);
-    CTL_ExitConsole();
-    return 0;
+    CTL_ExitConsole();    
 }
 
 

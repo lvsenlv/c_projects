@@ -10,7 +10,6 @@
 #endif
 
 #include "encryption.h"
-#include "control_str.h"
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -24,22 +23,8 @@ static G_STATUS Decrypt_KB_File(const char *pFileName, int64_t FileSize);
 static inline void ConvertFileFormat(char *pFileName);
 
 char g_password[CTL_PASSWORD_LENGHT_MAX];
-/*************************************************************************
-                            Redirect DISP
- ************************************************************************/
-static char g_buf[BUF_SIZE];
-#define     DISP(format, args...) \
-                snprintf(g_buf, sizeof(g_buf), format, ##args)
-#define     DISP_ERR_PLUS(format, args...) \
-                snprintf(g_buf, sizeof(g_buf), format, ##args)
-#ifdef __DEBUG
-#define     DISP_ERR(str) \
-                snprintf(g_buf, sizeof(g_buf), "[%s][%d]: %s \n", __func__, __LINE__, str)    
-#else //__DEBUG
-#define     DISP_ERR(str) \
-                snprintf(g_buf, sizeof(g_buf), "%s \n", str)
-#endif //__DEBUG
 
+#if 0
 G_STATUS encrypt(char func)
 {
     G_STATUS status;
@@ -64,11 +49,11 @@ G_STATUS encrypt(char func)
             break;
 
         if(g_FlagLanguage)
-            status = CTL_MakeChoice(NULL, 6, \
+            status = CTL_MakeChoice(6, \
             (COLS - strlen(g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO])*2/3), 
             g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO]);
         else
-            status = CTL_MakeChoice(NULL, 6, \
+            status = CTL_MakeChoice(6, \
             (COLS - strlen(g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO])), 
             g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO]);
         if(STAT_RETRY == status)
@@ -543,4 +528,5 @@ static inline void ConvertFileFormat(char *pFileName)
     }
 }
 
+#endif
 #endif

@@ -1,7 +1,7 @@
 CC = gcc
-OBJS = common.o control_str.o control.o encryption.o main.o
+OBJS = common.o control.o encryption.o main.o str.o
 OBJS_DIR = ./objects
-LIBS = -lncursesw
+LIBS = -lncursesw -lpthread
 DEF = -D__OS -D__LINUX -D__64BIT 
 $(shell mkdir -p $(OBJS_DIR))
 

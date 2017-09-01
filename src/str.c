@@ -5,8 +5,15 @@
 	> Created Time: August 18th,2017 Friday 08:51:45
  ************************************************************************/
 
-#include "common.h"
-#include "control_str.h"
+#include <stdio.h>
+#include "str.h"
+
+char *g_pMenuStr[] = {
+    "1. Instruction",
+    "2. Encrypt",
+    "3. Decrypt",
+    NULL,
+};
 
 char *pEnStr[] = {
     "Press Esc to exit project",
@@ -45,53 +52,13 @@ char *pEnStr[] = {
     "Error: Fail to delete old file",
 };
 
-char *pChStr[] = {
-    "按Esc键退出程序",
-    "加密系统",
-    "按Esc键退出程序 | 版本号 1.0.0 | Copyright 2017-2017",
-    "1. 使用说明", 
-    "2. 加密",
-    "3. 解密",
-    "4. 更改语言",       
-    "请输入文件或文件夹名（完整路径）",
-#ifdef __LINUX
-    "例如, /root/document/...",
-#elif defined __WINDOWS
-    "例如, C:/User/Administrator/...",
-#endif
-    "输入: ",
-    "[重试]",
-    "[返回]",
-    "此文件不存在",
-    "密码：",
-    "密码太短，至少8位",
-    "确认密码：",
-    "两次密码不匹配",
-    "[按Enter键返回]",
-    "加密：",
-    "解密：",
-    "按任意键继续",
-    "[成功]",
-    "错误：无法获取文件信息",
-    "错误：无法打开文件",
-    "错误，运行内存空间不足",
-    "错误：读取文件失败，请确保文件可读",
-    "错误：密码长度不能为0",
-    "错误：无法创建或打开文件",
-    "错误：写入文件失败，请确保文件可写",
-    "错误：无法删除旧文件",
-};
-
-char *pEnInstruction[] = {
-    "No more info temporarily",
-    NULL,
-};
-
-char *pChInstruction[] = {
-    "数据无价，请认真阅读",
-    "1. 此版本目前仅可用于Linux系统，所有功能均处于测试阶段；",
-    "2. 本软件采用\"无存储\"式加密方法，即不存储用户密码，",
-    "   软件会根据用户密码，生成加密因子进行加密，解密时同理，",
+char *pInstruction[] = {
+    "Please read it carefully",
+    "1. This project supports Windows or Linux, and all functions are in developing.",
+    "2. This project adopt  \"non-storage\" way, i.e don't save user's password.",
+    "   It will generate the factor to encrypt based on password.",
+    "   Decrption is the same with encryption. Thus, arbitrary password can decrypt,",
+    "   you will get corrupted files if password differs from that used to encrypt.",
     "   因此，任意密码均可解密，但与加密密码不一致时，将得到损坏的文件，",
     "   故，请牢记您的密码，密码丢失将永久无法解密；",
     "3. 为保证数据的安全性，本软件仅在原先文件的基础上生成加密文件，",
