@@ -48,10 +48,11 @@ typedef     unsigned long long              uint64_t;
 typedef enum {
     STAT_OK = 0,
     STAT_ERR,
-    
-    STAT_GO_BACK,
-    STAT_RETRY,
+
+    //expand
     STAT_EXIT,          //exit project with normal state
+    STAT_GO_BACK,
+    STAT_RETRY,    
 }G_STATUS;
 
 

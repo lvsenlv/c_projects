@@ -55,23 +55,28 @@ char *pEnStr[] = {
 char *pInstruction[] = {
     "Please read it carefully",
     "1. This project supports Windows or Linux, and all functions are in developing.",
-    "2. This project adopt  \"non-storage\" way, i.e don't save user's password.",
-    "   It will generate the factor to encrypt based on password.",
-    "   Decrption is the same with encryption. Thus, arbitrary password can decrypt,",
+    "",
+    "2. This project adopts \"non-storage\" way, i.e, don't save user's password.",
+    "   It will generate the factor to encrypt the file based on password.",
+    "   Decryption is same with encryption. Thus, arbitrary password can decrypt,",
     "   you will get corrupted files if password differs from that used to encrypt.",
-    "   因此，任意密码均可解密，但与加密密码不一致时，将得到损坏的文件，",
-    "   故，请牢记您的密码，密码丢失将永久无法解密；",
-    "3. 为保证数据的安全性，本软件仅在原先文件的基础上生成加密文件，",
-    "   原先文件依旧存在，可通过新的加密文件，解密得到原先的文件，",
-    "   建议用户完成加密后，手动将旧文件删除，否则解密时会将其覆盖，",
-    "   同理，解密完成后，确认得到正确文件后，建议删除原先的加密文件，",
-    "   用户可通过菜单下的对应选项，进行快速清理旧文件；",
+    "   Note: it is unable to decrypte foever if the password is lost.",
     "",
-    "温馨提示：",
-    "   本软件可加密单个文件，即可针对不同文件使用不同的加密密码，",
-    "   但不建议这么做，过多的密码易混淆且遗忘，易造成无法解密",
+    "3. To ensure data security, this program will generate decrypted files,",
+    "   i.e, the encrypted file will not be deleted.",
+#ifdef __LINUX    
+    "   You can run \"clean.sh\" to remove all encrypted files.",
+#elif defined __WINDOWS
+    "   You can run \"clean.bat\" to remove all encrypted files.",
+#endif
+    "   Note: when decrypted, the source file would be coverd if exist.",
     "",
-    "若有任何使用问题，请发送邮件至lvsen46000@163.com",
+    "Tips:",
+    "   It is not recommend that Encrypt multi files by running encrypt single files for many times, "
+    "i.e, encrypt multi files using different passwords.",
+    "   Note: it is easy to be confused and fogotten if there are lots of passwords.",
+    "",
+    "With any questions, please contact to lvsen46000@163.com",
     NULL,
 };
 

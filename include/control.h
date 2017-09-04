@@ -14,6 +14,7 @@
 #elif defined __WINDOWS
 #include "curses_win.h"
 #endif
+#include "str.h"
 
 typedef enum {
     CTL_MENU_SHOW_INSTRUCTION = 1,
@@ -23,15 +24,17 @@ typedef enum {
 }CTL_MENU;
 
 
-#define CLEAR_STR_SCR()                     system("clear");
+//#define CLEAR_STR_SCR()                     system("clear");
 
-#define CTL_CONSOLE_WIDTH                   80
-#define CTL_CONSOLE_HEIGHT                  24
+#define CTL_CONSOLE_COLS                    80
+#define CTL_CONSOLE_LINES                   24
 #define CTL_MENU_WIN_COLS                   20
 #define CTL_MENU_WIN_LINES                  (CTL_MENU_COUNT+3)
+#define CTL_GET_FILE_NAME_WIN_COLS          (sizeof(STR_INPUT_FILE_NAME)-1)
+#define CTL_GET_FILE_NAME_WIN_LINES         7
 
 #define CTL_ExitConsole()                   {endwin();exit(0);}
-#define CTL_PASSWORD_LENGHT_MAX             19
+#define CTL_PASSWORD_LENGHT_MAX             19 //real is 19-1=18
 #define CTL_PASSWORD_LENGHT_MIN             8
 #define CTL_FILE_NAME_LENGHT                128
 
@@ -43,13 +46,18 @@ enum
 };
 #endif
 
-G_STATUS CTL_InitConsole(void);
-G_STATUS CTL_ChooseFunc(char *pFunc);
-void CTL_ShowInstruction(void);
+typedef struct PtrLinkList
+{
+    char *ptr;
+    struct PtrLinkList *pNext_t;
+}PtrLinkList_t;
 
-G_STATUS CTL_ChooseLanguage(void);
+
+G_STATUS CTL_InitConsole(void);
+G_STATUS CTL_ShowMenu(char *pFunc);
+void CTL_ShowInstruction(void);
 G_STATUS CTL_GetFileName(char *pFileName);
+
 G_STATUS CTL_GetPassord(char *pPassword);
-G_STATUS CTL_MakeChoice(int lines, int cols, char *pStr);
 
 #endif

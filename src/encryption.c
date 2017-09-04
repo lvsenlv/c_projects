@@ -22,7 +22,62 @@ static G_STATUS Encrypt_GB_File(const char *pFileName, int64_t FileSize);
 static G_STATUS Decrypt_KB_File(const char *pFileName, int64_t FileSize);
 static inline void ConvertFileFormat(char *pFileName);
 
-char g_password[CTL_PASSWORD_LENGHT_MAX];
+//char g_password[CTL_PASSWORD_LENGHT_MAX];
+
+G_STATUS encrypt(void)
+{
+    G_STATUS status;
+    char FileName[CYT_FILE_NAME_LENGTH];
+#ifdef __LINUX
+        struct stat FileInfo; 
+#elif defined __WINDOWS
+        struct _stati64 FileInfo;
+#endif
+
+    while(1)
+    {
+        status = CTL_GetFileName(FileName);
+        if(status != STAT_OK)
+            return status;
+    }
+#if 0    
+#ifdef __LINUX
+        if(stat(FileName, &FileInfo) == 0)
+#elif defined __WINDOWS
+        if(_stati64(FileName, &FileInfo) != 0)            
+#endif
+            break;
+
+        if(g_FlagLanguage)
+            status = CTL_MakeChoice(6, \
+            (COLS - strlen(g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO])*2/3), 
+            g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO]);
+        else
+            status = CTL_MakeChoice(6, \
+            (COLS - strlen(g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO])), 
+            g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO]);
+        if(STAT_RETRY == status)
+            continue;
+        else
+           return status;
+    }
+
+    status = CTL_GetPassord(g_password);
+    if(status != STAT_OK)
+        return status;
+
+    if(S_IFREG & FileInfo.st_mode)
+    {
+        //ProcessSingleFile(FileName);
+    }
+    else if(S_IFDIR & FileInfo.st_mode)
+    {
+        //ProcessFolder(FileName);
+    }
+#endif    
+    return STAT_OK;
+}
+
 
 #if 0
 G_STATUS encrypt(char func)

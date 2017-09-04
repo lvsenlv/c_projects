@@ -24,7 +24,7 @@
 
 extern char g_password[CYT_PASSWORD_LENGHT];
 
-G_STATUS encrypt(char func);
+G_STATUS encrypt(void);
 
 #endif
 

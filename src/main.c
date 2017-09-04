@@ -8,7 +8,7 @@
 #include "common.h"
 #include "control.h"
 #include "str.h"
-//#include "encryption.h"
+#include "encryption.h"
 
 int main(void)
 {    
@@ -22,14 +22,21 @@ int main(void)
 
     while(1)
     {
-        status = CTL_ChooseFunc(&func);
+        status = CTL_ShowMenu(&func);
         if(status != STAT_OK)
             CTL_ExitConsole();
 
         if(CTL_MENU_SHOW_INSTRUCTION == func)
             CTL_ShowInstruction();
+        else if(CTL_MENU_ENCRYPT == func)
+        {
+            status = encrypt();
+            if(STAT_EXIT == status)
+                CTL_ExitConsole();
+        }
     }
     while(1);
+    
     CTL_ExitConsole();    
 }
 
