@@ -31,7 +31,6 @@
     #pragma message("Activate __REDIRECTION")
 #endif //__REDIRECTION
 
-
 #if (defined __LINUX ) || (defined __WINDOWS)
     #ifdef __REDIRECTION
         FILE *g_pDispFile = NULL;
@@ -56,6 +55,7 @@ void __attribute__((constructor)) BeforeMain(void)
     g_pDispFile = fopen("./log.txt", "a+");
     if(!g_pDispFile)
         g_pDispFile = stderr;
+
 #endif //__REDIRECTION
 }
 

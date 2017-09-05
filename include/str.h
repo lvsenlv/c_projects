@@ -23,8 +23,20 @@
 #define STR_RETRY                           "[ Retry ]"
 #define STR_BACK                            "[ Back ]"
 #define STR_FILE_NOT_EXIST                  "The file or directory does not exist"
-
-
+#define STR_DISP_ERR_INFO                   "Error Info"
+#define STR_FAIL_TO_GET_FILE_INFO           "Error: Fail to get file info"
+#define STR_INPUT_PASSWORD                  "Password: "
+#define STR_INPUT_PASSWORD_CONFIRM          "Confirm password: "
+#define STR_PASSWORD_TOO_SHORT              "Password too short, at least 8 bits"
+#define STR_PASSWORD_NOT_MATCH              "Two password do not match"
+#define STR_IN_ENCRYPTING                   "Encrypt: "
+#define STR_RATE                            "Rate: "
+#define STR_FOPEN_ERR                       "Fail to open file"
+#define STR_FAIL_TO_READ_FILE               "Fail to read file, make sure it is readable"
+#define STR_PASSWORD_NULL                   "Length of key could not be null"
+#define STR_FAIL_TO_CREATE_OPEN_FILE        "Fail to create or open file"
+#define STR_FAIL_TO_WRITE_FILE              "Fail to write to file, make sure it is writeable"
+#define STR_FAIL_TO_DELETE_OLD_FILE         "Fail to delete old file"
 
 #define STR_ERR_INVALID_COLS                "Error: need wider console, at least: "
 #define STR_ERR_INVALID_LINES               "Error: need higher console, at least: "
@@ -33,6 +45,8 @@
 #define STR_ERR_FAIL_TO_MALLOC              "Error: not enough running memory space"
 #define STR_ERR_STR_TOO_SHORT               "Error: string is too short in CTL_MakeChoice: "
 #define STR_ERR_STR_IS_NULL                 "Error: string is null in CTL_MakeChoice: "
+
+
 
 extern char *g_pMenuStr[];
 extern char *pInstruction[];

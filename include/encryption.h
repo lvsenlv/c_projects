@@ -18,13 +18,12 @@
 #define ENCRYPT_FILE_SUFFIX_NAME            ".ept"
 #define DECRYPT_FILE_SUFFIX_NAME            ".dpt"
 
-#define BUF_SIZE_SMALL                      ((uint32_t)(1024*1024))         //1Mb
-#define BUF_SIZE_MEDIUM                     ((uint32_t)(1024*1024*10))      //10Mb
-#define BUF_SIZE_LARGE                      ((uint32_t)(1024*1024*100))     //100Mb
+#define CYT_SMALL_FILE                      ((int64_t)(1024*1024*100))
 
 extern char g_password[CYT_PASSWORD_LENGHT];
 
-G_STATUS encrypt(void);
+
+G_STATUS EncryptDecrypt(char func);
 
 #endif
 

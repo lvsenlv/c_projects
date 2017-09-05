@@ -55,7 +55,6 @@ typedef enum {
     STAT_RETRY,    
 }G_STATUS;
 
-
 #if (defined __LINUX) || (defined __WINDOWS)
     #ifdef __REDIRECTION
         extern FILE *g_pDispFile;

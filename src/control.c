@@ -14,26 +14,26 @@
 #include <string.h>
 #include <sys/stat.h>
 
-static G_STATUS CTL_MakeChoice(const char*format, ...);
-
 G_STATUS CTL_InitConsole(void)
 {
     setlocale(LC_ALL,"");
     initscr();
     cbreak();
     nonl();
-    noecho();
+    echo();
     keypad(stdscr, true);
 
     if(COLS < CTL_CONSOLE_COLS)
     {
         endwin();
+        CLEAR_STR_SCR();
         DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_COLS, CTL_CONSOLE_COLS);
         return STAT_ERR;
     }
     if(LINES < CTL_CONSOLE_LINES)
     {
         endwin();
+        CLEAR_STR_SCR();
         DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_LINES, CTL_CONSOLE_LINES);
         return STAT_ERR;
     }
@@ -166,15 +166,15 @@ G_STATUS CTL_GetFileName(char *pFileName)
         (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, (COLS-CTL_GET_FILE_NAME_WIN_COLS)/2);
 
     G_STATUS status;
-    echo();
     keypad(win, false);
+    
     while(1)
     {
         mvhline(LINES-2, 2, ' ', COLS-3); //shield the end line of standard screen 
         refresh();
-            
-        mvwhline(win, 0, 0, '*', CTL_GET_FILE_NAME_WIN_COLS);
-        mvwhline(win, CTL_GET_FILE_NAME_WIN_LINES-1, 0, '*', CTL_GET_FILE_NAME_WIN_COLS);
+        
+        mvwhline(win, 0, 0, '-', CTL_GET_FILE_NAME_WIN_COLS);
+        mvwhline(win, CTL_GET_FILE_NAME_WIN_LINES-1, 0, '-', CTL_GET_FILE_NAME_WIN_COLS);
         
         mvwaddstr(win, 1, 0, STR_INPUT_FILE_NAME);
         mvwaddstr(win, 2, 0, STR_INPUT_FILE_NAME_EG);
@@ -197,7 +197,8 @@ G_STATUS CTL_GetFileName(char *pFileName)
         else if(STAT_GO_BACK == status)
         {
             delwin(win);
-            touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, CTL_GET_FILE_NAME_WIN_LINES);
+            touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, 
+                CTL_GET_FILE_NAME_WIN_LINES);
             attron(A_REVERSE | A_BOLD);
             mvaddstr(LINES-2, 2, STR_CONSOLE_END_LINE);
             attroff(A_REVERSE | A_BOLD);
@@ -209,7 +210,8 @@ G_STATUS CTL_GetFileName(char *pFileName)
     }
 
     delwin(win);
-    touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, CTL_GET_FILE_NAME_WIN_LINES);
+    touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, 
+        CTL_GET_FILE_NAME_WIN_LINES);
     attron(A_REVERSE | A_BOLD);
     mvaddstr(LINES-2, 2, STR_CONSOLE_END_LINE);
     attroff(A_REVERSE | A_BOLD);
@@ -218,288 +220,26 @@ G_STATUS CTL_GetFileName(char *pFileName)
     return STAT_OK;
 }
 
-/*
-    rules: "%s" means string
-    e.g: CTL_MakeChoice("%s%s", "It occurs fatal error", "Please make a choice");
-*/
-static G_STATUS CTL_MakeChoice(const char*format, ...)
-{
-    va_list pArg;
-    va_start(pArg, format);
-
-    PtrLinkList_t StrHeadNode;
-    PtrLinkList_t *pStrNode = &StrHeadNode;
-    PtrLinkList_t *pTmpNode;
-    const char *pFormat = format;
-    int lines = 0, cols, tmp = 0;
-
-    //parse format
-    while(*pFormat != '\0')
-    {
-        if('%' == *pFormat++)
-        {
-            if('s' == *pFormat)
-            {
-                lines++;
-                pTmpNode = (PtrLinkList_t *)malloc(sizeof(PtrLinkList_t));
-                if(NULL == pTmpNode)
-                {
-                    DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
-                    return STAT_ERR;
-                }
-                
-                pTmpNode->ptr = va_arg(pArg, char *);
-                tmp = strlen(pTmpNode->ptr);
-                if(tmp > cols)
-                {
-                    cols = tmp;
-                }
-                
-                pTmpNode->pNext_t = NULL;
-                pStrNode->pNext_t = pTmpNode;
-                pStrNode = pTmpNode;
-            }
-        }
-    }
-
-    va_end(pArg);
-
-    lines += 5;
-    if(lines > CTL_CONSOLE_LINES)
-    {
-        //free link list
-        pStrNode = StrHeadNode.pNext_t;
-        while(pStrNode != NULL)
-        {
-            pTmpNode = pStrNode->pNext_t;
-            free(pStrNode);
-            pStrNode = pTmpNode;
-        }
-
-        DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_LINES, lines);
-        return STAT_ERR;
-    }
-
-    cols += 4;
-    if(cols > CTL_CONSOLE_COLS)
-    {
-        //free link list
-        pStrNode = StrHeadNode.pNext_t;
-        while(pStrNode != NULL)
-        {
-            pTmpNode = pStrNode->pNext_t;
-            free(pStrNode);
-            pStrNode = pTmpNode;
-        }
-
-        DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_COLS, cols);
-        return STAT_ERR;
-    }
-#ifdef __DEBUG    
-    if(lines < 6) //top and bottom symbols is 4 lines, choice string is 1 lines
-    {
-        //free link list
-        pStrNode = StrHeadNode.pNext_t;
-        while(pStrNode != NULL)
-        {
-            pTmpNode = pStrNode->pNext_t;
-            free(pStrNode);
-            pStrNode = pTmpNode;
-        }
-
-        DISP_ERR_PLUS("%s%d\n", STR_ERR_STR_IS_NULL, lines);
-        return STAT_ERR;
-    }
-    if(cols < 20)  //STR_RETRY and STR_BACK are 16 bytes in total, side symbols are 4 bytes
-    {
-        //free link list
-        pStrNode = StrHeadNode.pNext_t;
-        while(pStrNode != NULL)
-        {
-            pTmpNode = pStrNode->pNext_t;
-            free(pStrNode);
-            pStrNode = pTmpNode;
-        }
-
-        DISP_ERR_PLUS("%s%d\n", STR_ERR_STR_TOO_SHORT, cols);
-        return STAT_ERR;
-    }
-#endif
-
-    WINDOW *win = newwin(lines, cols, (LINES-lines)/2, (COLS-cols)/2);
-    wborder(win, '#', '#', '#', '#', '#', '#', '#', '#');
-
-    int CurPosY = 2;
-    pStrNode = StrHeadNode.pNext_t;
-    while(pStrNode != NULL)
-    {
-        mvwaddstr(win, CurPosY++, 2, pStrNode->ptr);
-        pStrNode = pStrNode->pNext_t;
-    }
-
-    int Str1StartX = (cols-16)/3; //STR_RETRY and STR_BACK are about 16 bytes
-    int Str2StartX = cols - Str1StartX - 8; //STR_BACK is 8 bytes
-    int StartPosY = lines-1-2; //bottom symbols are 2 lines, and the line counts from 0
-    mvwaddstr(win, StartPosY, Str2StartX, STR_BACK);
-    wattron(win, A_REVERSE);
-    mvwaddstr(win, StartPosY, Str1StartX, STR_RETRY);
-    wattroff(win, A_REVERSE);
-
-    int flag = 0;
-    int key;
-    noecho();
-    keypad(win, true);
-    while(1)
-    {
-        key = wgetch(win);
-        if((KEY_LEFT == key) || (KEY_RIGHT == key))
-        {
-            flag ^= 1;
-        }        
-        else if(27 == key) //Esc key
-        {            
-            //free link list
-            pStrNode = StrHeadNode.pNext_t;
-            while(pStrNode != NULL)
-            {
-                pTmpNode = pStrNode->pNext_t;
-                free(pStrNode);
-                pStrNode = pTmpNode;
-            }
-
-            delwin(win);
-            return STAT_EXIT;
-        }
-        else if(13 == key) //Enter key
-            break;
-        else
-            continue;
-
-        if(flag)
-        {
-            mvwaddstr(win, StartPosY, Str1StartX, STR_RETRY);
-            wattron(win, A_REVERSE);
-            mvwaddstr(win, StartPosY, Str2StartX, STR_BACK);
-            wattroff(win, A_REVERSE);
-        }
-        else
-        {
-            mvwaddstr(win, StartPosY, Str2StartX, STR_BACK);
-            wattron(win, A_REVERSE);
-            mvwaddstr(win, StartPosY, Str1StartX, STR_RETRY);
-            wattroff(win, A_REVERSE);
-        }
-    }
-    
-    delwin(win);
-    touchline(stdscr, (LINES-lines)/2, lines);
-    refresh();
-
-    //free link list
-    pStrNode = StrHeadNode.pNext_t;
-    while(pStrNode != NULL)
-    {
-        pTmpNode = pStrNode->pNext_t;
-        free(pStrNode);
-        pStrNode = pTmpNode;
-    }    
-
-    if(flag)
-        return STAT_GO_BACK;
-
-    return STAT_RETRY;
-}
-
-
-#if 0
-G_STATUS CTL_GetFileName(char *pFileName)
-{    
-    int lines = 7, cols = strlen(g_pStr[CTL_STR_INPUT_FILE_NAME]);
-    if(g_FlagLanguage)
-    {
-        cols = cols * 2 / 3;
-    }
-
-    WINDOW *win = newwin(lines, cols, (LINES-lines)/2, (COLS-cols)/2);
-
-    G_STATUS status;
-    while(1)
-    {
-        mvhline(LINES-2, 2, ' ', COLS-3);
-        refresh();
-            
-        mvwhline(win, 0, 0, '*', cols);
-        mvwhline(win, 6, 0, '*', cols);
-
-        echo();
-        keypad(win, false);
-        mvwaddstr(win, 1, 0, g_pStr[CTL_STR_INPUT_FILE_NAME]);
-        mvwaddstr(win, 2, 0, g_pStr[CTL_STR_INPUT_FILE_NAME_EG]);
-        mvwaddstr(win, 3, 0, g_pStr[CTL_STR_INPUT]);
-        mvwgetnstr(win, 3, strlen(g_pStr[CTL_STR_INPUT]), pFileName, CTL_FILE_NAME_LENGHT-1);
-        if(0 == access(pFileName, F_OK))
-            break;
-
-        attron(A_REVERSE | A_BOLD);
-        mvaddstr(LINES-2, 2, g_pStr[CTL_STR_END_LINE]);
-        attroff(A_REVERSE | A_BOLD);
-        refresh();
-
-        status = CTL_MakeChoice(lines, cols, g_pStr[CTL_STR_FILE_NOT_EXIST]);
-        if(STAT_EXIT == status)
-        {
-            delwin(win);
-            return STAT_EXIT;
-        }
-        else if(STAT_GO_BACK == status)
-        {
-            delwin(win);
-            touchline(stdscr, (LINES-lines)/2, lines);
-            attron(A_REVERSE | A_BOLD);
-            mvaddstr(LINES-2, 2, g_pStr[CTL_STR_END_LINE]);
-            attroff(A_REVERSE | A_BOLD);
-            refresh();
-            return STAT_GO_BACK;
-        }
-        //wclear(win);
-    }
-
-    delwin(win);
-    touchline(stdscr, (LINES-lines)/2, lines);
-    attron(A_REVERSE | A_BOLD);
-    mvaddstr(LINES-2, 2, g_pStr[CTL_STR_END_LINE]);
-    attroff(A_REVERSE | A_BOLD);
-    refresh();
-
-    return STAT_OK;
-}
-
 G_STATUS CTL_GetPassord(char *pPassword)
 {
-    int lines = 6, cols = strlen(g_pStr[CTL_STR_INPUT_PASSWORD_CONFIRM]);
-    if(g_FlagLanguage)
-        cols = cols * 2 / 3;
-    cols += CTL_PASSWORD_LENGHT_MAX;
+    WINDOW *win = newwin(CTL_GET_PASSWORD_WIN_LINES, CTL_GET_PASSWORD_WIN_COLS, 
+        (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, (COLS-CTL_GET_PASSWORD_WIN_COLS)/2);
 
-    WINDOW *win = newwin(lines, cols, (LINES-lines)/2, (COLS-cols)/2);
-
+    G_STATUS status;
     char buf[CTL_PASSWORD_LENGHT_MAX];
     int key, i;
-    int CurPosX;
-    G_STATUS status;
-    keypad(win, true);
-    noecho();
+    int CurPosX;    
+    keypad(win, true);    
     while(1)
     {
-        mvwhline(win, 0, 0, '*', cols);
-        mvwhline(win, 5, 0, '*', cols);
+        noecho();
+        mvwhline(win, 0, 0, '-', CTL_GET_PASSWORD_WIN_COLS);
+        mvwhline(win, 5, 0, '-', CTL_GET_PASSWORD_WIN_COLS);
 
         i = 0;
-        CurPosX = strlen(g_pStr[CTL_STR_INPUT_PASSWORD]);
-        if(g_FlagLanguage)
-            CurPosX = CurPosX * 2 / 3;
-        mvwaddstr(win, 3, 0, g_pStr[CTL_STR_INPUT_PASSWORD_CONFIRM]);
-        mvwaddstr(win, 2, 0, g_pStr[CTL_STR_INPUT_PASSWORD]);
+        CurPosX = sizeof(STR_INPUT_PASSWORD)-1;
+        mvwaddstr(win, 3, 0, STR_INPUT_PASSWORD_CONFIRM);
+        mvwaddstr(win, 2, 0, STR_INPUT_PASSWORD);
         while(1)
         {
             key = wgetch(win);
@@ -528,7 +268,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
                 delwin(win);
                 return STAT_EXIT;
             }
-            else if(13 == key) //Enter key
+            else if((13 == key) || (9 == key)) //Enter key or Tab key
                 break;
             else 
                 continue;
@@ -539,7 +279,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
 
         if(i < CTL_PASSWORD_LENGHT_MIN)
         {
-            status = CTL_MakeChoice(lines, cols, g_pStr[CTL_STR_PASSWORD_TOO_SHORT]);
+            status = CTL_MakeChoice("%s", STR_PASSWORD_TOO_SHORT);
             if(STAT_EXIT == status)
             {
                 delwin(win);
@@ -548,16 +288,23 @@ G_STATUS CTL_GetPassord(char *pPassword)
             else if(STAT_GO_BACK == status)
             {
                 delwin(win);
-                touchline(stdscr, (LINES-lines)/2, lines);
+                touchline(stdscr, (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, 
+                    CTL_GET_PASSWORD_WIN_LINES);
                 refresh();
                 return STAT_GO_BACK;
             }
-            wclear(win);
-            continue;
+            else if(STAT_RETRY == status)
+            {
+                wclear(win);
+                continue;
+            }
+            else
+                return status;
         }
 
+        noecho();
         i = 0;
-        CurPosX = cols-CTL_PASSWORD_LENGHT_MAX;
+        CurPosX = CTL_GET_PASSWORD_WIN_COLS - CTL_PASSWORD_LENGHT_MAX;
         wmove(win, 3, CurPosX);
         while(1)
         {
@@ -599,7 +346,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
         if(strcmp(pPassword, buf) == 0)
             break;
 
-        status = CTL_MakeChoice(lines, cols, g_pStr[CTL_STR_PASSWORD_NOT_MATCH]);
+        status = CTL_MakeChoice("%s", STR_PASSWORD_NOT_MATCH);
         if(STAT_EXIT == status)
         {
             delwin(win);
@@ -608,42 +355,126 @@ G_STATUS CTL_GetPassord(char *pPassword)
         else if(STAT_GO_BACK == status)
         {
             delwin(win);
-            touchline(stdscr, (LINES-lines)/2, lines);
+            touchline(stdscr, (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, 
+                CTL_GET_PASSWORD_WIN_LINES);
             refresh();
             return STAT_GO_BACK;
         }
-        
-        wclear(win);
+        else if(STAT_RETRY == status)
+        {
+            wclear(win);
+            continue;
+        }
+        else
+            return status;
     }
 
     delwin(win);
-    touchline(stdscr, (LINES-lines)/2, lines);
+    touchline(stdscr, (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, 
+        CTL_GET_PASSWORD_WIN_LINES);
     refresh();
     return STAT_OK;
 }
 
-G_STATUS CTL_MakeChoice(int lines, int cols, char *pStr)
+
+
+/*
+    rules: "%s" means string
+    e.g: CTL_MakeChoice("%s%s", "It occurs fatal error", "Please make a choice");
+*/
+G_STATUS CTL_MakeChoice(const char*format, ...)
 {
-    if(cols < 18) //CTL_STR_RETRY and CTL_STR_BACK are about 12 bytes. Rest 6 bytes is space
-        cols = COLS/2;
+    va_list pArg;
+    va_start(pArg, format);
+
+    PtrLinkList_t StrHeadNode;
+    PtrLinkList_t *pStrNode = &StrHeadNode;
+    PtrLinkList_t *pTmpNode;
+    const char *pFormat = format;
+    int lines = 0, cols = 20, tmp = 0;
+
+    //parse format
+    while(*pFormat != '\0')
+    {
+        if('%' == *pFormat++)
+        {
+            if('s' == *pFormat)
+            {
+                lines++;
+                pTmpNode = (PtrLinkList_t *)malloc(sizeof(PtrLinkList_t));
+                if(NULL == pTmpNode)
+                {
+                    endwin();
+                    CLEAR_STR_SCR();
+                    DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
+                    return STAT_ERR;
+                }
+                
+                pTmpNode->ptr = va_arg(pArg, char *);
+                tmp = strlen(pTmpNode->ptr);
+                if(tmp > cols)
+                {
+                    cols = tmp;
+                }
+                
+                pTmpNode->pNext_t = NULL;
+                pStrNode->pNext_t = pTmpNode;
+                pStrNode = pTmpNode;
+            }
+        }
+    }
+
+    va_end(pArg);
+
+    lines += 5;
+    if(lines > CTL_CONSOLE_LINES)
+    {
+        FreePtrLinkList(&StrHeadNode);
+        endwin();
+        CLEAR_STR_SCR();
+        DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_LINES, lines);
+        return STAT_ERR;
+    }
+
+    cols += 4;
+    if(cols > CTL_CONSOLE_COLS)
+    {
+        FreePtrLinkList(&StrHeadNode);
+        DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_COLS, cols);
+        return STAT_ERR;
+    }
+#ifdef __DEBUG    
+    if(lines < 6) //top and bottom symbols is 4 lines, choice string is 1 lines
+    {
+        FreePtrLinkList(&StrHeadNode);
+        DISP_ERR_PLUS("%s%d\n", STR_ERR_STR_IS_NULL, lines);
+        return STAT_ERR;
+    }
+    if(cols < 20)  //STR_RETRY and STR_BACK are 16 bytes in total, side symbols are 4 bytes
+    {
+        FreePtrLinkList(&StrHeadNode);
+        DISP_ERR_PLUS("%s%d\n", STR_ERR_STR_TOO_SHORT, cols);
+        return STAT_ERR;
+    }
+#endif
 
     WINDOW *win = newwin(lines, cols, (LINES-lines)/2, (COLS-cols)/2);
-    wborder(win, '#', '#', '#', '#', '#', '#', '#', '#');
+    wborder(win, '*', '*', '*', '*', '*', '*', '*', '*');
 
-    int Str1StartX = (cols-12)/3; //CTL_STR_RETRY and CTL_STR_BACK are about 12 bytes
-    int Str2StartX = cols - Str1StartX - 6;
-    int StartPosY = (lines-2)/2 + 1;
-    if(g_FlagLanguage)
+    int CurPosY = 2;
+    pStrNode = StrHeadNode.pNext_t;
+    while(pStrNode != NULL)
     {
-        mvwaddstr(win, (lines-2)/2, (cols - strlen(pStr)*2/3)/2, pStr);
+        mvwaddstr(win, CurPosY++, 2, pStrNode->ptr);
+        pStrNode = pStrNode->pNext_t;
     }
-    else
-    {
-        mvwaddstr(win, (lines-2)/2, (cols-strlen(pStr))/2, pStr);
-    }
-    mvwaddstr(win, StartPosY, Str2StartX, g_pStr[CTL_STR_BACK]);
+
+    int Str1StartX = (cols-16)/3; //STR_RETRY and STR_BACK are about 16 bytes
+    int Str2StartX = cols - Str1StartX - 8; //STR_BACK is 8 bytes
+    int StartPosY = lines-1-2; //bottom symbols are 2 lines, and the line counts from 0
+    mvwaddstr(win, StartPosY, Str2StartX, STR_BACK);
     wattron(win, A_REVERSE);
-    mvwaddstr(win, StartPosY, Str1StartX, g_pStr[CTL_STR_RETRY]);
+    mvwaddstr(win, StartPosY, Str1StartX, STR_RETRY);
     wattroff(win, A_REVERSE);
 
     int flag = 0;
@@ -658,7 +489,8 @@ G_STATUS CTL_MakeChoice(int lines, int cols, char *pStr)
             flag ^= 1;
         }        
         else if(27 == key) //Esc key
-        {
+        {            
+            FreePtrLinkList(&StrHeadNode);
             delwin(win);
             return STAT_EXIT;
         }
@@ -669,27 +501,33 @@ G_STATUS CTL_MakeChoice(int lines, int cols, char *pStr)
 
         if(flag)
         {
-            mvwaddstr(win, StartPosY, Str1StartX, g_pStr[CTL_STR_RETRY]);
+            mvwaddstr(win, StartPosY, Str1StartX, STR_RETRY);
             wattron(win, A_REVERSE);
-            mvwaddstr(win, StartPosY, Str2StartX, g_pStr[CTL_STR_BACK]);
+            mvwaddstr(win, StartPosY, Str2StartX, STR_BACK);
             wattroff(win, A_REVERSE);
         }
         else
         {
-            mvwaddstr(win, StartPosY, Str2StartX, g_pStr[CTL_STR_BACK]);
+            mvwaddstr(win, StartPosY, Str2StartX, STR_BACK);
             wattron(win, A_REVERSE);
-            mvwaddstr(win, StartPosY, Str1StartX, g_pStr[CTL_STR_RETRY]);
+            mvwaddstr(win, StartPosY, Str1StartX, STR_RETRY);
             wattroff(win, A_REVERSE);
         }
     }
 
+    echo();
     delwin(win);
     touchline(stdscr, (LINES-lines)/2, lines);
     refresh();
+
+    FreePtrLinkList(&StrHeadNode);
 
     if(flag)
         return STAT_GO_BACK;
 
     return STAT_RETRY;
 }
+
+#if 0
+
 #endif

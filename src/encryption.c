@@ -14,17 +14,16 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-static G_STATUS EncryptDecryptFile(char func);
-static inline G_STATUS GetFileSize(const char *pFileName, int64_t *pFileSize);
-static G_STATUS Encrypt_KB_File(const char *pFileName, int64_t FileSize);
-static G_STATUS Encrypt_MB_File(const char *pFileName, int64_t FileSize);
-static G_STATUS Encrypt_GB_File(const char *pFileName, int64_t FileSize);
-static G_STATUS Decrypt_KB_File(const char *pFileName, int64_t FileSize);
+static G_STATUS EncryptFile(char *pFileName, int64_t FileSize);
+static G_STATUS DecryptFile(char *pFileName, int64_t FileSize);
+static G_STATUS EncryptSmallFile(const char *pFileName, int64_t FileSize);
+static G_STATUS DecryptSmallFile(const char *pFileName, int64_t FileSize);
+static inline void DeleteEncyptSuffix(char *pFileName);
 static inline void ConvertFileFormat(char *pFileName);
 
-//char g_password[CTL_PASSWORD_LENGHT_MAX];
+char g_password[CTL_PASSWORD_LENGHT_MAX];
 
-G_STATUS encrypt(void)
+G_STATUS EncryptDecrypt(char func)
 {
     G_STATUS status;
     char FileName[CYT_FILE_NAME_LENGTH];
@@ -39,23 +38,15 @@ G_STATUS encrypt(void)
         status = CTL_GetFileName(FileName);
         if(status != STAT_OK)
             return status;
-    }
-#if 0    
+
 #ifdef __LINUX
         if(stat(FileName, &FileInfo) == 0)
 #elif defined __WINDOWS
-        if(_stati64(FileName, &FileInfo) != 0)            
+        if(_stati64(FileName, &FileInfo) != 0)
 #endif
             break;
 
-        if(g_FlagLanguage)
-            status = CTL_MakeChoice(6, \
-            (COLS - strlen(g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO])*2/3), 
-            g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO]);
-        else
-            status = CTL_MakeChoice(6, \
-            (COLS - strlen(g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO])), 
-            g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO]);
+        status = CTL_MakeChoice("%s", STR_FAIL_TO_GET_FILE_INFO);
         if(STAT_RETRY == status)
             continue;
         else
@@ -67,185 +58,110 @@ G_STATUS encrypt(void)
         return status;
 
     if(S_IFREG & FileInfo.st_mode)
-    {
-        //ProcessSingleFile(FileName);
-    }
-    else if(S_IFDIR & FileInfo.st_mode)
-    {
-        //ProcessFolder(FileName);
-    }
-#endif    
-    return STAT_OK;
-}
-
-
-#if 0
-G_STATUS encrypt(char func)
-{
-    G_STATUS status;
-    char FileName[CYT_FILE_NAME_LENGTH];
-#ifdef __LINUX
-        struct stat FileInfo; 
-#elif defined __WINDOWS
-        struct _stati64 FileInfo;
-#endif
-
-    while(1)
-    {
-        status = CTL_GetFileName(FileName);
-        if(status != STAT_OK)
-            return status;
-    
-#ifdef __LINUX
-        if(stat(FileName, &FileInfo) == 0)
-#elif defined __WINDOWS
-        if(_stati64(FileName, &FileInfo) != 0)            
-#endif
-            break;
-
-        if(g_FlagLanguage)
-            status = CTL_MakeChoice(6, \
-            (COLS - strlen(g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO])*2/3), 
-            g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO]);
-        else
-            status = CTL_MakeChoice(6, \
-            (COLS - strlen(g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO])), 
-            g_pStr[CTL_STR_ERR_FAIL_TO_GET_FILE_INFO]);
-        if(STAT_RETRY == status)
-            continue;
-        else
-           return status;
-    }
-
-    status = CTL_GetPassord(g_password);
-    if(status != STAT_OK)
-        return status;
-
-    if(S_IFREG & FileInfo.st_mode)
-    {
-        //ProcessSingleFile(FileName);
-    }
-    else if(S_IFDIR & FileInfo.st_mode)
-    {
-        //ProcessFolder(FileName);
-    }
-    
-    return STAT_OK;
-}
-
-#if 0
-static G_STATUS EncryptDecryptFile(char func)
-{    
-    G_STATUS status;
-    char FileName[CYT_FILE_NAME_LENGTH];
-    status = CTL_GetFileName(FileName);
-    if(status != STAT_OK)
-        return status; 
-
-    status = CTL_GetPassord(g_password);
-    if(status != STAT_OK)
-        return status;
-    
-    int64_t FileSize = 0;
-    status = GetFileSize(FileName, &FileSize);
-    if(status != STAT_OK)
-        return STAT_GO_BACK;
-
-    WINDOW *win = newwin(LINES, COLS, 0, 0);
-    if(CTL_MENU_ENCRYPT == func)
-        wprintw(win, "%s%s ", g_pStr[CTL_STR_IN_ENCRYPTING], FileName);
-    else if(CTL_MENU_DECRYPT == func)
-        wprintw(win, "%s%s ", g_pStr[CTL_STR_IN_DECRYPTING], FileName);
-    wrefresh(win);
-    if(FileSize <= BUF_SIZE_SMALL)
     {
         if(CTL_MENU_ENCRYPT == func)
-            status = Encrypt_KB_File(FileName, FileSize);
-        else if(CTL_MENU_DECRYPT == func)
-            status = Decrypt_KB_File(FileName, FileSize);
-        if(status != STAT_OK)
         {
-            wprintw(win, "%s \n", g_buf);
-            wprintw(win, "%s", g_pStr[CTL_STR_ANY_KEY]);
-            wgetch(win);
-            delwin(win);
-            touchwin(stdscr);
-            refresh();
-            return STAT_GO_BACK;
+            EncryptFile(FileName, FileInfo.st_size);
+        }
+        else if(CTL_MENU_DECRYPT == func)
+        {
+            DecryptFile(FileName, FileInfo.st_size);
+        }
+        
+    }
+    else if(S_IFDIR & FileInfo.st_mode)
+    {
+        if(CTL_MENU_ENCRYPT == func)
+        {
+            //EncryptFolder();
+        }
+        else if(CTL_MENU_DECRYPT == func)
+        {
+            //DecryptFolder();
         }
     }
-    wprintw(win, "%s \n", g_pStr[CTL_STR_SUCCESS]);
-    wprintw(win, "%s", g_pStr[CTL_STR_ANY_KEY]);
+
+    return STAT_OK;
+}
+
+static G_STATUS EncryptFile(char *pFileName, int64_t FileSize)
+{    
+    WINDOW *win = newwin(LINES, COLS, 0, 0);
+    mvwprintw(win, 0, 0, "%s%s\n", STR_IN_ENCRYPTING, pFileName);
+    //wprintw(win, "%s", STR_RATE);
+    wrefresh(win);
+
+    G_STATUS status;
+    if(FileSize < CYT_SMALL_FILE)
+    {
+        status = EncryptSmallFile(pFileName, FileSize);
+    }
+
+    if(STAT_OK == status)
+        wprintw(win, "success");
+    else
+        wprintw(win, "failed");
+
     wgetch(win);
+
     delwin(win);
     touchwin(stdscr);
     refresh();
     return STAT_OK;
 }
 
-#ifdef __LINUX    
-static inline G_STATUS GetFileSize(const char *pFileName, int64_t *pFileSize)
-{
-    struct stat FileInfo;
-    int res = 0;
+static G_STATUS DecryptFile(char *pFileName, int64_t FileSize)
+{    
+    WINDOW *win = newwin(LINES, COLS, 0, 0);
+    mvwprintw(win, 0, 0, "%s%s\n", STR_IN_ENCRYPTING, pFileName);
+    //wprintw(win, "%s", STR_RATE);
+    wrefresh(win);
 
-    res = stat(pFileName, &FileInfo);
-   
-    if(res != 0)
+    G_STATUS status;
+    if(FileSize < CYT_SMALL_FILE)
     {
-        DISP_ERR(g_pStr[CTL_STR_ERR_GET_FILE_INFO_ERR]);
-        return STAT_ERR;
+        status = DecryptSmallFile(pFileName, FileSize);
     }
 
-    *pFileSize = FileInfo.st_size;
-    
-    return STAT_OK;
-}
-#elif defined __WINDOWS
-static inline G_STATUS GetFileSize(const char *pFileName, int64_t *pFileSize)
-{
-    struct _stati64 FileInfo;
-    int res = 0;
+    if(STAT_OK == status)
+        wprintw(win, "success");
+    else
+        wprintw(win, "failed");
 
-    res = _stati64(pFileName, &FileInfo);
-   
-    if(res != 0)
-    {
-        DISP_ERR(g_pStr[CTL_STR_ERR_GET_FILE_INFO_ERR]);
-        return STAT_ERR;
-    }
-    
-    *pFileSize = FileInfo.st_size;
-    
+    wgetch(win);
+
+    delwin(win);
+    touchwin(stdscr);
+    refresh();
     return STAT_OK;
 }
-#endif
+
 
 /*************************************************************************
                    Core codes of encryption algorithm
 ************************************************************************/
 
-static G_STATUS Encrypt_KB_File(const char *pFileName, int64_t FileSize)
+static G_STATUS EncryptSmallFile(const char *pFileName, int64_t FileSize)
 {
     FILE *fp = NULL;
     fp = fopen(pFileName, "rb");
     if(NULL == fp)
     {
-        DISP_ERR(g_pStr[CTL_STR_ERR_FOPEN_ERR]);
+        DISP_ERR(STR_FOPEN_ERR);
         return STAT_ERR;
     }
     
     //read data from original file
     uint8_t *pData = NULL;
-    pData = (uint8_t *)malloc(sizeof(uint8_t) * BUF_SIZE_SMALL);
+    pData = (uint8_t *)malloc(sizeof(uint8_t) * CYT_SMALL_FILE);
     if(NULL == pData)
     {
         fclose(fp);
-        DISP_ERR(g_pStr[CTL_STR_ERR_MALLOC_ERR]);
+        DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
         return STAT_ERR;
     }
     
-    memset(pData, 0, sizeof(uint8_t)*BUF_SIZE_SMALL);
+    memset(pData, 0, sizeof(uint8_t)*CYT_SMALL_FILE);
     fseek(fp, 0, SEEK_SET);
     int64_t size = 0;
     size = fread(pData, sizeof(uint8_t), FileSize, fp);
@@ -253,7 +169,7 @@ static G_STATUS Encrypt_KB_File(const char *pFileName, int64_t FileSize)
     {
         free(pData);
         fclose(fp);
-        DISP_ERR(g_pStr[CTL_STR_ERR_FAIL_TO_READ_FILE]);        
+        DISP_ERR(STR_FAIL_TO_READ_FILE);        
         return STAT_ERR;
     }
 
@@ -273,7 +189,7 @@ static G_STATUS Encrypt_KB_File(const char *pFileName, int64_t FileSize)
     if(0 == PasswordLenght)
     {
         free(pData);
-        DISP_ERR(g_pStr[CTL_STR_ERR_PASSWORD_NULL]);
+        DISP_ERR(STR_PASSWORD_NULL);
         return STAT_ERR;
     }
     EncyptFactor %= 8;
@@ -316,7 +232,7 @@ static G_STATUS Encrypt_KB_File(const char *pFileName, int64_t FileSize)
         {
             free(pData);
             fclose(fp);
-            DISP_ERR(g_pStr[CTL_STR_ERR_MALLOC_ERR]);
+            DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
             return STAT_ERR;
         }
         
@@ -367,7 +283,7 @@ static G_STATUS Encrypt_KB_File(const char *pFileName, int64_t FileSize)
     if(NULL == fp)
     {
         free(pData);
-        DISP_ERR(g_pStr[CTL_STR_ERR_FAIL_TO_CREATE_OPEN_FILE]);
+        DISP_ERR(STR_FAIL_TO_CREATE_OPEN_FILE);
         return STAT_ERR;
     }
     
@@ -376,7 +292,7 @@ static G_STATUS Encrypt_KB_File(const char *pFileName, int64_t FileSize)
     {        
         free(pData);
         fclose(fp);
-        DISP_ERR(g_pStr[CTL_STR_ERR_FAIL_TO_WRITE_FILE]);
+        DISP_ERR(STR_FAIL_TO_WRITE_FILE);
         return STAT_ERR;
     }
 
@@ -393,7 +309,7 @@ static G_STATUS Encrypt_KB_File(const char *pFileName, int64_t FileSize)
     fp = popen(NewFileName, "r");
     if(NULL == fp)
     {
-        DISP_ERR(g_pStr[CTL_STR_ERR_FAIL_TO_DELETE_OLD_FILE]);
+        DISP_ERR(STR_FAIL_TO_DELETE_OLD_FILE);
         return STAT_ERR;
     }
 
@@ -401,37 +317,27 @@ static G_STATUS Encrypt_KB_File(const char *pFileName, int64_t FileSize)
     return STAT_OK;
 }
 
-static G_STATUS Encrypt_MB_File(const char *pFileName, int64_t FileSize)
-{
-    return STAT_OK;
-}
-
-static G_STATUS Encrypt_GB_File(const char *pFileName, int64_t FileSize)
-{
-    return STAT_OK;
-}
-
-static G_STATUS Decrypt_KB_File(const char *pFileName, int64_t FileSize)
+static G_STATUS DecryptSmallFile(const char *pFileName, int64_t FileSize)
 {
     FILE *fp = NULL;
     fp = fopen(pFileName, "rb");
     if(NULL == fp)
     {
-        DISP_ERR(g_pStr[CTL_STR_ERR_FOPEN_ERR]);
+        DISP_ERR(STR_FOPEN_ERR);
         return STAT_ERR;
     }
     
     //read data from original file
     uint8_t *pData = NULL;
-    pData = (uint8_t *)malloc(sizeof(uint8_t) * BUF_SIZE_SMALL);
+    pData = (uint8_t *)malloc(sizeof(uint8_t) * CYT_SMALL_FILE);
     if(NULL == pData)
     {
         fclose(fp);
-        DISP_ERR(g_pStr[CTL_STR_ERR_MALLOC_ERR]);
+        DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
         return STAT_ERR;
     }
     
-    memset(pData, 0, sizeof(uint8_t)*BUF_SIZE_SMALL);
+    memset(pData, 0, sizeof(uint8_t)*CYT_SMALL_FILE);
     fseek(fp, 0, SEEK_SET);
     int64_t size = 0;
     size = fread(pData, sizeof(uint8_t), FileSize, fp);
@@ -439,7 +345,7 @@ static G_STATUS Decrypt_KB_File(const char *pFileName, int64_t FileSize)
     {
         free(pData);
         fclose(fp);
-        DISP_ERR(g_pStr[CTL_STR_ERR_FAIL_TO_READ_FILE]);        
+        DISP_ERR(STR_FAIL_TO_READ_FILE);        
         return STAT_ERR;
     }
 
@@ -457,7 +363,7 @@ static G_STATUS Decrypt_KB_File(const char *pFileName, int64_t FileSize)
     {
         free(pData);
         fclose(fp);
-        DISP_ERR(g_pStr[CTL_STR_ERR_PASSWORD_NULL]);
+        DISP_ERR(STR_PASSWORD_NULL);
         return STAT_ERR;
     }
     EncyptFactor %= 8;
@@ -504,7 +410,7 @@ static G_STATUS Decrypt_KB_File(const char *pFileName, int64_t FileSize)
         {
             free(pData);
             fclose(fp);
-            DISP_ERR(g_pStr[CTL_STR_ERR_MALLOC_ERR]);
+            DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
             return STAT_ERR;
         }
         
@@ -546,13 +452,14 @@ static G_STATUS Decrypt_KB_File(const char *pFileName, int64_t FileSize)
 
     //write encyption data to new file
     char NewFileName[CYT_FILE_NAME_LENGTH];
-    snprintf(NewFileName, sizeof(NewFileName), "%s%s", pFileName, DECRYPT_FILE_SUFFIX_NAME);
+    snprintf(NewFileName, sizeof(NewFileName), "%s", pFileName);
+    DeleteEncyptSuffix(NewFileName);
     FILE *NewFp = fopen(NewFileName, "wb+");
     if(NULL == NewFp)
     {
         free(pData);
         fclose(fp);
-        DISP_ERR(g_pStr[CTL_STR_ERR_FAIL_TO_CREATE_OPEN_FILE]);
+        DISP_ERR(STR_FAIL_TO_CREATE_OPEN_FILE);
         return STAT_ERR;
     }
     
@@ -562,7 +469,7 @@ static G_STATUS Decrypt_KB_File(const char *pFileName, int64_t FileSize)
         free(pData);
         fclose(fp);
         fclose(NewFp);
-        DISP_ERR(g_pStr[CTL_STR_ERR_FAIL_TO_WRITE_FILE]);
+        DISP_ERR(STR_FAIL_TO_WRITE_FILE);
         return STAT_ERR;
     }
 
@@ -571,6 +478,22 @@ static G_STATUS Decrypt_KB_File(const char *pFileName, int64_t FileSize)
     fclose(NewFp);
     
     return STAT_OK;
+}
+
+static inline void DeleteEncyptSuffix(char *pFileName)
+{
+    int len = strlen(pFileName);
+    char *ptr = pFileName + len - 1;
+
+    while((*ptr != '.') && (len > 0))
+    {
+        ptr--;
+        len--;
+    }
+
+    if(len != 0)
+        *ptr = '\0';
+
 }
 
 static inline void ConvertFileFormat(char *pFileName)
@@ -582,6 +505,3 @@ static inline void ConvertFileFormat(char *pFileName)
         pFileName++;
     }
 }
-
-#endif
-#endif
