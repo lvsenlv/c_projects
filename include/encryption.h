@@ -18,7 +18,11 @@
 #define ENCRYPT_FILE_SUFFIX_NAME            ".ept"
 #define DECRYPT_FILE_SUFFIX_NAME            ".dpt"
 
-#define CYT_SMALL_FILE                      ((int64_t)(1024*1024*100))
+#define CYT_SMALL_FILE_SIZE                 ((int64_t)(1024*1024*50)) //50Mb
+
+extern FILE *g_pDispFile;
+#define     DISP_LOG(file, reason) \
+            fprintf(g_pDispFile, "[FileName]: %s\n[Reason]: %s\n", file, reason)
 
 extern char g_password[CYT_PASSWORD_LENGHT];
 

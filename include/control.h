@@ -23,13 +23,6 @@ typedef enum {
     CTL_MENU_COUNT,
 }CTL_MENU;
 
-#ifdef __LINUX
-#define CLEAR_STR_SCR()                     system("clear");
-#elif defined __WINDOWS
-#define CLEAR_STR_SCR()                     system("cls");
-#endif
-
-#define CTL_ExitConsole()                   {endwin();exit(0);}
 #define CTL_PASSWORD_LENGHT_MAX             19 //real is 19-1=18
 #define CTL_PASSWORD_LENGHT_MIN             8
 #define CTL_FILE_NAME_LENGHT                128
@@ -43,6 +36,29 @@ typedef enum {
 #define CTL_GET_PASSWORD_WIN_COLS           (sizeof(STR_INPUT_PASSWORD_CONFIRM)-1+CTL_PASSWORD_LENGHT_MAX)
 #define CTL_GET_PASSWORD_WIN_LINES          6
 #define CTL_ENCYPT_FILE_WIN_COLS            40
+
+#ifdef __LINUX
+#define CLEAR_STR_SCR()                     {system("clear");}
+#elif defined __WINDOWS
+#define CLEAR_STR_SCR()                     {system("cls");}
+#endif
+#define CTL_ExitConsole()                   {endwin();exit(0);}
+#define CTL_HIDE_CONSOLE_END_LINE()         {mvhline(LINES-2, 2, ' ', COLS-3);refresh();}
+#define CTL_SHOW_CONSOLE_END_LINE() \
+        { \
+            attron(A_REVERSE | A_BOLD); \
+            mvaddnstr(LINES-2, 2, STR_CONSOLE_END_LINE, COLS-3); \
+            attroff(A_REVERSE | A_BOLD); \
+            refresh(); \
+        }
+#define CTL_START_COLOR(w, c) \
+        { \
+            if(OK == start_color()) \
+            { \
+                init_pair(1, c, COLOR_BLACK); \
+                wattron(w, COLOR_PAIR(1)); \
+            } \
+        }
 
 #if defined __WINDOWS
 enum 

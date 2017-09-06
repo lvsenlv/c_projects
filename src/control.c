@@ -22,6 +22,7 @@ G_STATUS CTL_InitConsole(void)
     nonl();
     echo();
     keypad(stdscr, true);
+    //CTL_START_COLOR(stdscr, COLOR_RED);
 
     if(COLS < CTL_CONSOLE_COLS)
     {
@@ -43,7 +44,7 @@ G_STATUS CTL_InitConsole(void)
     
     attron(A_REVERSE | A_BOLD);
     mvaddstr(0, (COLS+1-sizeof(STR_CONSOLE_LABEL))/2, STR_CONSOLE_LABEL);
-    mvaddnstr(LINES-2, 2, STR_CONSOLE_END_LINE, COLS);
+    mvaddnstr(LINES-2, 2, STR_CONSOLE_END_LINE, COLS-3);
     int i;
     for(i = 0; i < (COLS-sizeof(STR_CONSOLE_END_LINE)-3); i++)
     {
@@ -170,8 +171,7 @@ G_STATUS CTL_GetFileName(char *pFileName)
     
     while(1)
     {
-        mvhline(LINES-2, 2, ' ', COLS-3); //shield the end line of standard screen 
-        refresh();
+        CTL_HIDE_CONSOLE_END_LINE(); //shield the end line of standard screen 
         
         mvwhline(win, 0, 0, '-', CTL_GET_FILE_NAME_WIN_COLS);
         mvwhline(win, CTL_GET_FILE_NAME_WIN_LINES-1, 0, '-', CTL_GET_FILE_NAME_WIN_COLS);
@@ -183,11 +183,7 @@ G_STATUS CTL_GetFileName(char *pFileName)
         if(0 == access(pFileName, F_OK))
             break;
 
-        attron(A_REVERSE | A_BOLD);
-        mvaddstr(LINES-2, 2, STR_CONSOLE_END_LINE);
-        attroff(A_REVERSE | A_BOLD);
-        refresh();
-
+        CTL_SHOW_CONSOLE_END_LINE();
         status = CTL_MakeChoice("%s", STR_FILE_NOT_EXIST);
         if(STAT_EXIT == status)
         {
@@ -199,10 +195,6 @@ G_STATUS CTL_GetFileName(char *pFileName)
             delwin(win);
             touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, 
                 CTL_GET_FILE_NAME_WIN_LINES);
-            attron(A_REVERSE | A_BOLD);
-            mvaddstr(LINES-2, 2, STR_CONSOLE_END_LINE);
-            attroff(A_REVERSE | A_BOLD);
-            refresh();
             return STAT_GO_BACK;
         }
         
@@ -212,10 +204,7 @@ G_STATUS CTL_GetFileName(char *pFileName)
     delwin(win);
     touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, 
         CTL_GET_FILE_NAME_WIN_LINES);
-    attron(A_REVERSE | A_BOLD);
-    mvaddstr(LINES-2, 2, STR_CONSOLE_END_LINE);
-    attroff(A_REVERSE | A_BOLD);
-    refresh();
+    CTL_SHOW_CONSOLE_END_LINE();
 
     return STAT_OK;
 }
@@ -369,6 +358,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
             return status;
     }
 
+    echo();
     delwin(win);
     touchline(stdscr, (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, 
         CTL_GET_PASSWORD_WIN_LINES);

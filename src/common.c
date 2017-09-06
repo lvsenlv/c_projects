@@ -31,6 +31,32 @@
     #pragma message("Activate __REDIRECTION")
 #endif //__REDIRECTION
 
+FILE *g_pDispFile = NULL;
+void __attribute__((constructor)) BeforeMain(void)
+{
+    g_pDispFile = fopen("./log.txt", "w+");
+    if(NULL == g_pDispFile)
+    {
+        fprintf(stderr, "Error: Fail to open log file\n");
+        exit(0);
+    }
+    fclose(g_pDispFile);
+
+    g_pDispFile = fopen("./log.txt", "a+");
+    if(NULL == g_pDispFile)
+    {
+        fprintf(stderr, "Error: Fail to open log file\n");
+        exit(0);
+    }
+}
+
+void __attribute__((destructor)) AfterMain(void)
+{
+    if(g_pDispFile)
+        fclose(g_pDispFile);
+}
+
+#if 0
 #if (defined __LINUX ) || (defined __WINDOWS)
     #ifdef __REDIRECTION
         FILE *g_pDispFile = NULL;
@@ -72,3 +98,4 @@ void __attribute__((destructor)) AfterMain(void)
 #endif //__LINUX
 }
 
+#endif //#if 0

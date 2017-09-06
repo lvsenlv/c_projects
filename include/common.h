@@ -57,7 +57,7 @@ typedef enum {
 
 #if (defined __LINUX) || (defined __WINDOWS)
     #ifdef __REDIRECTION
-        extern FILE *g_pDispFile;
+        //extern FILE *g_pDispFile;
         #define     DISP(format, args...) \
                     fprintf(g_pDispFile, format, ##args)
         #ifdef __DEBUG
