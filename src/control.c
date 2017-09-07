@@ -195,6 +195,7 @@ G_STATUS CTL_GetFileName(char *pFileName)
             delwin(win);
             touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, 
                 CTL_GET_FILE_NAME_WIN_LINES);
+            CTL_SHOW_CONSOLE_END_LINE();
             return STAT_GO_BACK;
         }
         

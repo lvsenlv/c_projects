@@ -94,14 +94,7 @@ static G_STATUS EncryptFile(char *pFileName, int64_t FileSize)
     wrefresh(win);
 
     G_STATUS status;
-    if(FileSize <= CYT_SMALL_FILE_SIZE)
-    {
-        status = EncryptSmallFile(pFileName, FileSize);
-    }
-    else
-    {
-        status = EncryptLargeFile(pFileName, FileSize);
-    }
+    status = EncryptLargeFile(pFileName, FileSize);
 
     if(STAT_OK == status)
         wprintw(win, "success");
@@ -124,13 +117,7 @@ static G_STATUS DecryptFile(char *pFileName, int64_t FileSize)
     wrefresh(win);
 
     G_STATUS status;
-    if(FileSize <= CYT_SMALL_FILE_SIZE)
-    {
-        status = DecryptSmallFile(pFileName, FileSize);
-    }
-    {
-        status = DecryptLargeFile(pFileName, FileSize);
-    }
+    status = DecryptLargeFile(pFileName, FileSize);
 
     if(STAT_OK == status)
         wprintw(win, "success");
@@ -718,7 +705,7 @@ static G_STATUS EncryptLargeFile(const char *pFileName, int64_t FileSize)
     
     //write encyption data to new file
     size = fwrite(pData, sizeof(uint8_t), RestDataSize, NewFp);
-    if(size != CYT_SMALL_FILE_SIZE)
+    if(size != RestDataSize)
     {        
         free(pData);
         free(pBackupData);
@@ -809,7 +796,7 @@ static G_STATUS DecryptLargeFile(const char *pFileName, int64_t FileSize)
     if(0 == EncyptFactor)
         EncyptFactor = 1;
 
-    uint8_t SubFactor1 = 0xFF >> (8-EncyptFactor);
+    uint8_t SubFactor1 = 0xFF >> EncyptFactor;
     uint8_t SubFactor2 = 8 - EncyptFactor;
     uint8_t *pTmp = NULL, *pTmp2 = NULL;
     uint8_t TmpData = 0;

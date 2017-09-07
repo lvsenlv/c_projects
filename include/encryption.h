@@ -18,7 +18,7 @@
 #define ENCRYPT_FILE_SUFFIX_NAME            ".ept"
 #define DECRYPT_FILE_SUFFIX_NAME            ".dpt"
 
-#define CYT_SMALL_FILE_SIZE                 ((int64_t)(1024*1024*50)) //50Mb
+#define CYT_SMALL_FILE_SIZE                 ((int64_t)(1024*1024*100)) //50Mb
 
 extern FILE *g_pDispFile;
 #define     DISP_LOG(file, reason) \
