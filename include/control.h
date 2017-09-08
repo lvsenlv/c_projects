@@ -25,7 +25,7 @@ typedef enum {
 
 #define CTL_PASSWORD_LENGHT_MAX             19 //real is 19-1=18
 #define CTL_PASSWORD_LENGHT_MIN             8
-#define CTL_FILE_NAME_LENGHT                128
+#define CTL_FILE_NAME_LENGHT                256
 
 #define CTL_CONSOLE_COLS                    80
 #define CTL_CONSOLE_LINES                   24
@@ -35,7 +35,8 @@ typedef enum {
 #define CTL_GET_FILE_NAME_WIN_LINES         7
 #define CTL_GET_PASSWORD_WIN_COLS           (sizeof(STR_INPUT_PASSWORD_CONFIRM)-1+CTL_PASSWORD_LENGHT_MAX)
 #define CTL_GET_PASSWORD_WIN_LINES          6
-#define CTL_ENCYPT_FILE_WIN_COLS            40
+#define CTL_ENCRYPT_FILE_WIN_COLS           60
+#define CTL_DECRYPT_FILE_WIN_COLS           60
 
 #ifdef __LINUX
 #define CLEAR_STR_SCR()                     {system("clear");}

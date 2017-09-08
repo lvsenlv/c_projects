@@ -26,6 +26,19 @@ extern FILE *g_pDispFile;
 
 extern char g_password[CYT_PASSWORD_LENGHT];
 
+typedef struct FileListStruct
+{
+    char *FileName;
+    int64_t FileSize;
+    struct FileListStruct *pNext;
+}FileList_t;
+
+typedef enum 
+{
+    PROCESS_STATUS_IN_PROCESSING = 0,
+    PROCESS_STATUS_SUCCESS,
+    PROCESS_STATUS_FAIL,
+}PROCESS_STATUS;
 
 G_STATUS EncryptDecrypt(char func);
 

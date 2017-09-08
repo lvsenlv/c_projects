@@ -33,7 +33,7 @@ int main(void)
             if(STAT_EXIT == status)
             {
                 CTL_ExitConsole();
-            }            
+            }
             else if(STAT_ERR == status)
             {
                 exit(0);

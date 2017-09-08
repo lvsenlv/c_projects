@@ -34,7 +34,7 @@
 FILE *g_pDispFile = NULL;
 void __attribute__((constructor)) BeforeMain(void)
 {
-    g_pDispFile = fopen("./log.txt", "w+");
+    g_pDispFile = fopen("./log", "w+");
     if(NULL == g_pDispFile)
     {
         fprintf(stderr, "Error: Fail to open log file\n");

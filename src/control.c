@@ -6,7 +6,6 @@
  ************************************************************************/
 
 #include "control.h"
-#include <locale.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <stdarg.h>
@@ -16,7 +15,6 @@
 
 G_STATUS CTL_InitConsole(void)
 {
-    setlocale(LC_ALL,"");
     initscr();
     cbreak();
     nonl();
@@ -468,7 +466,7 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
     mvwaddstr(win, StartPosY, Str1StartX, STR_RETRY);
     wattroff(win, A_REVERSE);
 
-    int flag = 0;
+    char flag = 0;
     int key;
     noecho();
     keypad(win, true);

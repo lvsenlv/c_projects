@@ -13,20 +13,35 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <pthread.h>
 
+static G_STATUS EncryptDecryptFile(char func);
+static G_STATUS ParseFileList(void);
+static void *ProcessFile(void *arg);
+static void *ProcessFolder(void *arg);
 static G_STATUS EncryptFile(char *pFileName, int64_t FileSize);
 static G_STATUS DecryptFile(char *pFileName, int64_t FileSize);
-static G_STATUS EncryptSmallFile(const char *pFileName, int64_t FileSize);
-static G_STATUS DecryptSmallFile(const char *pFileName, int64_t FileSize);
-static G_STATUS EncryptLargeFile(const char *pFileName, int64_t FileSize);
-static G_STATUS DecryptLargeFile(const char *pFileName, int64_t FileSize);
 static inline void DeleteEncyptSuffix(char *pFileName);
 static inline void ConvertFileFormat(char *pFileName);
 
 char g_password[CTL_PASSWORD_LENGHT_MAX];
+FileList_t g_FileList;
+FileList_t *g_CurFile = &g_FileList;
+int32_t g_ProcessCount = 0;
+PROCESS_STATUS g_ProcessStatus = PROCESS_STATUS_FAIL;
+pthread_mutex_t FileLock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t CountLock = PTHREAD_MUTEX_INITIALIZER;
 
 G_STATUS EncryptDecrypt(char func)
 {
+    if((func != CTL_MENU_ENCRYPT) && (func != CTL_MENU_DECRYPT))
+    {
+        endwin();
+        CLEAR_STR_SCR();
+        DISP_ERR(STR_ERR_INVALID_FUNC);
+        return STAT_ERR;
+    }
+    
     G_STATUS status;
     char FileName[CYT_FILE_NAME_LENGTH];
 #ifdef __LINUX
@@ -48,7 +63,7 @@ G_STATUS EncryptDecrypt(char func)
 #endif
             break;
 
-        status = CTL_MakeChoice("%s", STR_FAIL_TO_GET_FILE_INFO);
+        status = CTL_MakeChoice("%s", STR_FAIL_TO_GET_FILE_FOLDER_INFO);
         if(STAT_RETRY == status)
             continue;
         else
@@ -61,45 +76,107 @@ G_STATUS EncryptDecrypt(char func)
 
     if(S_IFREG & FileInfo.st_mode)
     {
-        if(CTL_MENU_ENCRYPT == func)
-        {
-            EncryptFile(FileName, FileInfo.st_size);
-        }
-        else if(CTL_MENU_DECRYPT == func)
-        {
-            DecryptFile(FileName, FileInfo.st_size);
-        }
-        
+        g_ProcessCount = 1;
+        g_FileList.FileName = FileName;
+        g_FileList.FileSize = FileInfo.st_size;
+        g_FileList.pNext = NULL;
+        status = EncryptDecryptFile(func);
     }
     else if(S_IFDIR & FileInfo.st_mode)
     {
-        if(CTL_MENU_ENCRYPT == func)
-        {
-            //EncryptFolder();
-        }
-        else if(CTL_MENU_DECRYPT == func)
-        {
-            //DecryptFolder();
-        }
+        status = ParseFileList();
     }
 
     return STAT_OK;
 }
 
-static G_STATUS EncryptFile(char *pFileName, int64_t FileSize)
-{    
-    WINDOW *win = newwin(LINES, COLS, 0, 0);
-    mvwprintw(win, 0, 0, "%s%s\n", STR_IN_ENCRYPTING, pFileName);
-    //wprintw(win, "%s", STR_RATE);
+static G_STATUS EncryptDecryptFile(char func)
+{
+    int lines = 0, cols = 0;
+    int FileNameLenght = strlen(g_FileList.FileName);
+
+    if(CTL_MENU_ENCRYPT == func)
+    {
+        if((sizeof(STR_IN_ENCRYPTING)-1 + FileNameLenght) <= CTL_ENCRYPT_FILE_WIN_COLS)
+        {
+            lines = 4;
+            cols = FileNameLenght + sizeof(STR_IN_ENCRYPTING) - 1;
+        }
+        else
+        {
+            lines = ((sizeof(STR_IN_DECRYPTING)-1 + FileNameLenght)
+                /CTL_ENCRYPT_FILE_WIN_COLS) + 4;
+            cols = CTL_ENCRYPT_FILE_WIN_COLS;
+        }
+    }
+    else
+    {
+        if((sizeof(STR_IN_DECRYPTING)-1 + FileNameLenght) <= CTL_DECRYPT_FILE_WIN_COLS)
+        {
+            lines = 4;
+            cols = FileNameLenght + sizeof(STR_IN_DECRYPTING) - 1;
+        }
+        else
+        {
+            lines = ((sizeof(STR_IN_DECRYPTING)-1 + FileNameLenght)
+                /CTL_DECRYPT_FILE_WIN_COLS) + 4;
+            cols = CTL_DECRYPT_FILE_WIN_COLS;
+        }
+    }
+    
+    WINDOW *win = newwin(lines, cols, (LINES-lines)/2, (COLS-cols)/2);
+    mvwhline(win, 0, 0, '-', cols);
+    mvwhline(win, lines-1, 0, '-', cols);
+    
+    if(CTL_MENU_ENCRYPT == func)
+    {
+        if((sizeof(STR_IN_DECRYPTING)-1 + FileNameLenght)%cols != 0)
+            mvwprintw(win, 1, 0, "%s%s\n", STR_IN_ENCRYPTING, g_FileList.FileName);
+        else
+            mvwprintw(win, 1, 0, "%s%s", STR_IN_ENCRYPTING, g_FileList.FileName);
+    }
+    else
+    {
+        if((sizeof(STR_IN_DECRYPTING)-1 + FileNameLenght)%cols != 0)
+            mvwprintw(win, 1, 0, "%s%s\n", STR_IN_DECRYPTING, g_FileList.FileName);
+        else
+            mvwprintw(win, 1, 0, "%s%s", STR_IN_DECRYPTING, g_FileList.FileName);
+    }
+    
     wrefresh(win);
 
-    G_STATUS status;
-    status = EncryptLargeFile(pFileName, FileSize);
+    //G_STATUS status = STAT_OK;
+    g_ProcessStatus = PROCESS_STATUS_IN_PROCESSING;
+    pthread_t PthreadID;
+    int ret = 0;
+    ret = pthread_create(&PthreadID, NULL, ProcessFile, &func);
+	if(ret)
+	{
+		DISP_ERR(STR_ERR_PTHREAD_CREATE);
+        return STAT_ERR;
+	}
 
-    if(STAT_OK == status)
-        wprintw(win, "success");
-    else
-        wprintw(win, "failed");
+    int CurPosY = cols - 2, CurPosX = 0;
+    while(PROCESS_STATUS_IN_PROCESSING == g_ProcessStatus)
+    {
+        if(CurPosX > cols)
+        {
+            mvwhline(win, CurPosY, 0, ' ', cols);
+            wmove(win, CurPosY, 0);
+            CurPosX = 0;
+        }
+        
+        waddch(win, '.');
+        wrefresh(win);
+        CurPosX++;
+        sleep(1);
+    }
+
+    if(PROCESS_STATUS_SUCCESS == g_ProcessStatus)
+    {
+        mvwaddstr(win, CurPosY, (cols-sizeof(STR_SUCCESS)), STR_SUCCESS);
+        wrefresh(win);
+    }
 
     wgetch(win);
 
@@ -109,374 +186,71 @@ static G_STATUS EncryptFile(char *pFileName, int64_t FileSize)
     return STAT_OK;
 }
 
-static G_STATUS DecryptFile(char *pFileName, int64_t FileSize)
-{    
-    WINDOW *win = newwin(LINES, COLS, 0, 0);
-    mvwprintw(win, 0, 0, "%s%s\n", STR_IN_DECRYPTING, pFileName);
-    //wprintw(win, "%s", STR_RATE);
-    wrefresh(win);
-
-    G_STATUS status;
-    status = DecryptLargeFile(pFileName, FileSize);
-
-    if(STAT_OK == status)
-        wprintw(win, "success");
-    else
-        wprintw(win, "failed");
-
-    wgetch(win);
-
-    delwin(win);
-    touchwin(stdscr);
-    refresh();
+static G_STATUS ParseFileList(void)
+{
     return STAT_OK;
 }
 
+/*************************************************************************
+                                Pthread
+************************************************************************/
+static void *ProcessFile(void *arg)
+{
+    g_ProcessStatus = PROCESS_STATUS_IN_PROCESSING;
+    G_STATUS status;
+    if(CTL_MENU_ENCRYPT == *(char *)arg)
+        status = EncryptFile(g_FileList.FileName, g_FileList.FileSize);
+    else
+        status = DecryptFile(g_FileList.FileName, g_FileList.FileSize);
+
+    g_ProcessStatus = (status != STAT_OK) ? PROCESS_STATUS_FAIL : PROCESS_STATUS_SUCCESS;
+    
+    return NULL;
+}
+
+static void *ProcessFolder(void *arg)
+{
+    FileList_t *CurFile;
+    G_STATUS status;
+    G_STATUS (*pFunc)(char *, int64_t);
+
+    if(CTL_MENU_ENCRYPT == *(char *)arg)
+        pFunc = EncryptFile;
+    else
+        pFunc = DecryptFile;
+
+    pthread_mutex_lock(&FileLock);
+    CurFile = g_CurFile;
+    g_CurFile = g_CurFile->pNext;
+    pthread_mutex_unlock(&FileLock);
+    
+    while(CurFile != NULL);
+    {
+        status = (*pFunc)(CurFile->FileName, CurFile->FileSize);
+        if(status != STAT_OK)
+        {
+            if(STAT_EXIT == status)
+                return NULL;
+
+            pthread_mutex_lock(&CountLock);
+            if(g_ProcessCount != 0)
+                g_ProcessCount--;
+            pthread_mutex_unlock(&CountLock);
+        }            
+        
+        pthread_mutex_lock(&FileLock);
+        CurFile = g_CurFile;
+        g_CurFile = g_CurFile->pNext;
+        pthread_mutex_unlock(&FileLock);
+    }
+    
+    return NULL;
+}
 
 /*************************************************************************
                    Core codes of encryption algorithm
 ************************************************************************/
-
-static G_STATUS EncryptSmallFile(const char *pFileName, int64_t FileSize)
-{
-    FILE *fp = NULL;
-    fp = fopen(pFileName, "rb");
-    if(NULL == fp)
-    {
-        DISP_LOG(pFileName, STR_FOPEN_ERR);
-        return STAT_ERR;
-    }
-    
-    //read data from original file
-    uint8_t *pData = NULL;
-    pData = (uint8_t *)malloc(sizeof(uint8_t) * CYT_SMALL_FILE_SIZE);
-    if(NULL == pData)
-    {
-        fclose(fp);
-        DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
-        return STAT_EXIT;
-    }
-    
-    memset(pData, 0, sizeof(uint8_t)*CYT_SMALL_FILE_SIZE);
-    fseek(fp, 0, SEEK_SET);
-    int64_t size = 0;
-    size = fread(pData, sizeof(uint8_t), FileSize, fp);
-    if(size != FileSize)
-    {
-        free(pData);
-        fclose(fp);
-        DISP_LOG(pFileName, STR_FAIL_TO_READ_FILE);        
-        return STAT_ERR;
-    }
-
-    fclose(fp);
-    fp = NULL;
-
-    //get encrypt factor
-    uint32_t EncyptFactor = 0;
-    uint32_t PasswordLenght = 0;
-    const char *pPassword = g_password;
-    while(*pPassword != '\0')
-    {
-        EncyptFactor += (uint32_t)*pPassword;
-        pPassword++;
-        PasswordLenght++;
-    }
-    if(0 == PasswordLenght)
-    {
-        free(pData);
-        DISP_LOG(pFileName, STR_PASSWORD_NULL);
-        return STAT_ERR;
-    }
-    EncyptFactor %= 8;
-    if(0 == EncyptFactor)
-        EncyptFactor = 1;
-
-    uint8_t SubFactor1 = 0xFF >> (8-EncyptFactor);
-    uint8_t SubFactor2 = 8 - EncyptFactor;
-    uint8_t *pTmp, *pTmp2;
-    uint8_t TmpData;
-    int32_t i = 0;
-
-    //proccess 1
-    pTmp = pData;
-    for(i = 0; i < FileSize; i++)
-    {
-        TmpData = 0;
-        TmpData = *pTmp & SubFactor1;
-        TmpData <<= SubFactor2;
-        TmpData |= *pTmp >> ((uint8_t)EncyptFactor);
-        *pTmp++ = TmpData;
-    }    
-
-    //proccess 2
-    if(FileSize <= PasswordLenght)
-    {
-        pTmp = pData;
-        pPassword = g_password;
-        for(i = 0; i < FileSize; i++)
-        {
-            *pTmp ^= *pPassword;
-            pPassword++;
-            pTmp++;
-        }
-    }
-    else
-    {
-        uint8_t *pBackupData = (uint8_t *)malloc(PasswordLenght * sizeof(uint8_t));
-        if(NULL == pBackupData)
-        {
-            free(pData);
-            fclose(fp);
-            DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
-            return STAT_EXIT;
-        }
-        
-        pTmp = pBackupData;
-        pTmp2 = pData + FileSize - 1;
-        for(i = 0; i < PasswordLenght; i++)
-        {
-            *pTmp++ = *pTmp2--;
-        }
-
-        uint32_t RestDataCount = FileSize - PasswordLenght;
-        pTmp = pData + FileSize - 1;
-        pTmp2 = pData + RestDataCount - 1;
-        for(i = 0; i < RestDataCount; i++)
-        {
-            *pTmp-- = *pTmp2--;
-        }
-
-        pTmp = pData;
-        pTmp2 = pBackupData;
-        for(i = 0; i < PasswordLenght; i++)
-        {
-            *pTmp++ = *pTmp2++;
-        }
-
-        free(pBackupData);
-    }
-
-    //proccess 3
-    if(FileSize > 256)
-    {
-        pPassword = g_password;
-        pTmp = pData + FileSize - 1;
-        for(i = 0; i < PasswordLenght; i++)
-        {
-            TmpData = *pTmp;
-            *pTmp = pData[(uint32_t)(*pPassword)];
-            pData[(uint32_t)(*pPassword)] = TmpData;
-            pTmp--;
-            pPassword++;
-        }
-    }
-
-    //write encyption data to new file
-    char NewFileName[CYT_FILE_NAME_LENGTH];
-    snprintf(NewFileName, sizeof(NewFileName), "%s%s", pFileName, ENCRYPT_FILE_SUFFIX_NAME);
-    fp = fopen(NewFileName, "wb+");
-    if(NULL == fp)
-    {
-        free(pData);
-        DISP_LOG(NewFileName, STR_FAIL_TO_CREATE_OPEN_FILE);
-        return STAT_ERR;
-    }
-    
-    size = fwrite(pData, sizeof(uint8_t), FileSize, fp);
-    if(size != FileSize)
-    {        
-        free(pData);
-        fclose(fp);
-        DISP_LOG(NewFileName, STR_FAIL_TO_WRITE_FILE);
-        return STAT_ERR;
-    }
-
-    free(pData);
-    fclose(fp);
-    fp = NULL;
-
-#ifdef __LINUX
-    snprintf(NewFileName, sizeof(NewFileName), "rm -rf %s", pFileName);
-#elif defined __WINDOWS
-    ConvertFileFormat(pFileName);
-    snprintf(NewFileName, sizeof(NewFileName), "del /a /f /q %s >nul 2>nul", pFileName);
-#endif
-    fp = popen(NewFileName, "r");
-    if(NULL == fp)
-    {
-        DISP_LOG(pFileName, STR_FAIL_TO_DELETE_OLD_FILE);
-        return STAT_ERR;
-    }
-
-    pclose(fp);    
-    return STAT_OK;
-}
-
-static G_STATUS DecryptSmallFile(const char *pFileName, int64_t FileSize)
-{
-    FILE *fp = NULL;
-    fp = fopen(pFileName, "rb");
-    if(NULL == fp)
-    {
-        DISP_LOG(pFileName, STR_FOPEN_ERR);
-        return STAT_ERR;
-    }
-    
-    //read data from original file
-    uint8_t *pData = NULL;
-    pData = (uint8_t *)malloc(sizeof(uint8_t) * CYT_SMALL_FILE_SIZE);
-    if(NULL == pData)
-    {
-        fclose(fp);
-        DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
-        return STAT_EXIT;
-    }
-    
-    memset(pData, 0, sizeof(uint8_t)*CYT_SMALL_FILE_SIZE);
-    fseek(fp, 0, SEEK_SET);
-    int64_t size = 0;
-    size = fread(pData, sizeof(uint8_t), FileSize, fp);
-    if(size != FileSize)
-    {
-        free(pData);
-        fclose(fp);
-        DISP_LOG(pFileName, STR_FAIL_TO_READ_FILE);
-        return STAT_ERR;
-    }
-
-    //get encrypt factor
-    uint32_t EncyptFactor = 0;
-    uint32_t PasswordLenght = 0;
-    const char *pPassword = g_password;
-    while(*pPassword != '\0')
-    {
-        EncyptFactor += (uint32_t)*pPassword;
-        pPassword++;
-        PasswordLenght++;
-    }
-    if(0 == PasswordLenght)
-    {
-        free(pData);
-        fclose(fp);
-        DISP_LOG(pFileName, STR_PASSWORD_NULL);
-        return STAT_ERR;
-    }
-    EncyptFactor %= 8;
-    if(0 == EncyptFactor)
-        EncyptFactor = 1;
-
-    uint8_t SubFactor1 = 0xFF >> EncyptFactor;
-    uint8_t SubFactor2 = 8 - EncyptFactor;
-    uint8_t *pTmp, *pTmp2;
-    uint8_t TmpData;
-    int32_t i = 0;
-
-    //proccess 3
-    if(FileSize > 256)
-    {
-        pPassword = g_password + PasswordLenght - 1;
-        pTmp = pData + FileSize - PasswordLenght;
-        for(i = 0; i < PasswordLenght; i++)
-        {
-            TmpData = *pTmp;
-            *pTmp = pData[(uint32_t)(*pPassword)];
-            pData[(uint32_t)(*pPassword)] = TmpData;
-            pTmp++;
-            pPassword--;
-        }
-    }       
-
-    //proccess 2
-    if(FileSize <= PasswordLenght)
-    {
-        pTmp = pData;
-        pPassword = g_password;
-        for(i = 0; i < FileSize; i++)
-        {
-            *pTmp ^= *pPassword;
-            pPassword++;
-            pTmp++;
-        }
-    }
-    else
-    {
-        uint8_t *pBackupData = (uint8_t *)malloc(PasswordLenght * sizeof(uint8_t));
-        if(NULL == pBackupData)
-        {
-            free(pData);
-            fclose(fp);
-            DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
-            return STAT_EXIT;
-        }
-        
-        pTmp = pBackupData;
-        pTmp2 = pData;
-        for(i = 0; i < PasswordLenght; i++)
-        {
-            *pTmp++ = *pTmp2++;
-        }
-
-        uint32_t RestDataCount = FileSize - PasswordLenght;
-        pTmp = pData;
-        pTmp2 = pData + PasswordLenght;
-        for(i = 0; i < RestDataCount; i++)
-        {
-            *pTmp++ = *pTmp2++;
-        }
-
-        pTmp = pData + FileSize - 1;
-        pTmp2 = pBackupData;
-        for(i = 0; i < PasswordLenght; i++)
-        {
-            *pTmp-- = *pTmp2++;
-        }
-
-        free(pBackupData);
-    }    
-
-    //proccess 1
-    pTmp = pData;
-    for(i = 0; i < FileSize; i++)
-    {
-        TmpData = 0;
-        TmpData = *pTmp & SubFactor1;
-        TmpData <<= EncyptFactor;
-        TmpData |= *pTmp >> ((uint8_t)SubFactor2);
-        *pTmp++ = TmpData;
-    }     
-
-    //write encyption data to new file
-    char NewFileName[CYT_FILE_NAME_LENGTH];
-    snprintf(NewFileName, sizeof(NewFileName), "%s", pFileName);
-    DeleteEncyptSuffix(NewFileName);
-    FILE *NewFp = fopen(NewFileName, "wb+");
-    if(NULL == NewFp)
-    {
-        free(pData);
-        fclose(fp);
-        DISP_LOG(pFileName, STR_FAIL_TO_CREATE_OPEN_FILE);
-        return STAT_ERR;
-    }
-    
-    size = fwrite(pData, sizeof(uint8_t), FileSize, NewFp);
-    if(size != FileSize)
-    {        
-        free(pData);
-        fclose(fp);
-        fclose(NewFp);
-        DISP_LOG(pFileName, STR_FAIL_TO_WRITE_FILE);
-        return STAT_ERR;
-    }
-
-    free(pData);
-    fclose(fp);    
-    fclose(NewFp);
-    
-    return STAT_OK;
-}
-
-static G_STATUS EncryptLargeFile(const char *pFileName, int64_t FileSize)
+static G_STATUS EncryptFile(char *pFileName, int64_t FileSize)
 {
     FILE *fp = NULL;
     fp = fopen(pFileName, "rb");
@@ -504,7 +278,7 @@ static G_STATUS EncryptLargeFile(const char *pFileName, int64_t FileSize)
     {
         fclose(fp);
         fclose(NewFp);
-        DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
+        DISP_LOG(pFileName, STR_ERR_FAIL_TO_MALLOC);
         return STAT_EXIT;
     }
         
@@ -547,7 +321,7 @@ static G_STATUS EncryptLargeFile(const char *pFileName, int64_t FileSize)
         free(pData);
         fclose(fp);
         fclose(NewFp);
-        DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
+        DISP_LOG(pFileName, STR_ERR_FAIL_TO_MALLOC);
         return STAT_EXIT;
     }    
     
@@ -739,7 +513,7 @@ static G_STATUS EncryptLargeFile(const char *pFileName, int64_t FileSize)
     return STAT_OK;    
 }
 
-static G_STATUS DecryptLargeFile(const char *pFileName, int64_t FileSize)
+static G_STATUS DecryptFile(char *pFileName, int64_t FileSize)
 {
     FILE *fp = NULL;
     fp = fopen(pFileName, "rb");
@@ -768,7 +542,7 @@ static G_STATUS DecryptLargeFile(const char *pFileName, int64_t FileSize)
     {
         fclose(fp);
         fclose(NewFp);
-        DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
+        DISP_LOG(pFileName, STR_ERR_FAIL_TO_MALLOC);
         return STAT_EXIT;
     }
         
@@ -811,7 +585,7 @@ static G_STATUS DecryptLargeFile(const char *pFileName, int64_t FileSize)
         free(pData);
         fclose(fp);
         fclose(NewFp);
-        DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
+        DISP_LOG(pFileName, STR_ERR_FAIL_TO_MALLOC);
         return STAT_EXIT;
     }    
     
