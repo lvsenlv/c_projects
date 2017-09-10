@@ -156,7 +156,7 @@ static G_STATUS EncryptDecryptFile(char func)
         return STAT_ERR;
 	}
 
-    int CurPosY = cols - 2, CurPosX = 0;
+    int CurPosY = lines - 2, CurPosX = 0;
     while(PROCESS_STATUS_IN_PROCESSING == g_ProcessStatus)
     {
         if(CurPosX > cols)
@@ -174,7 +174,7 @@ static G_STATUS EncryptDecryptFile(char func)
 
     if(PROCESS_STATUS_SUCCESS == g_ProcessStatus)
     {
-        mvwaddstr(win, CurPosY, (cols-sizeof(STR_SUCCESS)), STR_SUCCESS);
+        mvwaddstr(win, CurPosY, (cols-sizeof(STR_SUCCESS)+1)/2, STR_SUCCESS);
         wrefresh(win);
     }
 
@@ -187,7 +187,62 @@ static G_STATUS EncryptDecryptFile(char func)
 }
 
 static G_STATUS ParseFileList(void)
-{
+{    
+    if(access(FILE_LIST_NAME, F_OK) != 0)
+    {
+        endwin();
+        CLEAR_STR_SCR();
+        DISP_ERR(STR_ERR_FILE_LIST_NOT_EXIST);
+        return STAT_ERR;
+    }
+
+#ifdef __LINUX
+    struct stat FileInfo;
+    if(stat(FILE_LIST_NAME, &FileInfo) != 0)
+#elif defined __WINDOWS
+    struct _stati64 FileInfo;
+    if(_stati64(FILE_LIST_NAME, &FileInfo) != 0)
+#endif
+    {
+        endwin();
+        CLEAR_STR_SCR();
+        DISP_ERR(STR_ERR_FAIL_TO_GET_FILE_INFO);
+        return STAT_ERR;
+    }
+
+    if(!(S_IFREG & FileInfo.st_mode))
+    {
+        endwin();
+        CLEAR_STR_SCR();
+        DISP_ERR(STR_ERR_INVALID_FILE_LIST);
+        return STAT_ERR;
+    }    
+
+    FILE *fp = NULL;
+    fp = fopen(FILE_LIST_NAME, "rb");
+    if(NULL == fp)
+    {
+        endwin();
+        CLEAR_STR_SCR();
+        DISP_ERR(STR_ERR_FAIL_TO_OPEN_FILE_LIST);
+        return STAT_ERR;
+    }
+
+    char *FileName = NULL;
+    FileName = (char *)malloc(CYT_FILE_NAME_LENGTH);
+    if(NULL == FileName)
+    {
+        endwin();
+        CLEAR_STR_SCR();
+        DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
+        return STAT_ERR;
+    }
+    
+    while((fgets(FileName, CYT_FILE_NAME_LENGTH, fp) != 0) && (0 == feof(fp)))
+    {
+        
+    }
+    
     return STAT_OK;
 }
 

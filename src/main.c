@@ -17,7 +17,7 @@ int main(void)
 
     status = CTL_InitConsole();
     if(status != STAT_OK)
-        exit(0);
+        exit(0); //Can not use CTL_InitConsole() here
 
     while(1)
     {
@@ -26,7 +26,10 @@ int main(void)
             CTL_ExitConsole();
 
         if(CTL_MENU_SHOW_INSTRUCTION == func)
+        {
             CTL_ShowInstruction();
+            continue;
+        }
         else if((CTL_MENU_ENCRYPT == func) || (CTL_MENU_DECRYPT == func))
         {
             status = EncryptDecrypt(func);
@@ -36,7 +39,7 @@ int main(void)
             }
             else if(STAT_ERR == status)
             {
-                exit(0);
+                exit(0);  //Can not use CTL_InitConsole() here
             }
             else if(STAT_GO_BACK == status)
             {
@@ -44,7 +47,7 @@ int main(void)
             }
         }
     }
-    
+ 
     while(1);
     
     CTL_ExitConsole();

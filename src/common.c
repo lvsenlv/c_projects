@@ -34,7 +34,7 @@
 FILE *g_pDispFile = NULL;
 void __attribute__((constructor)) BeforeMain(void)
 {
-    g_pDispFile = fopen("./log", "w+");
+    g_pDispFile = fopen(LOG_FILE_NAME, "w+");
     if(NULL == g_pDispFile)
     {
         fprintf(stderr, "Error: Fail to open log file\n");
@@ -42,7 +42,7 @@ void __attribute__((constructor)) BeforeMain(void)
     }
     fclose(g_pDispFile);
 
-    g_pDispFile = fopen("./log.txt", "a+");
+    g_pDispFile = fopen(LOG_FILE_NAME, "a+");
     if(NULL == g_pDispFile)
     {
         fprintf(stderr, "Error: Fail to open log file\n");
@@ -74,11 +74,11 @@ void __attribute__((constructor)) BeforeMain(void)
 #endif //__LINUX
 
 #ifdef __REDIRECTION
-    g_pDispFile = fopen("./log.txt", "w+");
+    g_pDispFile = fopen(LOG_FILE_NAME, "w+");
     if(g_pDispFile)
         fclose(g_pDispFile);
 
-    g_pDispFile = fopen("./log.txt", "a+");
+    g_pDispFile = fopen(LOG_FILE_NAME, "a+");
     if(!g_pDispFile)
         g_pDispFile = stderr;
 

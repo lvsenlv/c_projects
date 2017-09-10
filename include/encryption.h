@@ -17,6 +17,7 @@
 #define CYT_PASSWORD_LENGHT                 CTL_PASSWORD_LENGHT_MAX
 #define ENCRYPT_FILE_SUFFIX_NAME            ".ept"
 #define DECRYPT_FILE_SUFFIX_NAME            ".dpt"
+#define FILE_LIST_NAME                      "./file_list"
 
 #define CYT_SMALL_FILE_SIZE                 ((int64_t)(1024*1024*100)) //50Mb
 

@@ -9,7 +9,6 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdarg.h>
-
 #include <string.h>
 #include <sys/stat.h>
 
@@ -18,37 +17,43 @@ G_STATUS CTL_InitConsole(void)
     initscr();
     cbreak();
     nonl();
-    echo();
+    noecho();
     keypad(stdscr, true);
-    //CTL_START_COLOR(stdscr, COLOR_RED);
+    if(OK == start_color())
+    {
+        init_pair(CTL_PANEL_CYAN, COLOR_CYAN, COLOR_BLACK);
+        init_pair(CTL_PANEL_GREEN, COLOR_GREEN, COLOR_BLACK);
+        init_pair(CTL_PANEL_RED, COLOR_RED, COLOR_BLACK);
+    }    
 
     if(COLS < CTL_CONSOLE_COLS)
     {
         endwin();
-        CLEAR_STR_SCR();
         DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_COLS, CTL_CONSOLE_COLS);
         return STAT_ERR;
     }
+    
     if(LINES < CTL_CONSOLE_LINES)
     {
-        endwin();
-        CLEAR_STR_SCR();
+        endwin();      
         DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_LINES, CTL_CONSOLE_LINES);
         return STAT_ERR;
     }
 
     clear();
+    CTL_SET_WIN_COLOR(stdscr, CTL_PANEL_CYAN);
     border('|', '|', '-', '-', '+', '+', '+', '+');
     
-    attron(A_REVERSE | A_BOLD);
+    attron(A_REVERSE);
     mvaddstr(0, (COLS+1-sizeof(STR_CONSOLE_LABEL))/2, STR_CONSOLE_LABEL);
     mvaddnstr(LINES-2, 2, STR_CONSOLE_END_LINE, COLS-3);
+    
     int i;
     for(i = 0; i < (COLS-sizeof(STR_CONSOLE_END_LINE)-3); i++)
     {
         addch(' ');
     }
-    attroff(A_REVERSE | A_BOLD);
+    attroff(A_REVERSE);
     refresh();    
 
     return STAT_OK;
@@ -58,6 +63,8 @@ G_STATUS CTL_ShowMenu(char *pFunc)
 {
     WINDOW *win = newwin(CTL_MENU_WIN_LINES, CTL_MENU_WIN_COLS, 
         (LINES-CTL_MENU_WIN_LINES)/2, (COLS-CTL_MENU_WIN_COLS)/2);
+
+    CTL_SET_WIN_COLOR(win, CTL_PANEL_CYAN);
     wborder(win, '|', '|', '-', '-', '+', '+', '+', '+');
     wattron(win, A_REVERSE);
     mvwaddstr(win, 0, (CTL_MENU_WIN_COLS+1-sizeof(STR_MENU))/2, STR_MENU);
@@ -65,7 +72,6 @@ G_STATUS CTL_ShowMenu(char *pFunc)
 
     int key;
     int CurPosY = 3, CurMenuPos = 1;
-
     while(g_pMenuStr[CurMenuPos] != NULL)
     {
         mvwaddstr(win, CurPosY++, 2, g_pMenuStr[CurMenuPos++]);
@@ -82,7 +88,7 @@ G_STATUS CTL_ShowMenu(char *pFunc)
     {
         key = wgetch(win);
 
-        if(KEY_DOWN == key)
+        if((KEY_DOWN == key) || (9 == key))
         {
             mvwaddstr(win, CurPosY++, 2, g_pMenuStr[CurMenuPos++]);
         }
@@ -114,7 +120,6 @@ G_STATUS CTL_ShowMenu(char *pFunc)
     }
 
     *pFunc = CurMenuPos + 1;
-
     delwin(win);
     touchline(stdscr, (LINES-CTL_MENU_WIN_LINES)/2, CTL_MENU_WIN_LINES);
     refresh();
@@ -128,9 +133,9 @@ void CTL_ShowInstruction(void)
     WINDOW *win = newwin(LINES, COLS, 0, 0);
     char **ptr = pInstruction;
 
+    CTL_SET_WIN_COLOR(win, CTL_PANEL_GREEN);
     wattron(win, A_REVERSE);
-    mvwaddstr(win, 0, (COLS - strlen(*ptr))/2, *ptr);
-    ptr++;
+    mvwaddstr(win, 0, (COLS - strlen(*ptr))/2, *ptr++);
     wattroff(win, A_REVERSE);
 
     wmove(win, 1, 0);
@@ -216,8 +221,8 @@ G_STATUS CTL_GetPassord(char *pPassword)
     G_STATUS status;
     char buf[CTL_PASSWORD_LENGHT_MAX];
     int key, i;
-    int CurPosX;    
-    keypad(win, true);    
+    int CurPosX;
+    keypad(win, true);
     while(1)
     {
         noecho();
@@ -516,7 +521,3 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
 
     return STAT_RETRY;
 }
-
-#if 0
-
-#endif

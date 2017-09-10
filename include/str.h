@@ -49,8 +49,10 @@
 #define STR_ERR_FAIL_TO_MALLOC              "Error: not enough running memory space"
 #define STR_ERR_STR_TOO_SHORT               "Error: string is too short in CTL_MakeChoice: "
 #define STR_ERR_STR_IS_NULL                 "Error: string is null in CTL_MakeChoice: "
-
-
+#define STR_ERR_FILE_LIST_NOT_EXIST         "Error: file_list does not exist"
+#define STR_ERR_FAIL_TO_GET_FILE_INFO       "Error: fail to get file info"
+#define STR_ERR_INVALID_FILE_LIST           "Error: invalid file_list"
+#define STR_ERR_FAIL_TO_OPEN_FILE_LIST      "Error: fail to open file_list"
 
 extern char *g_pMenuStr[];
 extern char *pInstruction[];

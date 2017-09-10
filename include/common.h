@@ -42,8 +42,7 @@ typedef     unsigned long long              uint64_t;
 #define     __O                             volatile
 #define     __IO                            volatile
 
-#define     ERR_MALLOC                      "Error in malloc"
-#define     ERR_FATAL                       "Fatal error"
+#define     LOG_FILE_NAME                   "./log"
 
 typedef enum {
     STAT_OK = 0,
@@ -55,21 +54,6 @@ typedef enum {
     STAT_RETRY,    
 }G_STATUS;
 
-extern FILE *g_pDispFile;
-
-#define     DISP(format, args...) \
-            fprintf(g_pDispFile, format, ##args)
-#ifdef __DEBUG
-#define     DISP_ERR(str) \
-            fprintf(g_pDispFile, "[%s][%d]: %s\n", __func__, __LINE__, str)
-#else //__DEBUG
-#define     DISP_ERR(str) \
-            fprintf(g_pDispFile, "%s\n", str)
-#endif //__DEBUG
-#define     DISP_ERR_PLUS(format, args...) \
-            fprintf(g_pDispFile, format, ##args)
-
-#if 0
 #if (defined __LINUX) || (defined __WINDOWS)
     #ifdef __REDIRECTION
         
@@ -102,7 +86,6 @@ extern FILE *g_pDispFile;
     #define     DISP_ERR(str)                   ((void)0)
     #define     DISP_ERR_PLUS(format, args...)  ((void)0)
 #endif //(defined __LINUX) || (defined __WINDOWS)
-#endif //#if 0
 
 #ifdef __LINUX
     #include <sys/time.h>

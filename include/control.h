@@ -38,10 +38,15 @@ typedef enum {
 #define CTL_ENCRYPT_FILE_WIN_COLS           60
 #define CTL_DECRYPT_FILE_WIN_COLS           60
 
+#define CTL_PANEL_CYAN                      1
+#define CTL_PANEL_GREEN                     2
+#define CTL_PANEL_RED                       3
+#define CTL_SET_WIN_COLOR(w, p)             wattron(w, COLOR_PAIR(p))
+
 #ifdef __LINUX
-#define CLEAR_STR_SCR()                     {system("clear");}
+#define CLEAR_STR_SCR()                     system("clear")
 #elif defined __WINDOWS
-#define CLEAR_STR_SCR()                     {system("cls");}
+#define CLEAR_STR_SCR()                     system("cls")
 #endif
 #define CTL_ExitConsole()                   {endwin();exit(0);}
 #define CTL_HIDE_CONSOLE_END_LINE()         {mvhline(LINES-2, 2, ' ', COLS-3);refresh();}
@@ -52,14 +57,7 @@ typedef enum {
             attroff(A_REVERSE | A_BOLD); \
             refresh(); \
         }
-#define CTL_START_COLOR(w, c) \
-        { \
-            if(OK == start_color()) \
-            { \
-                init_pair(1, c, COLOR_BLACK); \
-                wattron(w, COLOR_PAIR(1)); \
-            } \
-        }
+
 
 #if defined __WINDOWS
 enum 
