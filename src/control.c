@@ -21,9 +21,10 @@ G_STATUS CTL_InitConsole(void)
     keypad(stdscr, true);
     if(OK == start_color())
     {
-        init_pair(CTL_PANEL_CYAN, COLOR_CYAN, COLOR_BLACK);
-        init_pair(CTL_PANEL_GREEN, COLOR_GREEN, COLOR_BLACK);
+        init_pair(CTL_PANEL_CYAN, COLOR_CYAN, COLOR_BLACK);        
         init_pair(CTL_PANEL_RED, COLOR_RED, COLOR_BLACK);
+        init_pair(CTL_PANEL_YELLOW, COLOR_YELLOW, COLOR_BLACK);
+        init_pair(CTL_PANEL_GREEN, COLOR_GREEN, COLOR_BLACK);
     }    
 
     if(COLS < CTL_CONSOLE_COLS)
@@ -35,7 +36,7 @@ G_STATUS CTL_InitConsole(void)
     
     if(LINES < CTL_CONSOLE_LINES)
     {
-        endwin();      
+        endwin();
         DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_LINES, CTL_CONSOLE_LINES);
         return STAT_ERR;
     }
@@ -168,12 +169,14 @@ G_STATUS CTL_GetFileName(char *pFileName)
 {
     WINDOW *win = newwin(CTL_GET_FILE_NAME_WIN_LINES, CTL_GET_FILE_NAME_WIN_COLS, 
         (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, (COLS-CTL_GET_FILE_NAME_WIN_COLS)/2);
+    CTL_SET_WIN_COLOR(win, CTL_PANEL_CYAN);
 
     G_STATUS status;
-    keypad(win, false);
+    keypad(win, false);    
     
     while(1)
     {
+        echo();
         CTL_HIDE_CONSOLE_END_LINE(); //shield the end line of standard screen 
         
         mvwhline(win, 0, 0, '-', CTL_GET_FILE_NAME_WIN_COLS);
@@ -195,6 +198,7 @@ G_STATUS CTL_GetFileName(char *pFileName)
         }
         else if(STAT_GO_BACK == status)
         {
+            noecho();
             delwin(win);
             touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, 
                 CTL_GET_FILE_NAME_WIN_LINES);
@@ -205,6 +209,7 @@ G_STATUS CTL_GetFileName(char *pFileName)
         wclear(win);
     }
 
+    noecho();
     delwin(win);
     touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, 
         CTL_GET_FILE_NAME_WIN_LINES);
@@ -217,6 +222,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
 {
     WINDOW *win = newwin(CTL_GET_PASSWORD_WIN_LINES, CTL_GET_PASSWORD_WIN_COLS, 
         (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, (COLS-CTL_GET_PASSWORD_WIN_COLS)/2);
+    CTL_SET_WIN_COLOR(win, CTL_PANEL_CYAN);
 
     G_STATUS status;
     char buf[CTL_PASSWORD_LENGHT_MAX];
@@ -225,7 +231,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
     keypad(win, true);
     while(1)
     {
-        noecho();
+        
         mvwhline(win, 0, 0, '-', CTL_GET_PASSWORD_WIN_COLS);
         mvwhline(win, 5, 0, '-', CTL_GET_PASSWORD_WIN_COLS);
 
@@ -295,7 +301,6 @@ G_STATUS CTL_GetPassord(char *pPassword)
                 return status;
         }
 
-        noecho();
         i = 0;
         CurPosX = CTL_GET_PASSWORD_WIN_COLS - CTL_PASSWORD_LENGHT_MAX;
         wmove(win, 3, CurPosX);
@@ -362,7 +367,6 @@ G_STATUS CTL_GetPassord(char *pPassword)
             return status;
     }
 
-    echo();
     delwin(win);
     touchline(stdscr, (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, 
         CTL_GET_PASSWORD_WIN_LINES);
@@ -399,7 +403,6 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
                 if(NULL == pTmpNode)
                 {
                     endwin();
-                    CLEAR_STR_SCR();
                     DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
                     return STAT_ERR;
                 }
@@ -425,7 +428,6 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
     {
         FreePtrLinkList(&StrHeadNode);
         endwin();
-        CLEAR_STR_SCR();
         DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_LINES, lines);
         return STAT_ERR;
     }
@@ -453,6 +455,7 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
 #endif
 
     WINDOW *win = newwin(lines, cols, (LINES-lines)/2, (COLS-cols)/2);
+    CTL_SET_WIN_COLOR(win, CTL_PANEL_YELLOW);
     wborder(win, '*', '*', '*', '*', '*', '*', '*', '*');
 
     int CurPosY = 2;
@@ -473,7 +476,6 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
 
     char flag = 0;
     int key;
-    noecho();
     keypad(win, true);
     while(1)
     {
@@ -509,7 +511,6 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
         }
     }
 
-    echo();
     delwin(win);
     touchline(stdscr, (LINES-lines)/2, lines);
     refresh();

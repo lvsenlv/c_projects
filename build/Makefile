@@ -14,4 +14,4 @@ test : $(OBJS)
 	$(CC) -c $< -o $(OBJS_DIR)/$@ $(DEF) $(INCLUDES) $(LIBS) $(CFLAGS)
 
 clean :
-	rm -rf $(OBJS_DIR) test *.*crypt log*
+	rm -rf $(OBJS_DIR) test *.*crypt log* file_list

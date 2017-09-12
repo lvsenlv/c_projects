@@ -39,9 +39,11 @@ typedef enum {
 #define CTL_DECRYPT_FILE_WIN_COLS           60
 
 #define CTL_PANEL_CYAN                      1
-#define CTL_PANEL_GREEN                     2
-#define CTL_PANEL_RED                       3
+#define CTL_PANEL_RED                       2
+#define CTL_PANEL_YELLOW                    3
+#define CTL_PANEL_GREEN                     4
 #define CTL_SET_WIN_COLOR(w, p)             wattron(w, COLOR_PAIR(p))
+#define CTL_RESET_WIN_COLOR(w, p)           wattroff(w, COLOR_PAIR(p))
 
 #ifdef __LINUX
 #define CLEAR_STR_SCR()                     system("clear")
@@ -52,9 +54,9 @@ typedef enum {
 #define CTL_HIDE_CONSOLE_END_LINE()         {mvhline(LINES-2, 2, ' ', COLS-3);refresh();}
 #define CTL_SHOW_CONSOLE_END_LINE() \
         { \
-            attron(A_REVERSE | A_BOLD); \
+            attron(A_REVERSE); \
             mvaddnstr(LINES-2, 2, STR_CONSOLE_END_LINE, COLS-3); \
-            attroff(A_REVERSE | A_BOLD); \
+            attroff(A_REVERSE); \
             refresh(); \
         }
 
@@ -75,13 +77,13 @@ typedef struct PtrLinkList
 
 static inline void FreePtrLinkList(PtrLinkList_t *pHeadNode)
 {
-    PtrLinkList_t *pNode = pHeadNode->pNext_t;
+    PtrLinkList_t *pCurNode = pHeadNode->pNext_t;
     PtrLinkList_t *pTmpNode;
-    while(pNode != NULL)
+    while(pCurNode != NULL)
     {
-        pTmpNode = pNode->pNext_t;
-        free(pNode);
-        pNode = pTmpNode;
+        pTmpNode = pCurNode->pNext_t;
+        free(pCurNode);
+        pCurNode = pTmpNode;
     }
 }
 

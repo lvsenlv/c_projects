@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include "control.h"
 
-#define CYT_FILE_NAME_LENGTH                CTL_FILE_NAME_LENGHT
+#define CYT_FILE_NAME_LENGHT                CTL_FILE_NAME_LENGHT
 #define CYT_PASSWORD_LENGHT                 CTL_PASSWORD_LENGHT_MAX
 #define ENCRYPT_FILE_SUFFIX_NAME            ".ept"
 #define DECRYPT_FILE_SUFFIX_NAME            ".dpt"
@@ -27,19 +27,42 @@ extern FILE *g_pDispFile;
 
 extern char g_password[CYT_PASSWORD_LENGHT];
 
+typedef enum
+{
+    PROCESS_STATUS_END = 0xFFFFFFF0,
+    PROCESS_STATUS_SUCCESS,
+    PROCESS_STATUS_FAIL,
+    PROCESS_STATUS_EXIT,
+}PROCESS_STATUS;
+
 typedef struct FileListStruct
 {
     char *FileName;
+    int FileNameLenght;
     int64_t FileSize;
     struct FileListStruct *pNext;
 }FileList_t;
 
-typedef enum 
+typedef struct PthreadArg
 {
-    PROCESS_STATUS_IN_PROCESSING = 0,
-    PROCESS_STATUS_SUCCESS,
-    PROCESS_STATUS_FAIL,
-}PROCESS_STATUS;
+    G_STATUS (*pFunc)(char *, int64_t, int *);
+    WINDOW *win;
+    char *FileName;
+    int64_t FileSize;
+    int *pRatioFactor;
+}PthreadArg_t;
+
+static inline void FreeFileList(FileList_t *pHeadNode)
+{
+    FileList_t *CurNode = pHeadNode->pNext;
+    FileList_t *TmpNode;
+    while(CurNode != NULL)
+    {
+        TmpNode = CurNode->pNext;
+        free(CurNode);
+        CurNode = TmpNode;
+    }
+}
 
 G_STATUS EncryptDecrypt(char func);
 
