@@ -16,9 +16,11 @@
 #include <pthread.h>
 
 static G_STATUS EncryptDecryptFile(char func);
-static G_STATUS ParseFileList(FileList_t *pHeadNode);
+static G_STATUS EncryptDecryptFolder(char func);
 static void *ProcessFile(void *arg);
 static void *ProcessFolder(void *arg);
+static G_STATUS CreateFileList(char *pFolderName);
+static G_STATUS ParseFileList(FileList_t *pHeadNode);
 static G_STATUS EncryptFile(char *pFileName, int64_t FileSize, int *pRatioFactor);
 static G_STATUS DecryptFile(char *pFileName, int64_t FileSize, int *pRatioFactor);
 static inline void DeleteEncyptSuffix(char *pFileName);
@@ -37,7 +39,6 @@ G_STATUS EncryptDecrypt(char func)
 {
     if((func != CTL_MENU_ENCRYPT) && (func != CTL_MENU_DECRYPT))
     {
-        endwin();
         DISP_ERR(STR_ERR_INVALID_FUNC);
         return STAT_ERR;
     }
@@ -89,7 +90,7 @@ G_STATUS EncryptDecrypt(char func)
         g_FileList.FileNameLenght = 0;
         g_FileList.FileSize = 0;
         g_FileList.pNext = NULL;
-        status = ParseFileList(&g_FileList);
+        status = EncryptDecryptFolder(func);
     }
 
     return STAT_OK;
@@ -188,7 +189,7 @@ static G_STATUS EncryptDecryptFile(char func)
     {
         CTL_SET_WIN_COLOR(win, CTL_PANEL_RED);
         mvwhline(win, lines-2, 0, ' ', cols);
-        mvwaddstr(win, lines-2, (cols-sizeof(STR_SUCCESS)+1)/2, STR_SUCCESS);
+        mvwaddstr(win, lines-2, (cols-sizeof(STR_FAIL)+1)/2, STR_FAIL);
         CTL_RESET_WIN_COLOR(win, CTL_PANEL_RED);
         wrefresh(win);
     }
@@ -206,26 +207,59 @@ static G_STATUS EncryptDecryptFile(char func)
 */
 static G_STATUS EncryptDecryptFolder(char func)
 {
+    G_STATUS status = STAT_OK;
+
+    status = ParseFileList(&g_FileList);
+    if(status != STAT_OK)
+        return status;
+    
     WINDOW *win1 = newwin(LINES/4, COLS, 0, 0);
     WINDOW *win2 = newwin(LINES/4, COLS, LINES/4, 0);
     WINDOW *win3 = newwin(LINES/4, COLS, LINES/2, 0);
     WINDOW *win4 = newwin(LINES/4, COLS, LINES*3/4, 0);
 
+    scrollok(win1, true);
+    scrollok(win2, true);
+    scrollok(win3, true);
+    scrollok(win4, true);
+
     mvwhline(win2, 0, 0, '-', COLS);
     mvwhline(win3, 0, 0, '-', COLS);
     mvwhline(win4, 0, 0, '-', COLS);
+
+    wmove(win2, 1, 0);
+    wmove(win3, 1, 0);
+    wmove(win4, 1, 0);
 
     wrefresh(win1);
     wrefresh(win2);
     wrefresh(win3);
     wrefresh(win4);
 
+    FreeFileList(&g_FileList);
     delwin(win1);
     delwin(win2);
     delwin(win3);
     delwin(win4);
-    touchwin(stdscr);
+    touchwin(stdscr);    
 
+    return STAT_OK;
+}
+
+static G_STATUS CreateFileList(char *pFolderName)
+{
+    char buf[CYT_FILE_NAME_LENGHT+64];
+    snprintf(buf, sizeof(buf), "find %s -type f > %s 2>/dev/null", pFolderName, FILE_LIST_NAME);
+
+    FILE *fp = NULL;
+    fp = popen(buf, "r");
+    if(NULL == fp)
+    {
+        pclose(fp);
+        return STAT_ERR;
+    }
+
+    pclose(fp);
     return STAT_OK;
 }
 
@@ -233,7 +267,6 @@ static G_STATUS ParseFileList(FileList_t *pHeadNode)
 {    
     if(access(FILE_LIST_NAME, F_OK) != 0)
     {
-        endwin();
         DISP_ERR(STR_ERR_FILE_LIST_NOT_EXIST);
         return STAT_ERR;
     }
@@ -246,14 +279,12 @@ static G_STATUS ParseFileList(FileList_t *pHeadNode)
     if(_stati64(FILE_LIST_NAME, &FileInfo) != 0)
 #endif
     {
-        endwin();
         DISP_ERR(STR_ERR_FAIL_TO_GET_FILE_INFO);
         return STAT_ERR;
     }
 
     if(!(S_IFREG & FileInfo.st_mode))
     {
-        endwin();
         DISP_ERR(STR_ERR_INVALID_FILE_LIST);
         return STAT_ERR;
     }    
@@ -262,7 +293,6 @@ static G_STATUS ParseFileList(FileList_t *pHeadNode)
     fp = fopen(FILE_LIST_NAME, "rb");
     if(NULL == fp)
     {
-        endwin();
         DISP_ERR(STR_ERR_FAIL_TO_OPEN_FILE_LIST);
         return STAT_ERR;
     }
@@ -271,7 +301,6 @@ static G_STATUS ParseFileList(FileList_t *pHeadNode)
     FileName = (char *)malloc(CYT_FILE_NAME_LENGHT);
     if(NULL == FileName)
     {
-        endwin();
         DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
         return STAT_ERR;
     }    
@@ -305,7 +334,6 @@ static G_STATUS ParseFileList(FileList_t *pHeadNode)
         if(NULL == NewNode)
         {
             fclose(fp);
-            endwin();
             DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
             return STAT_ERR;
         }
@@ -314,7 +342,6 @@ static G_STATUS ParseFileList(FileList_t *pHeadNode)
         if(NULL == pTmp)
         {
             fclose(fp);
-            endwin();
             DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
             return STAT_ERR;
         }
@@ -352,6 +379,8 @@ static void *ProcessFile(void *arg)
 
     if(status != STAT_OK)
     {
+        g_ProcessCount--;
+        
         if(STAT_ERR == status)
             g_RatioFactor[0] = PROCESS_STATUS_FAIL;
         else if(STAT_EXIT == status)

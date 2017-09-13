@@ -21,22 +21,21 @@ G_STATUS CTL_InitConsole(void)
     keypad(stdscr, true);
     if(OK == start_color())
     {
-        init_pair(CTL_PANEL_CYAN, COLOR_CYAN, COLOR_BLACK);        
+        init_pair(CTL_PANEL_CYAN, COLOR_CYAN, COLOR_BLACK);
         init_pair(CTL_PANEL_RED, COLOR_RED, COLOR_BLACK);
         init_pair(CTL_PANEL_YELLOW, COLOR_YELLOW, COLOR_BLACK);
         init_pair(CTL_PANEL_GREEN, COLOR_GREEN, COLOR_BLACK);
+        init_pair(CTL_PANEL_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
     }    
 
     if(COLS < CTL_CONSOLE_COLS)
     {
-        endwin();
         DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_COLS, CTL_CONSOLE_COLS);
         return STAT_ERR;
     }
     
     if(LINES < CTL_CONSOLE_LINES)
     {
-        endwin();
         DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_LINES, CTL_CONSOLE_LINES);
         return STAT_ERR;
     }
@@ -402,7 +401,6 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
                 pTmpNode = (PtrLinkList_t *)malloc(sizeof(PtrLinkList_t));
                 if(NULL == pTmpNode)
                 {
-                    endwin();
                     DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
                     return STAT_ERR;
                 }
@@ -427,7 +425,6 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
     if(lines > CTL_CONSOLE_LINES)
     {
         FreePtrLinkList(&StrHeadNode);
-        endwin();
         DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_LINES, lines);
         return STAT_ERR;
     }

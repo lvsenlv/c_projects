@@ -10,6 +10,8 @@
 #include "str.h"
 #include "encryption.h"
 
+static inline void CheckError(G_STATUS status);
+
 int main(void)
 {    
     G_STATUS status;
@@ -17,13 +19,19 @@ int main(void)
 
     status = CTL_InitConsole();
     if(status != STAT_OK)
-        exit(0); //Can not use CTL_InitConsole() here
+    {
+        CheckError(status);
+        CTL_ExitConsole();
+    }
 
     while(1)
     {
         status = CTL_ShowMenu(&func);
         if(status != STAT_OK)
+        {
+            CheckError(status);
             CTL_ExitConsole();
+        }
 
         if(CTL_MENU_SHOW_INSTRUCTION == func)
         {
@@ -33,13 +41,10 @@ int main(void)
         else if((CTL_MENU_ENCRYPT == func) || (CTL_MENU_DECRYPT == func))
         {
             status = EncryptDecrypt(func);
+            CheckError(status);
             if(STAT_EXIT == status)
             {
                 CTL_ExitConsole();
-            }
-            else if(STAT_ERR == status)
-            {
-                exit(0);  //Can not use CTL_InitConsole() here
             }
             else if(STAT_GO_BACK == status)
             {
@@ -47,10 +52,17 @@ int main(void)
             }
         }
     }
- 
-    while(1);
     
     CTL_ExitConsole();
 } 
 
+static inline void CheckError(G_STATUS status)
+{
+    if(STAT_ERR == status)
+    {
+        endwin();
+        fprintf(stderr, "%s\n", g_buf);
+        exit(-1);
+    }
+}
 

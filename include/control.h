@@ -42,6 +42,7 @@ typedef enum {
 #define CTL_PANEL_RED                       2
 #define CTL_PANEL_YELLOW                    3
 #define CTL_PANEL_GREEN                     4
+#define CTL_PANEL_MAGENTA                   5
 #define CTL_SET_WIN_COLOR(w, p)             wattron(w, COLOR_PAIR(p))
 #define CTL_RESET_WIN_COLOR(w, p)           wattroff(w, COLOR_PAIR(p))
 
@@ -62,9 +63,9 @@ typedef enum {
 
 
 #if defined __WINDOWS
-enum 
+enum
 {
-    false,
+    false = 0,
     true,
 };
 #endif

@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 /******************************modifiable*******************************/
-#define     BUF_SIZE                        128
+#define     BUF_SIZE                        64
 
 //#include <stdint.h>
 //typedef     char                            int8_t;
@@ -48,15 +48,28 @@ typedef enum {
     STAT_OK = 0,
     STAT_ERR,
 
-    //expand
     STAT_EXIT,          //exit project with normal state
     STAT_GO_BACK,
     STAT_RETRY,    
 }G_STATUS;
 
+extern char g_buf[BUF_SIZE];
+#define     DISP(format, args...) \
+            snprintf(g_buf, sizeof(g_buf), format, ##args);
+#ifdef __DEBUG
+#define     DISP_ERR(str) \
+            snprintf(g_buf, sizeof(g_buf), "[%s][%d]: %s\n", __func__, __LINE__, str)
+#else //__DEBUG
+#define     DISP_ERR(str) \
+            snprintf(g_buf, sizeof(g_buf), "%s\n", str)
+#endif //__DEBUG
+#define     DISP_ERR_PLUS(format, args...) \
+            snprintf(g_buf, sizeof(g_buf), format, ##args);
+
+#if 0
 #if (defined __LINUX) || (defined __WINDOWS)
     #ifdef __REDIRECTION
-        
+        extern FILE *g_pDispFile;
         #define     DISP(format, args...) \
                     fprintf(g_pDispFile, format, ##args)
         #ifdef __DEBUG
@@ -86,6 +99,7 @@ typedef enum {
     #define     DISP_ERR(str)                   ((void)0)
     #define     DISP_ERR_PLUS(format, args...)  ((void)0)
 #endif //(defined __LINUX) || (defined __WINDOWS)
+#endif //#if 0
 
 #ifdef __LINUX
     #include <sys/time.h>

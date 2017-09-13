@@ -32,6 +32,7 @@
 #endif //__REDIRECTION
 
 FILE *g_pDispFile = NULL;
+char g_buf[BUF_SIZE];
 void __attribute__((constructor)) BeforeMain(void)
 {
     g_pDispFile = fopen(LOG_FILE_NAME, "w+");
