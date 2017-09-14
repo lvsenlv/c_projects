@@ -6,7 +6,6 @@
  ************************************************************************/
 
 #include "control.h"
-#include <pthread.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <string.h>

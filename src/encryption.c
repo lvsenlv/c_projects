@@ -13,12 +13,11 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <pthread.h>
 
 static G_STATUS EncryptDecryptFile(char func);
 static G_STATUS EncryptDecryptFolder(char func);
-static void *ProcessFile(void *arg);
-static void *ProcessFolder(void *arg);
+static void *Pthread_ProcessFile(void *arg);
+static void *Pthread_ProcessFolder(void *arg);
 static G_STATUS CreateFileList(char *pFolderName);
 static G_STATUS ParseFileList(FileList_t *pHeadNode);
 static G_STATUS EncryptFile(char *pFileName, int64_t FileSize, int *pRatioFactor);
@@ -29,14 +28,9 @@ static inline void ConvertFileFormat(char *pFileName);
 char g_password[CTL_PASSWORD_LENGHT_MAX];
 FileList_t g_FileList;
 FileList_t *g_CurFile = &g_FileList;
-int g_ProcessCount = 0;
 int g_RatioFactor[4];
 int16_t g_PthreadNum = 0;
 pthread_mutex_t FileLock = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t StatusLock[4] = {
-        PTHREAD_MUTEX_INITIALIZER, PTHREAD_MUTEX_INITIALIZER, 
-        PTHREAD_MUTEX_INITIALIZER, PTHREAD_MUTEX_INITIALIZER,
-    };
 
 G_STATUS EncryptDecrypt(char func)
 {
@@ -80,7 +74,6 @@ G_STATUS EncryptDecrypt(char func)
 
     if(S_IFREG & FileInfo.st_mode)
     {
-        g_ProcessCount = 1;
         g_FileList.FileName = FileName;
         g_FileList.FileNameLenght = strlen(g_FileList.FileName);
         g_FileList.FileSize = FileInfo.st_size;
@@ -99,6 +92,9 @@ G_STATUS EncryptDecrypt(char func)
     return STAT_OK;
 }
 
+/*
+    g_FileList must be initialized before following func is invoked
+*/
 static G_STATUS EncryptDecryptFile(char func)
 {
     int lines = 0, cols = 0;
@@ -160,13 +156,17 @@ static G_STATUS EncryptDecryptFile(char func)
     mvwaddstr(win, lines-2, 0, STR_RATE);
     wrefresh(win);
 
-    pthread_t PthreadID;
     PthreadArg_t PthreadArg;
     PthreadArg.func = func;
     PthreadArg.pRatioFactor = &g_RatioFactor[0];
-    PthreadArg.pLock = &StatusLock[0];
+    *PthreadArg.pRatioFactor = 0;    
+    PthreadArg.ProcessStatus = PROCESS_STATUS_BUSY;
+
+    PthreadArg.lock = PTHREAD_MUTEX_INITIALIZER;
+    
+    pthread_t PthreadID;
     int ret = 0;
-    ret = pthread_create(&PthreadID, NULL, ProcessFile, &PthreadArg);
+    ret = pthread_create(&PthreadID, NULL, Pthread_ProcessFile, &PthreadArg);
 	if(ret)
 	{
 		DISP_ERR(STR_ERR_PTHREAD_CREATE);
@@ -176,6 +176,7 @@ static G_STATUS EncryptDecryptFile(char func)
     int denominator = (int)(g_FileList.FileSize / CYT_SMALL_FILE_SIZE);
     if(0 == denominator)
         denominator = 100;
+    
     while(PROCESS_STATUS_BUSY == PthreadArg.ProcessStatus)
     {
         mvwprintw(win, lines-2, (cols-3)/2, "%d%%", g_RatioFactor[0]/denominator);
@@ -210,7 +211,8 @@ static G_STATUS EncryptDecryptFile(char func)
 }
 
 /*
-    Adapt 4 threads to process encrypting or decrypting
+    g_FileList must be initialized before following func is invoked
+    Adapt 4 threads to process encrypting or decrypting.
 */
 static G_STATUS EncryptDecryptFolder(char func)
 {
@@ -415,21 +417,17 @@ static G_STATUS ParseFileList(FileList_t *pHeadNode)
 /*************************************************************************
                                 Pthread
 ************************************************************************/
-static void *ProcessFile(void *arg)
+static void *Pthread_ProcessFile(void *arg)
 {
     PthreadArg_t *pArg_t = (PthreadArg_t *)arg;
     G_STATUS status;
-
-    pthread_mutex_lock(pArg_t->pLock);
-    pArg_t->ProcessStatus = PROCESS_STATUS_BUSY;
-    pthread_mutex_unlock(pArg_t->pLock);
     
     if(CTL_MENU_ENCRYPT == pArg_t->func)
         status = EncryptFile(g_FileList.FileName, g_FileList.FileSize, pArg_t->pRatioFactor);
     else
         status = DecryptFile(g_FileList.FileName, g_FileList.FileSize, pArg_t->pRatioFactor);
 
-    pthread_mutex_lock(pArg_t->pLock);
+    pthread_mutex_lock(&pArg_t->lock);
     if(status != STAT_OK)
     {
         
@@ -442,12 +440,12 @@ static void *ProcessFile(void *arg)
     {
         pArg_t->ProcessStatus = PROCESS_STATUS_SUCCESS;
     }
-    pthread_mutex_unlock(pArg_t->pLock);
+    pthread_mutex_unlock(&pArg_t->lock);
     
     return NULL;
 }
 
-static void *ProcessFolder(void *arg)
+static void *Pthread_ProcessFolder(void *arg)
 {
     PthreadArg_t *pArg_t = (PthreadArg_t *)arg;
     G_STATUS (*pFunc)(char *, int64_t, int *);
@@ -467,18 +465,18 @@ static void *ProcessFolder(void *arg)
     while(CurFile != NULL);
     {
         
-        pthread_mutex_lock(pArg_t->pLock);
+        pthread_mutex_lock(&pArg_t->lock);
         pArg_t->CurFileName = CurFile->FileName;
-        pthread_mutex_unlock(pArg_t->pLock);        
+        pthread_mutex_unlock(&pArg_t->lock);        
         
         status = (*pFunc)(CurFile->FileName, CurFile->FileSize, pArg_t->pRatioFactor);
-        pthread_mutex_lock(pArg_t->pLock);
+        pthread_mutex_lock(&pArg_t->lock);
         if(status != STAT_OK)
         {
             if(STAT_EXIT == status)
             {
                 *pArg_t->pRatioFactor = PROCESS_STATUS_EXIT;
-                pthread_mutex_unlock(pArg_t->pLock);
+                pthread_mutex_unlock(&pArg_t->lock);
                 return NULL;
             }
             
@@ -489,7 +487,7 @@ static void *ProcessFolder(void *arg)
         {
             *pArg_t->pRatioFactor = PROCESS_STATUS_SUCCESS;
         }
-        pthread_mutex_unlock(pArg_t->pLock);
+        pthread_mutex_unlock(&pArg_t->lock);
                 
         pthread_mutex_lock(&FileLock);
         CurFile = g_CurFile;
@@ -578,8 +576,8 @@ static G_STATUS EncryptFile(char *pFileName, int64_t FileSize, int *pRatioFactor
         fclose(NewFp);
         DISP_LOG(pFileName, STR_ERR_FAIL_TO_MALLOC);
         return STAT_EXIT;
-    }    
-    
+    }
+
     for(index = 0; index < CycleIndex; index++)
     {
         *pRatioFactor = index*100;
@@ -852,8 +850,8 @@ static G_STATUS DecryptFile(char *pFileName, int64_t FileSize, int *pRatioFactor
         fclose(NewFp);
         DISP_LOG(pFileName, STR_ERR_FAIL_TO_MALLOC);
         return STAT_EXIT;
-    }    
-    
+    }
+
     for(index = 0; index < CycleIndex; index++)
     {
         *pRatioFactor = index*100;

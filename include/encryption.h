@@ -9,9 +9,10 @@
 #define __ENCRYPTION_H
 
 #include "common.h"
+#include "control.h"
 #include <sys/stat.h>
 #include <unistd.h>
-#include "control.h"
+#include <pthread.h>
 
 #define CYT_FILE_NAME_LENGHT                CTL_FILE_NAME_LENGHT
 #define CYT_PASSWORD_LENGHT                 CTL_PASSWORD_LENGHT_MAX
@@ -45,9 +46,9 @@ typedef struct FileListStruct
 
 typedef struct PthreadArg
 {
-    char func;    
+    char func;
     int *pRatioFactor;
-    pthread_mutex_t *pLock;
+    pthread_mutex_t lock;
     PROCESS_STATUS ProcessStatus;
 
     //use in multi threads

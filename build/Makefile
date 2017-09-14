@@ -1,7 +1,7 @@
 CC = gcc
 OBJS = common.o control.o encryption.o main.o str.o
 OBJS_DIR = ./objects
-LIBS := -lncursesw -lpthread
+LIBS := -lcurses -lpthread
 DEF := -D__LINUX -D__64BIT 
 INCLUDES := -I../include
 CFLAGS := -g -Wall -Wno-unused-function
