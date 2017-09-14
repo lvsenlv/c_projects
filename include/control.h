@@ -10,7 +10,7 @@
 
 #include "common.h"
 #ifdef __LINUX
-#include <curses.h>
+#include <ncurses.h>
 #elif defined __WINDOWS
 #include "curses_win.h"
 #endif
@@ -43,8 +43,8 @@ typedef enum {
 #define CTL_PANEL_YELLOW                    3
 #define CTL_PANEL_GREEN                     4
 #define CTL_PANEL_MAGENTA                   5
-#define CTL_SET_WIN_COLOR(w, p)             wattron(w, COLOR_PAIR(p))
-#define CTL_RESET_WIN_COLOR(w, p)           wattroff(w, COLOR_PAIR(p))
+#define CTL_SET_COLOR(w, p)                 wattron(w, COLOR_PAIR(p))
+#define CTL_RESET_COLOR(w, p)               wattroff(w, COLOR_PAIR(p))
 
 #ifdef __LINUX
 #define CLEAR_STR_SCR()                     system("clear")
@@ -89,6 +89,7 @@ static inline void FreePtrLinkList(PtrLinkList_t *pHeadNode)
 }
 
 G_STATUS CTL_InitConsole(void);
+void CTL_DrawStdConsole(void);
 G_STATUS CTL_ShowMenu(char *pFunc);
 void CTL_ShowInstruction(void);
 G_STATUS CTL_GetFileName(char *pFileName);

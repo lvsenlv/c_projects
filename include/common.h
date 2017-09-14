@@ -41,6 +41,7 @@ typedef     unsigned long long              uint64_t;
 #define     __I                             volatile const
 #define     __O                             volatile
 #define     __IO                            volatile
+#define     ALIGN_4K                        __attribute__((aligned(4)))
 
 #define     LOG_FILE_NAME                   "./log"
 
@@ -51,7 +52,7 @@ typedef enum {
     STAT_EXIT,          //exit project with normal state
     STAT_GO_BACK,
     STAT_RETRY,    
-}G_STATUS;
+}ALIGN_4K G_STATUS;
 
 extern char g_buf[BUF_SIZE];
 #define     DISP(format, args...) \

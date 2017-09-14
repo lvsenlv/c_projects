@@ -29,7 +29,7 @@ extern char g_password[CYT_PASSWORD_LENGHT];
 
 typedef enum
 {
-    PROCESS_STATUS_END = 0xFFFFFFF0,
+    PROCESS_STATUS_BUSY = 0,
     PROCESS_STATUS_SUCCESS,
     PROCESS_STATUS_FAIL,
     PROCESS_STATUS_EXIT,
@@ -45,11 +45,13 @@ typedef struct FileListStruct
 
 typedef struct PthreadArg
 {
-    G_STATUS (*pFunc)(char *, int64_t, int *);
-    WINDOW *win;
-    char *FileName;
-    int64_t FileSize;
+    char func;    
     int *pRatioFactor;
+    pthread_mutex_t *pLock;
+    PROCESS_STATUS ProcessStatus;
+
+    //use in multi threads
+    const char *CurFileName;
 }PthreadArg_t;
 
 static inline void FreeFileList(FileList_t *pHeadNode)

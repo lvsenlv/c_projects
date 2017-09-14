@@ -38,8 +38,10 @@
 #define STR_FAIL_TO_CREATE_OPEN_FILE        "Fail to create or open file"
 #define STR_FAIL_TO_WRITE_FILE              "Fail to write to file, make sure it is writeable"
 #define STR_FAIL_TO_DELETE_OLD_FILE         "Fail to delete old file"
-#define STR_SUCCESS                         "Success"
-#define STR_FAIL                            "Fail"
+#define STR_SUCCESS                         "[ Success ]"
+#define STR_FAIL                            "[ Fail ]"
+#define STR_TASK                            "Tasks: "
+#define STR_FAIL_TO_CREATE_FILE_LIST        "Fail to create file_lists"
 
 #define STR_ERR_INVALID_FUNC                "Error: invalid func"
 #define STR_ERR_INVALID_COLS                "Error: need wider console, at least: "

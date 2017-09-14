@@ -26,6 +26,8 @@ int main(void)
 
     while(1)
     {
+        CTL_DrawStdConsole();
+        
         status = CTL_ShowMenu(&func);
         if(status != STAT_OK)
         {

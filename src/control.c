@@ -11,14 +11,17 @@
 #include <stdarg.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <locale.h>
 
 G_STATUS CTL_InitConsole(void)
 {
+    setlocale(LC_ALL,"");
     initscr();
     cbreak();
     nonl();
     noecho();
     keypad(stdscr, true);
+    
     if(OK == start_color())
     {
         init_pair(CTL_PANEL_CYAN, COLOR_CYAN, COLOR_BLACK);
@@ -40,8 +43,13 @@ G_STATUS CTL_InitConsole(void)
         return STAT_ERR;
     }
 
+    return STAT_OK;
+}
+
+void CTL_DrawStdConsole(void)
+{
     clear();
-    CTL_SET_WIN_COLOR(stdscr, CTL_PANEL_CYAN);
+    CTL_SET_COLOR(stdscr, CTL_PANEL_CYAN);
     border('|', '|', '-', '-', '+', '+', '+', '+');
     
     attron(A_REVERSE);
@@ -54,9 +62,7 @@ G_STATUS CTL_InitConsole(void)
         addch(' ');
     }
     attroff(A_REVERSE);
-    refresh();    
-
-    return STAT_OK;
+    refresh();
 }
 
 G_STATUS CTL_ShowMenu(char *pFunc)
@@ -64,7 +70,7 @@ G_STATUS CTL_ShowMenu(char *pFunc)
     WINDOW *win = newwin(CTL_MENU_WIN_LINES, CTL_MENU_WIN_COLS, 
         (LINES-CTL_MENU_WIN_LINES)/2, (COLS-CTL_MENU_WIN_COLS)/2);
 
-    CTL_SET_WIN_COLOR(win, CTL_PANEL_CYAN);
+    CTL_SET_COLOR(win, CTL_PANEL_CYAN);
     wborder(win, '|', '|', '-', '-', '+', '+', '+', '+');
     wattron(win, A_REVERSE);
     mvwaddstr(win, 0, (CTL_MENU_WIN_COLS+1-sizeof(STR_MENU))/2, STR_MENU);
@@ -133,7 +139,7 @@ void CTL_ShowInstruction(void)
     WINDOW *win = newwin(LINES, COLS, 0, 0);
     char **ptr = pInstruction;
 
-    CTL_SET_WIN_COLOR(win, CTL_PANEL_GREEN);
+    CTL_SET_COLOR(win, CTL_PANEL_GREEN);
     wattron(win, A_REVERSE);
     mvwaddstr(win, 0, (COLS - strlen(*ptr))/2, *ptr++);
     wattroff(win, A_REVERSE);
@@ -160,15 +166,49 @@ void CTL_ShowInstruction(void)
     }
 
     delwin(win);
-    touchwin(stdscr);
-    refresh();
+//    touchwin(stdscr);
+//    refresh();
 }
+
+#if 0
+G_STATUS CTL_GetFileName(char *pFileName)
+{
+    endwin();
+    clear();
+    
+    G_STATUS status;    
+    while(1)
+    {
+        CLEAR_STR_SCR();
+        printf("%s\n", STR_INPUT_FILE_NAME);
+        printf("%s\n", STR_INPUT_FILE_NAME_EG);
+        printf("%s", STR_INPUT);
+        fgets(pFileName, CTL_FILE_NAME_LENGHT, stdin);
+        if(0 == access(pFileName, F_OK))
+            break;
+
+        CTL_SHOW_CONSOLE_END_LINE();
+        status = CTL_MakeChoice("%s", STR_FILE_NOT_EXIST);
+        if(STAT_EXIT == status)
+        {
+            return STAT_EXIT;
+        }
+        else if(STAT_GO_BACK == status)
+        {
+            return STAT_GO_BACK;
+        }        
+    }
+
+    CTL_DrawStdConsole();
+    return STAT_OK;
+}
+#endif
 
 G_STATUS CTL_GetFileName(char *pFileName)
 {
     WINDOW *win = newwin(CTL_GET_FILE_NAME_WIN_LINES, CTL_GET_FILE_NAME_WIN_COLS, 
         (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, (COLS-CTL_GET_FILE_NAME_WIN_COLS)/2);
-    CTL_SET_WIN_COLOR(win, CTL_PANEL_CYAN);
+    CTL_SET_COLOR(win, CTL_PANEL_CYAN);
 
     G_STATUS status;
     keypad(win, false);    
@@ -199,9 +239,9 @@ G_STATUS CTL_GetFileName(char *pFileName)
         {
             noecho();
             delwin(win);
-            touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, 
-                CTL_GET_FILE_NAME_WIN_LINES);
-            CTL_SHOW_CONSOLE_END_LINE();
+//            touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, 
+//                CTL_GET_FILE_NAME_WIN_LINES);
+//            CTL_SHOW_CONSOLE_END_LINE();
             return STAT_GO_BACK;
         }
         
@@ -221,7 +261,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
 {
     WINDOW *win = newwin(CTL_GET_PASSWORD_WIN_LINES, CTL_GET_PASSWORD_WIN_COLS, 
         (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, (COLS-CTL_GET_PASSWORD_WIN_COLS)/2);
-    CTL_SET_WIN_COLOR(win, CTL_PANEL_CYAN);
+    CTL_SET_COLOR(win, CTL_PANEL_CYAN);
 
     G_STATUS status;
     char buf[CTL_PASSWORD_LENGHT_MAX];
@@ -286,9 +326,9 @@ G_STATUS CTL_GetPassord(char *pPassword)
             else if(STAT_GO_BACK == status)
             {
                 delwin(win);
-                touchline(stdscr, (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, 
-                    CTL_GET_PASSWORD_WIN_LINES);
-                refresh();
+//                touchline(stdscr, (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, 
+//                    CTL_GET_PASSWORD_WIN_LINES);
+//                refresh();
                 return STAT_GO_BACK;
             }
             else if(STAT_RETRY == status)
@@ -352,9 +392,9 @@ G_STATUS CTL_GetPassord(char *pPassword)
         else if(STAT_GO_BACK == status)
         {
             delwin(win);
-            touchline(stdscr, (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, 
-                CTL_GET_PASSWORD_WIN_LINES);
-            refresh();
+//            touchline(stdscr, (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, 
+//                CTL_GET_PASSWORD_WIN_LINES);
+//            refresh();
             return STAT_GO_BACK;
         }
         else if(STAT_RETRY == status)
@@ -452,7 +492,7 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
 #endif
 
     WINDOW *win = newwin(lines, cols, (LINES-lines)/2, (COLS-cols)/2);
-    CTL_SET_WIN_COLOR(win, CTL_PANEL_YELLOW);
+    CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
     wborder(win, '*', '*', '*', '*', '*', '*', '*', '*');
 
     int CurPosY = 2;
