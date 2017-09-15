@@ -32,8 +32,8 @@ typedef enum
 {
     PROCESS_STATUS_BUSY = 0,
     PROCESS_STATUS_SUCCESS,
-    PROCESS_STATUS_FAIL,
-    PROCESS_STATUS_EXIT,
+    PROCESS_STATUS_ERR,
+    PROCESS_STATUS_FATAL_ERR,
 }PROCESS_STATUS;
 
 typedef struct FileListStruct
@@ -46,13 +46,14 @@ typedef struct FileListStruct
 
 typedef struct PthreadArg
 {
-    char func;
     int *pRatioFactor;
-    pthread_mutex_t lock;
+    pthread_mutex_t *pLock;
     PROCESS_STATUS ProcessStatus;
+    FileList_t *pFileList;
 
     //use in multi threads
-    const char *CurFileName;
+    FileList_t *pCurFileList;
+    const char *pCurFileName;
 }PthreadArg_t;
 
 static inline void FreeFileList(FileList_t *pHeadNode)

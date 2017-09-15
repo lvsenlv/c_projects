@@ -49,9 +49,10 @@ typedef enum {
     STAT_OK = 0,
     STAT_ERR,
 
-    STAT_EXIT,          //exit project with normal state
+    STAT_FATAL_ERR,
     STAT_GO_BACK,
-    STAT_RETRY,    
+    STAT_RETRY,
+    STAT_EXIT,          //exit project with normal state
 }ALIGN_4K G_STATUS;
 
 extern char g_buf[BUF_SIZE];

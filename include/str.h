@@ -42,6 +42,7 @@
 #define STR_FAIL                            "[ Fail ]"
 #define STR_TASK                            "Tasks: "
 #define STR_FAIL_TO_CREATE_FILE_LIST        "Fail to create file_lists"
+#define STR_FILE_LIST_IS_NULL               "Folder is empty"
 
 #define STR_ERR_INVALID_FUNC                "Error: invalid func"
 #define STR_ERR_INVALID_COLS                "Error: need wider console, at least: "

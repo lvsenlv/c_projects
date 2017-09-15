@@ -1,5 +1,5 @@
 CC = gcc
-OBJS = common.o control.o encryption.o main.o str.o
+OBJS = common.o control.o encryption.o core_code.o main.o str.o
 OBJS_DIR = ./objects
 LIBS := -lcurses -lpthread
 DEF := -D__LINUX -D__64BIT 
