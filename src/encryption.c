@@ -22,12 +22,14 @@ static G_STATUS DecryptFolder(FileList_t *pFileList);
 static G_STATUS CreateFileList(char *pFolderName);
 static G_STATUS ParseFileList(FileList_t *pHeadNode);
 static inline void InitFileList(FileList_t *pFileList);
-static inline void InitPthreadArg(PthreadArg_t *pArg_t);
+static inline void FreeFileList(FileList_t *pHeadNode);
 
 char g_password[CTL_PASSWORD_LENGHT_MAX];
-FileList_t g_FileList;
 int g_RatioFactor[4];
 
+
+
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 G_STATUS EncryptDecrypt(char func)
 {
     if((func != CTL_MENU_ENCRYPT) && (func != CTL_MENU_DECRYPT))
@@ -104,9 +106,6 @@ G_STATUS EncryptDecrypt(char func)
     return STAT_OK;
 }
 
-
-
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 static G_STATUS EncryptFile(FileList_t *pFileList)
 {
     int lines = 0, cols = 0;
@@ -146,14 +145,17 @@ static G_STATUS EncryptFile(FileList_t *pFileList)
 
     PthreadArg_t PthreadArg;
     InitPthreadArg(&PthreadArg);
+    PthreadArg.pFunc = encrypt;
     PthreadArg.pRatioFactor = &g_RatioFactor[0];
     *PthreadArg.pRatioFactor = 0;
     PthreadArg.pLock = &g_StatusLock[0];
+    g_pCurFilelist = &g_FileList;
+    PthreadArg.pCurFileList = g_pCurFilelist;
     PthreadArg.ProcessStatus = PROCESS_STATUS_BUSY;
-    PthreadArg.pFileList = &g_FileList;
+    
     pthread_t PthreadID;
     int ret = 0;
-    ret = pthread_create(&PthreadID, NULL, Pthread_EncryptFile, &PthreadArg);
+    ret = pthread_create(&PthreadID, NULL, Pthread_ProcessFile, &PthreadArg);
 	if(ret)
 	{
 		DISP_ERR(STR_ERR_PTHREAD_CREATE);
@@ -199,6 +201,95 @@ static G_STATUS EncryptFile(FileList_t *pFileList)
 
 static G_STATUS DecryptFile(FileList_t *pFileList)
 {
+    int lines = 0, cols = 0;
+
+    if((sizeof(STR_IN_DECRYPTING)-1 + pFileList->FileNameLenght) <= CTL_DECRYPT_FILE_WIN_COLS)
+    {
+        lines = 4;
+        cols = pFileList->FileNameLenght + sizeof(STR_IN_DECRYPTING) - 1;
+    }
+    else
+    {
+        lines = ((sizeof(STR_IN_DECRYPTING)-1 + pFileList->FileNameLenght)
+            /CTL_DECRYPT_FILE_WIN_COLS) + 4;
+        cols = CTL_DECRYPT_FILE_WIN_COLS;
+    }
+    
+    WINDOW *win = newwin(lines, cols, (LINES-lines)/2, (COLS-cols)/2);
+    CTL_SET_COLOR(win, CTL_PANEL_CYAN);
+    mvwhline(win, 0, 0, '-', cols);
+    mvwhline(win, lines-1, 0, '-', cols);
+    CTL_RESET_COLOR(win, CTL_PANEL_CYAN);
+
+    CTL_SET_COLOR(win, CTL_PANEL_GREEN);
+    if((sizeof(STR_IN_DECRYPTING)-1 + pFileList->FileNameLenght)%cols != 0)
+    {
+        mvwprintw(win, 1, 0, "%s%s\n", STR_IN_DECRYPTING, pFileList->FileName);
+    }
+    else
+    {
+        mvwprintw(win, 1, 0, "%s%s", STR_IN_DECRYPTING, pFileList->FileName);
+    }
+    CTL_RESET_COLOR(win, CTL_PANEL_GREEN);
+
+    CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
+    mvwaddstr(win, lines-2, 0, STR_RATE);
+    wrefresh(win);
+
+    PthreadArg_t PthreadArg;
+    InitPthreadArg(&PthreadArg);
+    PthreadArg.pFunc = decrypt;
+    PthreadArg.pRatioFactor = &g_RatioFactor[0];
+    *PthreadArg.pRatioFactor = 0;
+    PthreadArg.pLock = &g_StatusLock[0];
+    g_pCurFilelist = &g_FileList;
+    PthreadArg.pCurFileList = g_pCurFilelist;
+    PthreadArg.ProcessStatus = PROCESS_STATUS_BUSY;
+    
+    pthread_t PthreadID;
+    int ret = 0;
+    ret = pthread_create(&PthreadID, NULL, Pthread_ProcessFile, &PthreadArg);
+	if(ret)
+	{
+		DISP_ERR(STR_ERR_PTHREAD_CREATE);
+        return STAT_ERR;
+	}
+
+    int denominator = (int)(pFileList->FileSize / CYT_SMALL_FILE_SIZE);
+    if(0 == denominator)
+        denominator = 100;
+    
+    while(PROCESS_STATUS_BUSY == PthreadArg.ProcessStatus)
+    {
+        mvwprintw(win, lines-2, (cols-3)/2, "%d%%", g_RatioFactor[0]/denominator);
+        wrefresh(win);
+        usleep(500000);
+    }
+    CTL_RESET_COLOR(win, CTL_PANEL_YELLOW);
+
+    if(PROCESS_STATUS_SUCCESS == PthreadArg.ProcessStatus)
+    {
+        CTL_SET_COLOR(win, CTL_PANEL_GREEN);
+        mvwhline(win, lines-2, 0, ' ', cols);
+        mvwaddstr(win, lines-2, (cols-sizeof(STR_SUCCESS)+1)/2, STR_SUCCESS);
+        CTL_RESET_COLOR(win, CTL_PANEL_GREEN);
+        wrefresh(win);
+    }
+    else
+    {
+        CTL_SET_COLOR(win, CTL_PANEL_RED);
+        mvwhline(win, lines-2, 0, ' ', cols);
+        mvwaddstr(win, lines-2, (cols-sizeof(STR_FAIL)+1)/2, STR_FAIL);
+        CTL_RESET_COLOR(win, CTL_PANEL_RED);
+        wrefresh(win);
+    }
+
+    wgetch(win);
+
+    delwin(win);
+    touchwin(stdscr);
+    refresh();
+    return STAT_OK;
     return STAT_OK;
 }
 
@@ -367,12 +458,15 @@ static inline void InitFileList(FileList_t *pFileList)
     pFileList->pNext = NULL;
 }
 
-static inline void InitPthreadArg(PthreadArg_t *pArg_t)
+static inline void FreeFileList(FileList_t *pHeadNode)
 {
-    pArg_t->pCurFileList = NULL;
-    pArg_t->pCurFileName = NULL;
-    pArg_t->pFileList = NULL;
-    pArg_t->pLock = (pthread_mutex_t *)0;
-    pArg_t->pRatioFactor = NULL;
-    pArg_t->ProcessStatus = PROCESS_STATUS_BUSY;
+    FileList_t *CurNode = pHeadNode->pNext;
+    FileList_t *TmpNode;
+    while(CurNode != NULL)
+    {
+        TmpNode = CurNode->pNext;
+        free(CurNode);
+        CurNode = TmpNode;
+    }
 }
+

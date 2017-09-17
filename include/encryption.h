@@ -10,9 +10,6 @@
 
 #include "common.h"
 #include "control.h"
-#include <sys/stat.h>
-#include <unistd.h>
-#include <pthread.h>
 
 #define CYT_FILE_NAME_LENGHT                CTL_FILE_NAME_LENGHT
 #define CYT_PASSWORD_LENGHT                 CTL_PASSWORD_LENGHT_MAX
@@ -44,28 +41,17 @@ typedef struct FileListStruct
     struct FileListStruct *pNext;
 }FileList_t;
 
-typedef struct PthreadArg
+static inline G_STATUS CheckFileList(__IO FileList_t *pFileList)
 {
-    int *pRatioFactor;
-    pthread_mutex_t *pLock;
-    PROCESS_STATUS ProcessStatus;
-    FileList_t *pFileList;
+#ifdef __DEBUG    
+    if(NULL == pFileList)
+        return STAT_ERR;
+#endif
 
-    //use in multi threads
-    FileList_t *pCurFileList;
-    const char *pCurFileName;
-}PthreadArg_t;
+    if((NULL == pFileList->FileName) || (0 == pFileList->FileNameLenght))
+        return STAT_ERR;
 
-static inline void FreeFileList(FileList_t *pHeadNode)
-{
-    FileList_t *CurNode = pHeadNode->pNext;
-    FileList_t *TmpNode;
-    while(CurNode != NULL)
-    {
-        TmpNode = CurNode->pNext;
-        free(CurNode);
-        CurNode = TmpNode;
-    }
+    return STAT_OK;
 }
 
 G_STATUS EncryptDecrypt(char func);

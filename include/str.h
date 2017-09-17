@@ -43,6 +43,8 @@
 #define STR_TASK                            "Tasks: "
 #define STR_FAIL_TO_CREATE_FILE_LIST        "Fail to create file_lists"
 #define STR_FILE_LIST_IS_NULL               "Folder is empty"
+#define STR_NULL                            "NULL"
+#define STR_FILE_IS_NULL                    "It is an empty file"
 
 #define STR_ERR_INVALID_FUNC                "Error: invalid func"
 #define STR_ERR_INVALID_COLS                "Error: need wider console, at least: "
@@ -56,6 +58,8 @@
 #define STR_ERR_FAIL_TO_GET_FILE_INFO       "Error: fail to get file info"
 #define STR_ERR_INVALID_FILE_LIST           "Error: invalid file_list"
 #define STR_ERR_FAIL_TO_OPEN_FILE_LIST      "Error: fail to open file_list"
+#define STR_ERR_INVALID_PTHREAD_ARG         "Error: invalid pthread arguments"
+#define STR_ERR_INVALID_FILE_LIST_ARG       "Error: invalid FlieList arguments"
 
 extern char *g_pMenuStr[];
 extern char *pInstruction[];

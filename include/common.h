@@ -57,7 +57,7 @@ typedef enum {
 
 extern char g_buf[BUF_SIZE];
 #define     DISP(format, args...) \
-            snprintf(g_buf, sizeof(g_buf), format, ##args);
+            snprintf(g_buf, sizeof(g_buf), format, ##args)
 #ifdef __DEBUG
 #define     DISP_ERR(str) \
             snprintf(g_buf, sizeof(g_buf), "[%s][%d]: %s\n", __func__, __LINE__, str)
@@ -66,7 +66,7 @@ extern char g_buf[BUF_SIZE];
             snprintf(g_buf, sizeof(g_buf), "%s\n", str)
 #endif //__DEBUG
 #define     DISP_ERR_PLUS(format, args...) \
-            snprintf(g_buf, sizeof(g_buf), format, ##args);
+            snprintf(g_buf, sizeof(g_buf), format, ##args)
 
 #if 0
 #if (defined __LINUX) || (defined __WINDOWS)

@@ -6,10 +6,9 @@
  ************************************************************************/
 
 #include "control.h"
-#include <unistd.h>
 #include <stdarg.h>
 #include <string.h>
-#include <sys/stat.h>
+#include <unistd.h>
 #include <locale.h>
 
 G_STATUS CTL_InitConsole(void)
