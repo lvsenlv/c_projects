@@ -63,7 +63,7 @@ static inline void CheckError(G_STATUS status)
     if(STAT_ERR == status)
     {
         endwin();
-        fprintf(stderr, "%s\n", g_buf);
+        fprintf(stderr, "%s\n", g_ErrBuf);
         exit(-1);
     }
 }

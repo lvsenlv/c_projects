@@ -15,10 +15,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-static G_STATUS EncryptFile(FileList_t *pFileList);
-static G_STATUS DecryptFile(FileList_t *pFileList);
-static G_STATUS EncryptFolder(FileList_t *pFileList);
-static G_STATUS DecryptFolder(FileList_t *pFileList);
+static PROCESS_STATUS EncryptFile(FileList_t *pFileList);
+static PROCESS_STATUS DecryptFile(FileList_t *pFileList);
+static PROCESS_STATUS EncryptFolder(FileList_t *pFileList);
+static PROCESS_STATUS DecryptFolder(FileList_t *pFileList);
 static G_STATUS CreateFileList(char *pFolderName);
 static G_STATUS ParseFileList(FileList_t *pHeadNode);
 static inline void InitFileList(FileList_t *pFileList);
@@ -70,6 +70,8 @@ G_STATUS EncryptDecrypt(char func)
     if(status != STAT_OK)
         return status;
 
+    PROCESS_STATUS ProcessStatus = PROCESS_STATUS_SUCCESS;
+
     if(S_IFREG & FileInfo.st_mode)
     {
         g_FileList.FileName = FileName;
@@ -77,14 +79,8 @@ G_STATUS EncryptDecrypt(char func)
         g_FileList.FileSize = FileInfo.st_size;
         g_FileList.pNext = NULL;
 
-        if(CTL_MENU_ENCRYPT == func)
-        {
-            status = EncryptFile(&g_FileList);
-        }
-        else
-        {
-            status = DecryptFile(&g_FileList);
-        }
+        ProcessStatus = (CTL_MENU_ENCRYPT == func) ? 
+            EncryptFile(&g_FileList) : DecryptFile(&g_FileList);
     }
     else if(S_IFDIR & FileInfo.st_mode)
     {
@@ -93,20 +89,40 @@ G_STATUS EncryptDecrypt(char func)
         g_FileList.FileSize = 0;        //it means the number of files
         g_FileList.pNext = NULL;
         
-        if(CTL_MENU_ENCRYPT == func)
-        {
-            status = EncryptFolder(&g_FileList);
-        }
-        else
-        {
-            status = DecryptFolder(&g_FileList);
-        }
+        ProcessStatus = (CTL_MENU_ENCRYPT == func) ? 
+            EncryptFolder(&g_FileList) : DecryptFolder(&g_FileList);
     }
+
+    WINDOW *win;
+    if(ProcessStatus == PROCESS_STATUS_SUCCESS)
+    {
+        win = newwin(1, sizeof(STR_SUCCESS)-1, (LINES-1)/2, (COLS-sizeof(STR_SUCCESS)+1)/2);
+        CTL_SET_COLOR(win, CTL_PANEL_GREEN);
+        waddstr(win, STR_SUCCESS);
+        CTL_RESET_COLOR(win, CTL_PANEL_GREEN);
+        wrefresh(win);
+    }
+    else
+    {
+        win = newwin(1, sizeof(STR_FAIL)-1, (LINES-1)/2, (COLS-sizeof(STR_FAIL)+1)/2);
+        CTL_SET_COLOR(win, CTL_PANEL_RED);
+        waddstr(win, STR_FAIL);
+        CTL_RESET_COLOR(win, CTL_PANEL_RED);
+        wrefresh(win);
+    }
+    
+    wgetch(win);
+    delwin(win);
+    touchline(stdscr, (LINES-1)/2, 1);
+    refresh();
 
     return STAT_OK;
 }
 
-static G_STATUS EncryptFile(FileList_t *pFileList)
+
+
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+static PROCESS_STATUS EncryptFile(FileList_t *pFileList)
 {
     int lines = 0, cols = 0;
 
@@ -121,6 +137,8 @@ static G_STATUS EncryptFile(FileList_t *pFileList)
             /CTL_ENCRYPT_FILE_WIN_COLS) + 4;
         cols = CTL_ENCRYPT_FILE_WIN_COLS;
     }
+
+    CTL_HIDE_CONSOLE_END_LINE();
     
     WINDOW *win = newwin(lines, cols, (LINES-lines)/2, (COLS-cols)/2);
     CTL_SET_COLOR(win, CTL_PANEL_CYAN);
@@ -128,7 +146,7 @@ static G_STATUS EncryptFile(FileList_t *pFileList)
     mvwhline(win, lines-1, 0, '-', cols);
     CTL_RESET_COLOR(win, CTL_PANEL_CYAN);
 
-    CTL_SET_COLOR(win, CTL_PANEL_GREEN);
+    CTL_SET_COLOR(win, CTL_PANEL_MAGENTA);
     if((sizeof(STR_IN_ENCRYPTING)-1 + pFileList->FileNameLenght)%cols != 0)
     {
         mvwprintw(win, 1, 0, "%s%s\n", STR_IN_ENCRYPTING, pFileList->FileName);
@@ -137,19 +155,20 @@ static G_STATUS EncryptFile(FileList_t *pFileList)
     {
         mvwprintw(win, 1, 0, "%s%s", STR_IN_ENCRYPTING, pFileList->FileName);
     }
-    CTL_RESET_COLOR(win, CTL_PANEL_GREEN);
+    CTL_RESET_COLOR(win, CTL_PANEL_MAGENTA);
 
     CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
     mvwaddstr(win, lines-2, 0, STR_RATE);
     wrefresh(win);
 
+    g_RatioFactor[0] = 0;
+    g_pCurFilelist = &g_FileList;
+    
     PthreadArg_t PthreadArg;
     InitPthreadArg(&PthreadArg);
     PthreadArg.pFunc = encrypt;
     PthreadArg.pRatioFactor = &g_RatioFactor[0];
-    *PthreadArg.pRatioFactor = 0;
     PthreadArg.pLock = &g_StatusLock[0];
-    g_pCurFilelist = &g_FileList;
     PthreadArg.pCurFileList = g_pCurFilelist;
     PthreadArg.ProcessStatus = PROCESS_STATUS_BUSY;
     
@@ -159,7 +178,8 @@ static G_STATUS EncryptFile(FileList_t *pFileList)
 	if(ret)
 	{
 		DISP_ERR(STR_ERR_PTHREAD_CREATE);
-        return STAT_ERR;
+		CTL_SHOW_CONSOLE_END_LINE();
+        return PROCESS_STATUS_ELSE_ERR;
 	}
 
     int denominator = (int)(pFileList->FileSize / CYT_SMALL_FILE_SIZE);
@@ -170,50 +190,33 @@ static G_STATUS EncryptFile(FileList_t *pFileList)
     {
         mvwprintw(win, lines-2, (cols-3)/2, "%d%%", g_RatioFactor[0]/denominator);
         wrefresh(win);
-        usleep(500000);
+        usleep(500*1000); //500ms
     }
     CTL_RESET_COLOR(win, CTL_PANEL_YELLOW);
 
-    if(PROCESS_STATUS_SUCCESS == PthreadArg.ProcessStatus)
-    {
-        CTL_SET_COLOR(win, CTL_PANEL_GREEN);
-        mvwhline(win, lines-2, 0, ' ', cols);
-        mvwaddstr(win, lines-2, (cols-sizeof(STR_SUCCESS)+1)/2, STR_SUCCESS);
-        CTL_RESET_COLOR(win, CTL_PANEL_GREEN);
-        wrefresh(win);
-    }
-    else
-    {
-        CTL_SET_COLOR(win, CTL_PANEL_RED);
-        mvwhline(win, lines-2, 0, ' ', cols);
-        mvwaddstr(win, lines-2, (cols-sizeof(STR_FAIL)+1)/2, STR_FAIL);
-        CTL_RESET_COLOR(win, CTL_PANEL_RED);
-        wrefresh(win);
-    }
-
-    wgetch(win);
-
     delwin(win);
     touchwin(stdscr);
-    refresh();
-    return STAT_OK;
+    CTL_SHOW_CONSOLE_END_LINE();
+    return PthreadArg.ProcessStatus;
 }
 
-static G_STATUS DecryptFile(FileList_t *pFileList)
+static PROCESS_STATUS DecryptFile(FileList_t *pFileList)
 {
     int lines = 0, cols = 0;
 
-    if((sizeof(STR_IN_DECRYPTING)-1 + pFileList->FileNameLenght) <= CTL_DECRYPT_FILE_WIN_COLS)
+    if((sizeof(STR_IN_ENCRYPTING)-1 + pFileList->FileNameLenght) <= CTL_ENCRYPT_FILE_WIN_COLS)
     {
         lines = 4;
-        cols = pFileList->FileNameLenght + sizeof(STR_IN_DECRYPTING) - 1;
+        cols = pFileList->FileNameLenght + sizeof(STR_IN_ENCRYPTING) - 1;
     }
     else
     {
-        lines = ((sizeof(STR_IN_DECRYPTING)-1 + pFileList->FileNameLenght)
-            /CTL_DECRYPT_FILE_WIN_COLS) + 4;
-        cols = CTL_DECRYPT_FILE_WIN_COLS;
+        lines = ((sizeof(STR_IN_ENCRYPTING)-1 + pFileList->FileNameLenght)
+            /CTL_ENCRYPT_FILE_WIN_COLS) + 4;
+        cols = CTL_ENCRYPT_FILE_WIN_COLS;
     }
+
+    CTL_HIDE_CONSOLE_END_LINE();
     
     WINDOW *win = newwin(lines, cols, (LINES-lines)/2, (COLS-cols)/2);
     CTL_SET_COLOR(win, CTL_PANEL_CYAN);
@@ -221,8 +224,8 @@ static G_STATUS DecryptFile(FileList_t *pFileList)
     mvwhline(win, lines-1, 0, '-', cols);
     CTL_RESET_COLOR(win, CTL_PANEL_CYAN);
 
-    CTL_SET_COLOR(win, CTL_PANEL_GREEN);
-    if((sizeof(STR_IN_DECRYPTING)-1 + pFileList->FileNameLenght)%cols != 0)
+    CTL_SET_COLOR(win, CTL_PANEL_MAGENTA);
+    if((sizeof(STR_IN_ENCRYPTING)-1 + pFileList->FileNameLenght)%cols != 0)
     {
         mvwprintw(win, 1, 0, "%s%s\n", STR_IN_DECRYPTING, pFileList->FileName);
     }
@@ -230,19 +233,20 @@ static G_STATUS DecryptFile(FileList_t *pFileList)
     {
         mvwprintw(win, 1, 0, "%s%s", STR_IN_DECRYPTING, pFileList->FileName);
     }
-    CTL_RESET_COLOR(win, CTL_PANEL_GREEN);
+    CTL_RESET_COLOR(win, CTL_PANEL_MAGENTA);
 
     CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
     mvwaddstr(win, lines-2, 0, STR_RATE);
     wrefresh(win);
 
+    g_RatioFactor[0] = 0;
+    g_pCurFilelist = &g_FileList;
+    
     PthreadArg_t PthreadArg;
     InitPthreadArg(&PthreadArg);
     PthreadArg.pFunc = decrypt;
     PthreadArg.pRatioFactor = &g_RatioFactor[0];
-    *PthreadArg.pRatioFactor = 0;
     PthreadArg.pLock = &g_StatusLock[0];
-    g_pCurFilelist = &g_FileList;
     PthreadArg.pCurFileList = g_pCurFilelist;
     PthreadArg.ProcessStatus = PROCESS_STATUS_BUSY;
     
@@ -252,7 +256,8 @@ static G_STATUS DecryptFile(FileList_t *pFileList)
 	if(ret)
 	{
 		DISP_ERR(STR_ERR_PTHREAD_CREATE);
-        return STAT_ERR;
+		CTL_SHOW_CONSOLE_END_LINE();
+        return PROCESS_STATUS_ELSE_ERR;
 	}
 
     int denominator = (int)(pFileList->FileSize / CYT_SMALL_FILE_SIZE);
@@ -263,38 +268,18 @@ static G_STATUS DecryptFile(FileList_t *pFileList)
     {
         mvwprintw(win, lines-2, (cols-3)/2, "%d%%", g_RatioFactor[0]/denominator);
         wrefresh(win);
-        usleep(500000);
+        usleep(500*1000); //500ms
     }
     CTL_RESET_COLOR(win, CTL_PANEL_YELLOW);
 
-    if(PROCESS_STATUS_SUCCESS == PthreadArg.ProcessStatus)
-    {
-        CTL_SET_COLOR(win, CTL_PANEL_GREEN);
-        mvwhline(win, lines-2, 0, ' ', cols);
-        mvwaddstr(win, lines-2, (cols-sizeof(STR_SUCCESS)+1)/2, STR_SUCCESS);
-        CTL_RESET_COLOR(win, CTL_PANEL_GREEN);
-        wrefresh(win);
-    }
-    else
-    {
-        CTL_SET_COLOR(win, CTL_PANEL_RED);
-        mvwhline(win, lines-2, 0, ' ', cols);
-        mvwaddstr(win, lines-2, (cols-sizeof(STR_FAIL)+1)/2, STR_FAIL);
-        CTL_RESET_COLOR(win, CTL_PANEL_RED);
-        wrefresh(win);
-    }
-
-    wgetch(win);
-
     delwin(win);
     touchwin(stdscr);
-    refresh();
-    return STAT_OK;
-    return STAT_OK;
+    CTL_SHOW_CONSOLE_END_LINE();
+    return PthreadArg.ProcessStatus;
 }
 
 //Adapt 4 threads to process encrypting or decrypting
-static G_STATUS EncryptFolder(FileList_t *pFileList)
+static PROCESS_STATUS EncryptFolder(FileList_t *pFileList)
 {
     G_STATUS status = STAT_OK;
 
@@ -304,21 +289,21 @@ static G_STATUS EncryptFolder(FileList_t *pFileList)
 
     status = ParseFileList(pFileList);
     if(status != STAT_OK)
-    {            
+    {
         FreeFileList(pFileList);
         return status;
     }
 
     if(pFileList->FileSize == 0)
     {
-        DISP(STR_FILE_LIST_IS_NULL);
+        DISP_ERR(STR_FILE_LIST_IS_NULL);
         return STAT_ERR;
     }
     
     return STAT_OK;
 }
 
-static G_STATUS DecryptFolder(FileList_t *pFileList)
+static PROCESS_STATUS DecryptFolder(FileList_t *pFileList)
 {
     return STAT_OK;
 }

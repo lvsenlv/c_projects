@@ -29,8 +29,13 @@ typedef enum
 {
     PROCESS_STATUS_BUSY = 0,
     PROCESS_STATUS_SUCCESS,
+
+    //error details should be writed into log file, i.e use DISP_LOG
     PROCESS_STATUS_ERR,
     PROCESS_STATUS_FATAL_ERR,
+
+    //error details should be writed into g_ErrBuf, i.e use DISP_ERR
+    PROCESS_STATUS_ELSE_ERR,
 }PROCESS_STATUS;
 
 typedef struct FileListStruct

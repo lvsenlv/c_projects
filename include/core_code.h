@@ -15,7 +15,7 @@ extern FileList_t g_FileList;
 extern __IO FileList_t *g_pCurFilelist;
 extern pthread_mutex_t g_StatusLock[4];
 
-typedef struct PthreadArg
+typedef struct PthreadArgStruct
 {
     G_STATUS (*pFunc)(char *, int64_t, int *);
     int *pRatioFactor;

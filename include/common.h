@@ -55,18 +55,18 @@ typedef enum {
     STAT_EXIT,          //exit project with normal state
 }ALIGN_4K G_STATUS;
 
-extern char g_buf[BUF_SIZE];
+extern char g_ErrBuf[BUF_SIZE];
 #define     DISP(format, args...) \
-            snprintf(g_buf, sizeof(g_buf), format, ##args)
+            snprintf(g_ErrBuf, sizeof(g_ErrBuf), format, ##args)
 #ifdef __DEBUG
 #define     DISP_ERR(str) \
-            snprintf(g_buf, sizeof(g_buf), "[%s][%d]: %s\n", __func__, __LINE__, str)
+            snprintf(g_ErrBuf, sizeof(g_ErrBuf), "[%s][%d]: %s\n", __func__, __LINE__, str)
 #else //__DEBUG
 #define     DISP_ERR(str) \
-            snprintf(g_buf, sizeof(g_buf), "%s\n", str)
+            snprintf(g_ErrBuf, sizeof(g_ErrBuf), "%s\n", str)
 #endif //__DEBUG
 #define     DISP_ERR_PLUS(format, args...) \
-            snprintf(g_buf, sizeof(g_buf), format, ##args)
+            snprintf(g_ErrBuf, sizeof(g_ErrBuf), format, ##args)
 
 #if 0
 #if (defined __LINUX) || (defined __WINDOWS)
