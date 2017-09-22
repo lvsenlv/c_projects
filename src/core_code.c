@@ -12,7 +12,6 @@ static G_STATUS CheckPthreadArg(PthreadArg_t *pArg_t);
 static inline void DeleteEncyptSuffix(char *pFileName);
 static inline void ConvertFileFormat(char *pFileName);
 
-FileList_t g_FileList;
 __IO FileList_t *g_pCurFilelist = NULL;
 pthread_mutex_t g_LogLock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t g_FileLock = PTHREAD_MUTEX_INITIALIZER;
@@ -73,6 +72,7 @@ void *Pthread_ProcessFile(void *arg)
     return NULL;
 }
 
+//g_pCurFilelist must be initialized before invoked following function
 void *Pthread_ProcessFolder(void *arg)
 {
     PthreadArg_t *pArg_t = (PthreadArg_t *)arg;

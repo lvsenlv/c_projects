@@ -13,7 +13,7 @@
 static inline void CheckError(G_STATUS status);
 
 int main(void)
-{    
+{
     G_STATUS status;
     char func = 0;
 

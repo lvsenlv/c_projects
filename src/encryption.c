@@ -14,18 +14,19 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
 
 static PROCESS_STATUS EncryptFile(FileList_t *pFileList);
 static PROCESS_STATUS DecryptFile(FileList_t *pFileList);
 static PROCESS_STATUS EncryptFolder(FileList_t *pFileList);
 static PROCESS_STATUS DecryptFolder(FileList_t *pFileList);
-static G_STATUS CreateFileList(char *pFolderName);
-static G_STATUS ParseFileList(FileList_t *pHeadNode);
-static inline void InitFileList(FileList_t *pFileList);
+static inline void InitFileListNode(FileList_t *pFileList);
 static inline void FreeFileList(FileList_t *pHeadNode);
 
 char g_password[CTL_PASSWORD_LENGHT_MAX];
 int g_RatioFactor[4];
+FileList_t g_FileList;      //use in single thread
+FileList_t *g_pFileList;    //ues in multi threads
 
 
 
@@ -53,7 +54,7 @@ G_STATUS EncryptDecrypt(char func)
             return status;
 
 #ifdef __LINUX
-        if(stat(FileName, &FileInfo) == 0)
+        if(lstat(FileName, &FileInfo) == 0)
 #elif defined __WINDOWS
         if(_stati64(FileName, &FileInfo) == 0)
 #endif
@@ -84,13 +85,17 @@ G_STATUS EncryptDecrypt(char func)
     }
     else if(S_IFDIR & FileInfo.st_mode)
     {
-        g_FileList.FileName = FileName; //it means folder name
-        g_FileList.FileNameLenght = 0;
-        g_FileList.FileSize = 0;        //it means the number of files
-        g_FileList.pNext = NULL;
+        g_pFileList = ScanDirectory(FileName);
+        if(NULL == g_pFileList)
+        {
+            DISP_ERR_PLUS("%s: %s", STR_FAIL_TO_SCAN_DIRECTORY, FileName);
+            return STAT_ERR;
+        }
         
         ProcessStatus = (CTL_MENU_ENCRYPT == func) ? 
             EncryptFolder(&g_FileList) : DecryptFolder(&g_FileList);
+
+        FreeFileList(g_pFileList);
     }
 
     WINDOW *win;
@@ -162,14 +167,13 @@ static PROCESS_STATUS EncryptFile(FileList_t *pFileList)
     wrefresh(win);
 
     g_RatioFactor[0] = 0;
-    g_pCurFilelist = &g_FileList;
     
     PthreadArg_t PthreadArg;
     InitPthreadArg(&PthreadArg);
     PthreadArg.pFunc = encrypt;
     PthreadArg.pRatioFactor = &g_RatioFactor[0];
     PthreadArg.pLock = &g_StatusLock[0];
-    PthreadArg.pCurFileList = g_pCurFilelist;
+    PthreadArg.pCurFileList = &g_FileList;
     PthreadArg.ProcessStatus = PROCESS_STATUS_BUSY;
     
     pthread_t PthreadID;
@@ -240,14 +244,13 @@ static PROCESS_STATUS DecryptFile(FileList_t *pFileList)
     wrefresh(win);
 
     g_RatioFactor[0] = 0;
-    g_pCurFilelist = &g_FileList;
     
     PthreadArg_t PthreadArg;
     InitPthreadArg(&PthreadArg);
     PthreadArg.pFunc = decrypt;
     PthreadArg.pRatioFactor = &g_RatioFactor[0];
     PthreadArg.pLock = &g_StatusLock[0];
-    PthreadArg.pCurFileList = g_pCurFilelist;
+    PthreadArg.pCurFileList = &g_FileList;
     PthreadArg.ProcessStatus = PROCESS_STATUS_BUSY;
     
     pthread_t PthreadID;
@@ -281,25 +284,6 @@ static PROCESS_STATUS DecryptFile(FileList_t *pFileList)
 //Adapt 4 threads to process encrypting or decrypting
 static PROCESS_STATUS EncryptFolder(FileList_t *pFileList)
 {
-    G_STATUS status = STAT_OK;
-
-    status = CreateFileList(pFileList->FileName);
-    if(status != STAT_OK)
-        return status;
-
-    status = ParseFileList(pFileList);
-    if(status != STAT_OK)
-    {
-        FreeFileList(pFileList);
-        return status;
-    }
-
-    if(pFileList->FileSize == 0)
-    {
-        DISP_ERR(STR_FILE_LIST_IS_NULL);
-        return STAT_ERR;
-    }
-    
     return STAT_OK;
 }
 
@@ -312,130 +296,129 @@ static PROCESS_STATUS DecryptFolder(FileList_t *pFileList)
 
 //file list related
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-static G_STATUS CreateFileList(char *pFolderName)
+FileList_t *ScanDirectory(char *pFolderName)
 {
-    char buf[CYT_FILE_NAME_LENGHT+64];
-    snprintf(buf, sizeof(buf), "find %s -type f > %s 2>/dev/null", pFolderName, FILE_LIST_NAME);
-
-    FILE *fp = NULL;
-    fp = popen(buf, "r");
-    if(NULL == fp)
+    DIR *pDir;
+    pDir = opendir(pFolderName);
+    if(NULL == pDir)
+        return NULL;
+    
+    FileList_t *pHeadNode = (FileList_t *)malloc(sizeof(FileList_t));
+    if(NULL == pHeadNode)
     {
-        pclose(fp);
-        DISP_ERR(STR_FAIL_TO_CREATE_FILE_LIST);
-        return STAT_ERR;
+        closedir(pDir);
+        return NULL;
+    }
+    
+    InitFileListNode(pHeadNode);
+    
+    FileList_t *pCurFileList = pHeadNode, *pNewFileList;
+    struct dirent *pEntry;
+    int FolderNameLenght = strlen(pFolderName);
+    int FileNameLenght;
+    char *pFileName;
+    
+    while(1)
+    {
+        pEntry = readdir(pDir);
+        if(NULL == pEntry)
+            break;
+
+        if('.' == pEntry->d_name[0])
+        {
+            if('\0' == pEntry->d_name[1])
+                continue;
+            else if(('.' == pEntry->d_name[1]) && ('\0' == pEntry->d_name[2]))
+                continue;
+        }
+
+        FileNameLenght = FolderNameLenght + strlen(pEntry->d_name) + 2; //contains '/' or '\' and '\0'
+        pFileName = (char *)malloc(FileNameLenght);
+        if(NULL == pFileName)
+        {
+            FreeFileList(pHeadNode);
+            closedir(pDir);
+            return NULL;
+        }
+
+        snprintf(pFileName, FileNameLenght, "%s/%s", pFolderName, pEntry->d_name);
+        
+        if(DT_DIR == pEntry->d_type)
+        {
+            pNewFileList = ScanDirectory(pFileName);
+            if(NULL == pNewFileList)
+            {
+                free(pFileName);
+                continue;
+            }
+            
+            pHeadNode->FileSize += pNewFileList->FileSize;
+            pCurFileList->pNext = pNewFileList->pNext;
+            pCurFileList = pNewFileList;
+
+            while(pCurFileList->pNext != NULL)
+            {
+                pCurFileList = pCurFileList->pNext;
+            }
+            
+            if(pNewFileList->FileName != NULL)
+                free(pNewFileList->FileName);
+            free(pNewFileList);
+        }
+        else if(DT_REG == pEntry->d_type)
+        {
+            pNewFileList = (FileList_t *)malloc(sizeof(FileList_t));
+            if(NULL == pNewFileList)
+            {
+                FreeFileList(pHeadNode);
+                closedir(pDir);
+                return NULL;
+            }
+            
+            pNewFileList->FileName = pFileName;
+            pNewFileList->FileNameLenght = FileNameLenght;
+            pNewFileList->FileSize = 0;
+            pNewFileList->pNext = NULL;
+            
+            pCurFileList->pNext = pNewFileList;
+            pCurFileList = pNewFileList;
+
+            pHeadNode->FileSize++;
+        }
+        else
+        {
+            free(pFileName);
+            continue;
+        }
+        
     }
 
-    pclose(fp);
-    return STAT_OK;
+    if(NULL == pHeadNode->pNext)
+    {
+        FreeFileList(pHeadNode);
+        pHeadNode = NULL;
+    }
+
+    closedir(pDir);
+    return pHeadNode;
 }
 
-static G_STATUS ParseFileList(FileList_t *pHeadNode)
-{    
-    if(access(FILE_LIST_NAME, F_OK) != 0)
+void DispFileList(FileList_t *pHeadNode)
+{
+    FileList_t *pFileList = pHeadNode->pNext;
+    
+    while(pFileList != NULL)
     {
-        DISP_ERR(STR_ERR_FILE_LIST_NOT_EXIST);
-        return STAT_ERR;
+        printf("%s\n", pFileList->FileName);
+        pFileList = pFileList->pNext;
     }
-
-#ifdef __LINUX
-    struct stat FileInfo;
-    if(stat(FILE_LIST_NAME, &FileInfo) != 0)
-#elif defined __WINDOWS
-    struct _stati64 FileInfo;
-    if(_stati64(FILE_LIST_NAME, &FileInfo) != 0)
-#endif
-    {
-        DISP_ERR(STR_ERR_FAIL_TO_GET_FILE_INFO);
-        return STAT_ERR;
-    }
-
-    if(!(S_IFREG & FileInfo.st_mode))
-    {
-        DISP_ERR(STR_ERR_INVALID_FILE_LIST);
-        return STAT_ERR;
-    }    
-
-    FILE *fp = NULL;
-    fp = fopen(FILE_LIST_NAME, "rb");
-    if(NULL == fp)
-    {
-        DISP_ERR(STR_ERR_FAIL_TO_OPEN_FILE_LIST);
-        return STAT_ERR;
-    }
-
-    char *FileName = NULL;
-    FileName = (char *)malloc(CYT_FILE_NAME_LENGHT);
-    if(NULL == FileName)
-    {
-        DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
-        return STAT_ERR;
-    }    
-
-    int FileNameLenght;
-    FileList_t *NewNode, *CurNode = pHeadNode;
-    pHeadNode->FileSize = 0;
-    char *pTmp;
-    while((fgets(FileName, CYT_FILE_NAME_LENGHT, fp) != 0) && (0 == feof(fp)))
-    {
-        FileNameLenght = strlen(FileName);
-        if(0 == FileNameLenght)
-            continue;
-        
-        FileName[FileNameLenght-1] = '\0';
-        FileNameLenght--;
-        
-        if(access(FileName, F_OK) != 0)
-            continue;        
-        
-#ifdef __LINUX
-        if(stat(FileName, &FileInfo) != 0)
-#elif defined __WINDOWS
-        if(_stati64(FileName, &FileInfo) != 0)
-#endif
-            continue;
-
-        if(!(S_IFREG & FileInfo.st_mode))
-            continue;
-        
-        NewNode = (FileList_t *)malloc(sizeof(FileList_t));
-        if(NULL == NewNode)
-        {
-            fclose(fp);
-            DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
-            return STAT_ERR;
-        }
-        
-        pTmp = (char *)malloc(FileNameLenght);
-        if(NULL == pTmp)
-        {
-            fclose(fp);
-            DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
-            return STAT_ERR;
-        }
-
-        memcpy(pTmp, FileName, FileNameLenght);        
-        NewNode->FileName = pTmp;
-        NewNode->FileNameLenght = FileNameLenght;
-        NewNode->FileSize = FileInfo.st_size;
-        NewNode->pNext = NULL;
-        
-        CurNode->pNext = NewNode;
-        CurNode = NewNode;
-
-        pHeadNode->FileSize++;
-    }
-
-    free(FileName);
-    fclose(fp);
-    return STAT_OK;
 }
 
 
 
 //static inline functions
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-static inline void InitFileList(FileList_t *pFileList)
+static inline void InitFileListNode(FileList_t *pFileList)
 {
     pFileList->FileName = NULL;
     pFileList->FileNameLenght = 0;
@@ -445,11 +428,13 @@ static inline void InitFileList(FileList_t *pFileList)
 
 static inline void FreeFileList(FileList_t *pHeadNode)
 {
-    FileList_t *CurNode = pHeadNode->pNext;
+    FileList_t *CurNode = pHeadNode;
     FileList_t *TmpNode;
     while(CurNode != NULL)
     {
         TmpNode = CurNode->pNext;
+        if(CurNode->FileName != NULL)
+            free(CurNode->FileName);
         free(CurNode);
         CurNode = TmpNode;
     }

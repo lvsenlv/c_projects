@@ -45,6 +45,7 @@
 #define STR_FILE_LIST_IS_NULL               "Folder is empty"
 #define STR_NULL                            "NULL"
 #define STR_FILE_IS_NULL                    "It is an empty file"
+#define STR_FAIL_TO_SCAN_DIRECTORY          "Fail to scan directory"
 
 #define STR_ERR_INVALID_FUNC                "Error: invalid func"
 #define STR_ERR_INVALID_COLS                "Error: need wider console, at least: "

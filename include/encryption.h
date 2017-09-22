@@ -48,7 +48,7 @@ typedef struct FileListStruct
 
 static inline G_STATUS CheckFileList(__IO FileList_t *pFileList)
 {
-#ifdef __DEBUG    
+#ifdef __DEBUG
     if(NULL == pFileList)
         return STAT_ERR;
 #endif
@@ -60,6 +60,9 @@ static inline G_STATUS CheckFileList(__IO FileList_t *pFileList)
 }
 
 G_STATUS EncryptDecrypt(char func);
+G_STATUS CreateFileList_Plus(FileList_t *pHeadNode, char *pFolderName);
+FileList_t *ScanDirectory(char *pFolderName);
+void DispFileList(FileList_t *pHeadNode);
 
 #endif
 
