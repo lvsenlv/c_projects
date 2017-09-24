@@ -6,7 +6,7 @@
  ************************************************************************/
 
 #ifdef __LINUX
-#define _FILE_OFFSET_BITS 64 //make sure st_size is 64bits instead of 32bits
+#define _FILE_OFFSET_BITS 64 //Make sure st_size is 64bits instead of 32bits
 #endif
 
 #include "encryption.h"
@@ -24,9 +24,6 @@ static inline void InitFileListNode(FileList_t *pFileList);
 static inline void FreeFileList(FileList_t *pHeadNode);
 
 char g_password[CTL_PASSWORD_LENGHT_MAX];
-int g_RatioFactor[4];
-FileList_t g_FileList;      //use in single thread
-FileList_t *g_pFileList;    //ues in multi threads
 
 
 
@@ -71,31 +68,34 @@ G_STATUS EncryptDecrypt(char func)
     if(status != STAT_OK)
         return status;
 
-    PROCESS_STATUS ProcessStatus = PROCESS_STATUS_SUCCESS;
+    PROCESS_STATUS ProcessStatus;
 
     if(S_IFREG & FileInfo.st_mode)
     {
-        g_FileList.FileName = FileName;
-        g_FileList.FileNameLenght = strlen(g_FileList.FileName);
-        g_FileList.FileSize = FileInfo.st_size;
-        g_FileList.pNext = NULL;
+        FileList_t FileList;
+        
+        FileList.FileName = FileName;
+        FileList.FileNameLenght = strlen(FileList.FileName);
+        FileList.FileSize = FileInfo.st_size;
+        FileList.pNext = NULL;
 
         ProcessStatus = (CTL_MENU_ENCRYPT == func) ? 
-            EncryptFile(&g_FileList) : DecryptFile(&g_FileList);
+            EncryptFile(&FileList) : DecryptFile(&FileList);
     }
     else if(S_IFDIR & FileInfo.st_mode)
     {
-        g_pFileList = ScanDirectory(FileName);
-        if(NULL == g_pFileList)
+        FileList_t *pFileList = NULL;
+        pFileList = ScanDirectory(FileName);
+        if(NULL == pFileList)
         {
             DISP_ERR_PLUS("%s: %s", STR_FAIL_TO_SCAN_DIRECTORY, FileName);
             return STAT_ERR;
         }
-        
-        ProcessStatus = (CTL_MENU_ENCRYPT == func) ? 
-            EncryptFolder(&g_FileList) : DecryptFolder(&g_FileList);
 
-        FreeFileList(g_pFileList);
+        ProcessStatus = (CTL_MENU_ENCRYPT == func) ? 
+            EncryptFolder(pFileList) : DecryptFolder(pFileList);
+
+        FreeFileList(pFileList);
     }
 
     WINDOW *win;
@@ -127,8 +127,19 @@ G_STATUS EncryptDecrypt(char func)
 
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+/*
+    Return: PROCESS_STATUS_ERR, PROCESS_STATUS_FATAL_ERR, 
+            PROCESS_STATUS_ELSE_ERR, PROCESS_STATUS_SUCCESS
+*/
 static PROCESS_STATUS EncryptFile(FileList_t *pFileList)
 {
+    if(STAT_OK != CheckFileListArg(pFileList))
+    {
+        DISP_ERR(STR_ERR_INVALID_FILE_LIST_ARG);
+        return PROCESS_STATUS_ELSE_ERR;
+    }
+    
+    //Create the window >>>
     int lines = 0, cols = 0;
 
     if((sizeof(STR_IN_ENCRYPTING)-1 + pFileList->FileNameLenght) <= CTL_ENCRYPT_FILE_WIN_COLS)
@@ -151,7 +162,7 @@ static PROCESS_STATUS EncryptFile(FileList_t *pFileList)
     mvwhline(win, lines-1, 0, '-', cols);
     CTL_RESET_COLOR(win, CTL_PANEL_CYAN);
 
-    CTL_SET_COLOR(win, CTL_PANEL_MAGENTA);
+    CTL_SET_COLOR(win, CTL_PANEL_CYAN);
     if((sizeof(STR_IN_ENCRYPTING)-1 + pFileList->FileNameLenght)%cols != 0)
     {
         mvwprintw(win, 1, 0, "%s%s\n", STR_IN_ENCRYPTING, pFileList->FileName);
@@ -160,26 +171,27 @@ static PROCESS_STATUS EncryptFile(FileList_t *pFileList)
     {
         mvwprintw(win, 1, 0, "%s%s", STR_IN_ENCRYPTING, pFileList->FileName);
     }
-    CTL_RESET_COLOR(win, CTL_PANEL_MAGENTA);
+    CTL_RESET_COLOR(win, CTL_PANEL_CYAN);
 
     CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
     mvwaddstr(win, lines-2, 0, STR_RATE);
     wrefresh(win);
+    //Create the window <<<
 
-    g_RatioFactor[0] = 0;
-    
+    //Core code >>>
+    int RatioFactor = 0;
     PthreadArg_t PthreadArg;
     InitPthreadArg(&PthreadArg);
     PthreadArg.pFunc = encrypt;
-    PthreadArg.pRatioFactor = &g_RatioFactor[0];
+    PthreadArg.pRatioFactor = &RatioFactor;
     PthreadArg.pLock = &g_StatusLock[0];
-    PthreadArg.pCurFileList = &g_FileList;
+    PthreadArg.pCurFileList = pFileList;
     PthreadArg.ProcessStatus = PROCESS_STATUS_BUSY;
     
     pthread_t PthreadID;
     int ret = 0;
     ret = pthread_create(&PthreadID, NULL, Pthread_ProcessFile, &PthreadArg);
-	if(ret)
+	if(ret != 0)
 	{
 		DISP_ERR(STR_ERR_PTHREAD_CREATE);
 		CTL_SHOW_CONSOLE_END_LINE();
@@ -192,7 +204,7 @@ static PROCESS_STATUS EncryptFile(FileList_t *pFileList)
     
     while(PROCESS_STATUS_BUSY == PthreadArg.ProcessStatus)
     {
-        mvwprintw(win, lines-2, (cols-3)/2, "%d%%", g_RatioFactor[0]/denominator);
+        mvwprintw(win, lines-2, (cols-3)/2, "%d%%", RatioFactor/denominator);
         wrefresh(win);
         usleep(500*1000); //500ms
     }
@@ -206,84 +218,224 @@ static PROCESS_STATUS EncryptFile(FileList_t *pFileList)
 
 static PROCESS_STATUS DecryptFile(FileList_t *pFileList)
 {
-    int lines = 0, cols = 0;
 
-    if((sizeof(STR_IN_ENCRYPTING)-1 + pFileList->FileNameLenght) <= CTL_ENCRYPT_FILE_WIN_COLS)
-    {
-        lines = 4;
-        cols = pFileList->FileNameLenght + sizeof(STR_IN_ENCRYPTING) - 1;
-    }
-    else
-    {
-        lines = ((sizeof(STR_IN_ENCRYPTING)-1 + pFileList->FileNameLenght)
-            /CTL_ENCRYPT_FILE_WIN_COLS) + 4;
-        cols = CTL_ENCRYPT_FILE_WIN_COLS;
-    }
-
-    CTL_HIDE_CONSOLE_END_LINE();
-    
-    WINDOW *win = newwin(lines, cols, (LINES-lines)/2, (COLS-cols)/2);
-    CTL_SET_COLOR(win, CTL_PANEL_CYAN);
-    mvwhline(win, 0, 0, '-', cols);
-    mvwhline(win, lines-1, 0, '-', cols);
-    CTL_RESET_COLOR(win, CTL_PANEL_CYAN);
-
-    CTL_SET_COLOR(win, CTL_PANEL_MAGENTA);
-    if((sizeof(STR_IN_ENCRYPTING)-1 + pFileList->FileNameLenght)%cols != 0)
-    {
-        mvwprintw(win, 1, 0, "%s%s\n", STR_IN_DECRYPTING, pFileList->FileName);
-    }
-    else
-    {
-        mvwprintw(win, 1, 0, "%s%s", STR_IN_DECRYPTING, pFileList->FileName);
-    }
-    CTL_RESET_COLOR(win, CTL_PANEL_MAGENTA);
-
-    CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
-    mvwaddstr(win, lines-2, 0, STR_RATE);
-    wrefresh(win);
-
-    g_RatioFactor[0] = 0;
-    
-    PthreadArg_t PthreadArg;
-    InitPthreadArg(&PthreadArg);
-    PthreadArg.pFunc = decrypt;
-    PthreadArg.pRatioFactor = &g_RatioFactor[0];
-    PthreadArg.pLock = &g_StatusLock[0];
-    PthreadArg.pCurFileList = &g_FileList;
-    PthreadArg.ProcessStatus = PROCESS_STATUS_BUSY;
-    
-    pthread_t PthreadID;
-    int ret = 0;
-    ret = pthread_create(&PthreadID, NULL, Pthread_ProcessFile, &PthreadArg);
-	if(ret)
-	{
-		DISP_ERR(STR_ERR_PTHREAD_CREATE);
-		CTL_SHOW_CONSOLE_END_LINE();
-        return PROCESS_STATUS_ELSE_ERR;
-	}
-
-    int denominator = (int)(pFileList->FileSize / CYT_SMALL_FILE_SIZE);
-    if(0 == denominator)
-        denominator = 100;
-    
-    while(PROCESS_STATUS_BUSY == PthreadArg.ProcessStatus)
-    {
-        mvwprintw(win, lines-2, (cols-3)/2, "%d%%", g_RatioFactor[0]/denominator);
-        wrefresh(win);
-        usleep(500*1000); //500ms
-    }
-    CTL_RESET_COLOR(win, CTL_PANEL_YELLOW);
-
-    delwin(win);
-    touchwin(stdscr);
-    CTL_SHOW_CONSOLE_END_LINE();
-    return PthreadArg.ProcessStatus;
 }
 
 //Adapt 4 threads to process encrypting or decrypting
 static PROCESS_STATUS EncryptFolder(FileList_t *pFileList)
 {
+    //Create the window >>>
+    WINDOW *win1 = newwin(LINES/4, COLS, 0, 0);
+    WINDOW *win2 = newwin(LINES/4, COLS, LINES/4, 0);
+    WINDOW *win3 = newwin(LINES/4, COLS, LINES/2, 0);
+    WINDOW *win4 = newwin(LINES/4, COLS, LINES*3/4, 0);
+
+    CTL_SET_COLOR(win1, CTL_PANEL_YELLOW);
+    CTL_SET_COLOR(win2, CTL_PANEL_YELLOW);
+    CTL_SET_COLOR(win3, CTL_PANEL_YELLOW);
+    CTL_SET_COLOR(win4, CTL_PANEL_YELLOW);
+
+    //wattron(win1, A_REVERSE);
+    mvwaddstr(win1, 0, 0, STR_TASK1);
+    mvwaddstr(win1, 0, COLS/4, STR_SUCCESS_COUNT);
+    mvwaddstr(win1, 0, COLS/2, STR_FAIL_COUNT);
+    mvwaddstr(win1, 0, COLS*3/4, STR_RATE);
+    //wattroff(win1, A_REVERSE);
+    
+    //wattron(win2, A_REVERSE);
+    mvwaddstr(win2, 0, 0, STR_TASK2);
+    mvwaddstr(win2, 0, COLS/4, STR_SUCCESS_COUNT);
+    mvwaddstr(win2, 0, COLS/2, STR_FAIL_COUNT);
+    mvwaddstr(win2, 0, COLS*3/4, STR_RATE);
+    //wattroff(win2, A_REVERSE);
+    
+    //wattron(win3, A_REVERSE);
+    mvwaddstr(win3, 0, 0, STR_TASK3);
+    mvwaddstr(win3, 0, COLS/4, STR_SUCCESS_COUNT);
+    mvwaddstr(win3, 0, COLS/2, STR_FAIL_COUNT);
+    mvwaddstr(win3, 0, COLS*3/4, STR_RATE);
+    //wattroff(win3, A_REVERSE);
+    
+    //wattron(win4, A_REVERSE);
+    mvwaddstr(win4, 0, 0, STR_TASK4);
+    mvwaddstr(win4, 0, COLS/4, STR_SUCCESS_COUNT);
+    mvwaddstr(win4, 0, COLS/2, STR_FAIL_COUNT);
+    mvwaddstr(win4, 0, COLS*3/4, STR_RATE);
+    //wattroff(win4, A_REVERSE);
+
+    wrefresh(win1);
+    wrefresh(win2);
+    wrefresh(win3);
+    wrefresh(win4);
+
+    g_pCurFilelist = pFileList;
+    int RatioFactor1 = 0, RatioFactor2 = 0, RatioFactor3 = 0, RatioFactor4 = 0;
+
+    PthreadArg_t PthreadArg1, PthreadArg2, PthreadArg3, PthreadArg4;
+    InitPthreadArg(&PthreadArg1);
+    InitPthreadArg(&PthreadArg2);
+    InitPthreadArg(&PthreadArg3);
+    InitPthreadArg(&PthreadArg4);
+
+    PthreadArg1.pFunc = decrypt;
+    PthreadArg1.pRatioFactor = &RatioFactor1;
+    PthreadArg1.pLock = &g_StatusLock[0];
+    PthreadArg1.pCurFileList = g_pCurFilelist;
+    PthreadArg1.ProcessStatus = PROCESS_STATUS_BUSY;
+    PthreadArg1.SuccessCount = 0;
+    PthreadArg1.FailCount = 0;
+    PthreadArg1.RefreshFlag = 1;
+    
+    PthreadArg2.pFunc = decrypt;
+    PthreadArg2.pRatioFactor = &RatioFactor2;
+    PthreadArg2.pLock = &g_StatusLock[1];
+    PthreadArg2.pCurFileList = g_pCurFilelist;
+    PthreadArg2.ProcessStatus = PROCESS_STATUS_BUSY;
+    PthreadArg2.SuccessCount = 0;
+    PthreadArg2.FailCount = 0;
+    PthreadArg2.RefreshFlag = 1;
+    
+    PthreadArg3.pFunc = decrypt;
+    PthreadArg3.pRatioFactor = &RatioFactor3;
+    PthreadArg3.pLock = &g_StatusLock[2];
+    PthreadArg3.pCurFileList = g_pCurFilelist;
+    PthreadArg3.ProcessStatus = PROCESS_STATUS_BUSY;
+    PthreadArg3.SuccessCount = 0;
+    PthreadArg3.FailCount = 0;
+    PthreadArg3.RefreshFlag = 1;
+    
+    PthreadArg4.pFunc = decrypt;
+    PthreadArg4.pRatioFactor = &RatioFactor4;
+    PthreadArg4.pLock = &g_StatusLock[3];
+    PthreadArg4.pCurFileList = g_pCurFilelist;
+    PthreadArg4.ProcessStatus = PROCESS_STATUS_BUSY;
+    PthreadArg4.SuccessCount = 0;
+    PthreadArg4.FailCount = 0;
+    PthreadArg4.RefreshFlag = 1;
+    
+    int ret = 0;
+    pthread_t PthreadID1, PthreadID2, PthreadID3, PthreadID4;
+    
+    ret = pthread_create(&PthreadID1, NULL, Pthread_ProcessFolder, &PthreadArg1);
+	if(ret != 0)
+	{
+		DISP_ERR(STR_ERR_PTHREAD_CREATE);
+		CTL_SHOW_CONSOLE_END_LINE();
+        return PROCESS_STATUS_ELSE_ERR;
+	}
+	
+	ret = pthread_create(&PthreadID2, NULL, Pthread_ProcessFolder, &PthreadArg2);
+	if(ret != 0)
+	{
+		DISP_ERR(STR_ERR_PTHREAD_CREATE);
+		CTL_SHOW_CONSOLE_END_LINE();
+        return PROCESS_STATUS_ELSE_ERR;
+	}
+	
+	ret = pthread_create(&PthreadID3, NULL, Pthread_ProcessFolder, &PthreadArg3);
+	if(ret != 0)
+	{
+		DISP_ERR(STR_ERR_PTHREAD_CREATE);
+		CTL_SHOW_CONSOLE_END_LINE();
+        return PROCESS_STATUS_ELSE_ERR;
+	}
+	
+	ret = pthread_create(&PthreadID4, NULL, Pthread_ProcessFolder, &PthreadArg4);
+	if(ret != 0)
+	{
+		DISP_ERR(STR_ERR_PTHREAD_CREATE);
+		CTL_SHOW_CONSOLE_END_LINE();
+        return PROCESS_STATUS_ELSE_ERR;
+	}
+	
+	int denominator1 = 100, denominator2 = 100, denominator3 = 100, denominator4 = 100;
+        
+    while(1)
+    {
+        if((PROCESS_STATUS_BUSY != PthreadArg1.ProcessStatus) && 
+           (PROCESS_STATUS_BUSY != PthreadArg2.ProcessStatus) && 
+           (PROCESS_STATUS_BUSY != PthreadArg3.ProcessStatus) && 
+           (PROCESS_STATUS_BUSY != PthreadArg4.ProcessStatus))
+           break;
+
+        mvwprintw(win1, 0, (COLS*3/4 + sizeof(STR_RATE)-1), 
+            "%d%%", *PthreadArg1.pRatioFactor/denominator1);
+        mvwprintw(win2, 0, (COLS*3/4 + sizeof(STR_RATE)-1), 
+            "%d%%", *PthreadArg2.pRatioFactor/denominator2);
+        mvwprintw(win3, 0, (COLS*3/4 + sizeof(STR_RATE)-1), 
+            "%d%%", *PthreadArg3.pRatioFactor/denominator3);
+        mvwprintw(win4, 0, (COLS*3/4 + sizeof(STR_RATE)-1), 
+            "%d%%", *PthreadArg4.pRatioFactor/denominator4);
+
+        if(1 == PthreadArg1.RefreshFlag)
+        {
+            PthreadArg1.RefreshFlag = 0;
+            denominator1 = (int)(PthreadArg1.pCurFileList->FileSize / CYT_SMALL_FILE_SIZE);
+            if(0 == denominator1)
+                denominator1 = 100;
+            
+            mvwprintw(win1, 0, (COLS/4 + sizeof(STR_SUCCESS_COUNT)-1), 
+                "%d", PthreadArg1.SuccessCount);
+            mvwprintw(win1, 0, (COLS/2 + sizeof(STR_FAIL_COUNT)-1), 
+                "%d", PthreadArg1.FailCount);
+            mvwaddstr(win1, 1, 0, PthreadArg1.pCurFileList->FileName);
+        }
+
+        if(1 == PthreadArg2.RefreshFlag)
+        {
+            PthreadArg2.RefreshFlag = 0;
+            denominator2 = (int)(PthreadArg2.pCurFileList->FileSize / CYT_SMALL_FILE_SIZE);
+            if(0 == denominator2)
+                denominator2 = 100;
+                
+            mvwprintw(win2, 0, (COLS/4 + sizeof(STR_SUCCESS_COUNT)-1), 
+                "%d", PthreadArg2.SuccessCount);
+            mvwprintw(win2, 0, (COLS/2 + sizeof(STR_FAIL_COUNT)-1), 
+                "%d", PthreadArg2.FailCount);
+            mvwaddstr(win2, 1, 0, PthreadArg2.pCurFileList->FileName);
+        }
+
+        if(1 == PthreadArg3.RefreshFlag)
+        {
+            PthreadArg3.RefreshFlag = 0;
+            denominator3 = (int)(PthreadArg3.pCurFileList->FileSize / CYT_SMALL_FILE_SIZE);
+            if(0 == denominator3)
+                denominator3 = 100;
+                
+            mvwprintw(win3, 0, (COLS/4 + sizeof(STR_SUCCESS_COUNT)-1), 
+                "%d", PthreadArg3.SuccessCount);
+            mvwprintw(win3, 0, (COLS/2 + sizeof(STR_FAIL_COUNT)-1), 
+                "%d", PthreadArg3.FailCount);
+            mvwaddstr(win3, 1, 0, PthreadArg3.pCurFileList->FileName);
+        }
+        
+        if(1 == PthreadArg4.RefreshFlag)
+        {    
+            PthreadArg4.RefreshFlag = 0;
+            denominator4 = (int)(PthreadArg4.pCurFileList->FileSize / CYT_SMALL_FILE_SIZE);
+            if(0 == denominator4)
+                denominator4 = 100;
+                
+            mvwprintw(win4, 0, (COLS/4 + sizeof(STR_SUCCESS_COUNT)-1), 
+                "%d", PthreadArg4.SuccessCount);
+            mvwprintw(win4, 0, (COLS/2 + sizeof(STR_FAIL_COUNT)-1), 
+                "%d", PthreadArg4.FailCount);
+            mvwaddstr(win4, 1, 0, PthreadArg4.pCurFileList->FileName);
+        }
+
+        wrefresh(win1);
+        wrefresh(win2);
+        wrefresh(win3);
+        wrefresh(win4);
+
+        sleep(1);
+    }
+    
+    CTL_RESET_COLOR(win1, CTL_PANEL_YELLOW);
+    CTL_RESET_COLOR(win2, CTL_PANEL_YELLOW);
+    CTL_RESET_COLOR(win3, CTL_PANEL_YELLOW);
+    CTL_RESET_COLOR(win4, CTL_PANEL_YELLOW);
+    
     return STAT_OK;
 }
 
@@ -294,7 +446,7 @@ static PROCESS_STATUS DecryptFolder(FileList_t *pFileList)
 
 
 
-//file list related
+//File list related
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 FileList_t *ScanDirectory(char *pFolderName)
 {
@@ -317,7 +469,12 @@ FileList_t *ScanDirectory(char *pFolderName)
     int FolderNameLenght = strlen(pFolderName);
     int FileNameLenght;
     char *pFileName;
-    
+#ifdef __LINUX
+    struct stat FileInfo;
+#elif defined __WINDOWS
+    struct _stati64 FileInfo;
+#endif
+
     while(1)
     {
         pEntry = readdir(pDir);
@@ -343,7 +500,17 @@ FileList_t *ScanDirectory(char *pFolderName)
 
         snprintf(pFileName, FileNameLenght, "%s/%s", pFolderName, pEntry->d_name);
         
-        if(DT_DIR == pEntry->d_type)
+#ifdef __LINUX
+        if(0 != lstat(pFileName, &FileInfo))
+#elif defined __WINDOWS
+        if(0 != _stati64(pFileName, &FileInfo))
+#endif
+        {
+            free(pFileName);
+            continue;
+        }
+        
+        if((DT_DIR == pEntry->d_type) && (FileInfo.st_mode & S_IFDIR))
         {
             pNewFileList = ScanDirectory(pFileName);
             if(NULL == pNewFileList)
@@ -365,11 +532,12 @@ FileList_t *ScanDirectory(char *pFolderName)
                 free(pNewFileList->FileName);
             free(pNewFileList);
         }
-        else if(DT_REG == pEntry->d_type)
+        else if((DT_REG == pEntry->d_type) && (FileInfo.st_mode & S_IFREG))
         {
             pNewFileList = (FileList_t *)malloc(sizeof(FileList_t));
             if(NULL == pNewFileList)
             {
+                free(pFileName);
                 FreeFileList(pHeadNode);
                 closedir(pDir);
                 return NULL;
@@ -377,7 +545,7 @@ FileList_t *ScanDirectory(char *pFolderName)
             
             pNewFileList->FileName = pFileName;
             pNewFileList->FileNameLenght = FileNameLenght;
-            pNewFileList->FileSize = 0;
+            pNewFileList->FileSize = FileInfo.st_size;
             pNewFileList->pNext = NULL;
             
             pCurFileList->pNext = pNewFileList;
@@ -390,7 +558,6 @@ FileList_t *ScanDirectory(char *pFolderName)
             free(pFileName);
             continue;
         }
-        
     }
 
     if(NULL == pHeadNode->pNext)
@@ -416,7 +583,7 @@ void DispFileList(FileList_t *pHeadNode)
 
 
 
-//static inline functions
+//Static inline functions
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 static inline void InitFileListNode(FileList_t *pFileList)
 {

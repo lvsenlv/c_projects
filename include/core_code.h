@@ -26,6 +26,7 @@ typedef struct PthreadArgStruct
     //use in multi threads
     int SuccessCount;
     int FailCount;
+    __IO char RefreshFlag;
 }PthreadArg_t;
 
 static inline void InitPthreadArg(PthreadArg_t *pArg_t)
@@ -38,6 +39,7 @@ static inline void InitPthreadArg(PthreadArg_t *pArg_t)
 
     pArg_t->SuccessCount = 0;
     pArg_t->FailCount = 0;
+    pArg_t->RefreshFlag = 0;
 }
 
 void *Pthread_ProcessFile(void *arg);

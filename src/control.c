@@ -11,6 +11,11 @@
 #include <unistd.h>
 #include <locale.h>
 
+static inline void FreePtrLinkList(PtrLinkList_t *pHeadNode);
+
+/*
+    Return: STAT_ERR, STAT_OK
+*/
 G_STATUS CTL_InitConsole(void)
 {
     setlocale(LC_ALL,"");
@@ -63,6 +68,9 @@ void CTL_DrawStdConsole(void)
     refresh();
 }
 
+/*
+    Return: STAT_EXIT, STAT_OK
+*/
 G_STATUS CTL_ShowMenu(char *pFunc)
 {
     WINDOW *win = newwin(CTL_MENU_WIN_LINES, CTL_MENU_WIN_COLS, 
@@ -194,7 +202,7 @@ G_STATUS CTL_GetFileName(char *pFileName)
         else if(STAT_GO_BACK == status)
         {
             return STAT_GO_BACK;
-        }        
+        }
     }
 
     CTL_DrawStdConsole();
@@ -202,6 +210,9 @@ G_STATUS CTL_GetFileName(char *pFileName)
 }
 #endif
 
+/*
+    Return: STAT_EXIT, STAT_GO_BACK, STAT_OK
+*/
 G_STATUS CTL_GetFileName(char *pFileName)
 {
     WINDOW *win = newwin(CTL_GET_FILE_NAME_WIN_LINES, CTL_GET_FILE_NAME_WIN_COLS, 
@@ -214,7 +225,7 @@ G_STATUS CTL_GetFileName(char *pFileName)
     while(1)
     {
         echo();
-        CTL_HIDE_CONSOLE_END_LINE(); //shield the end line of standard screen 
+        CTL_HIDE_CONSOLE_END_LINE(); //Shield the end line of standard screen 
         
         mvwhline(win, 0, 0, '-', CTL_GET_FILE_NAME_WIN_COLS);
         mvwhline(win, CTL_GET_FILE_NAME_WIN_LINES-1, 0, '-', CTL_GET_FILE_NAME_WIN_COLS);
@@ -255,6 +266,9 @@ G_STATUS CTL_GetFileName(char *pFileName)
     return STAT_OK;
 }
 
+/*
+    Return: STAT_EXIT, STAT_GO_BACK, STAT_ERR, STAT_OK
+*/
 G_STATUS CTL_GetPassord(char *pPassword)
 {
     WINDOW *win = newwin(CTL_GET_PASSWORD_WIN_LINES, CTL_GET_PASSWORD_WIN_COLS, 
@@ -414,8 +428,9 @@ G_STATUS CTL_GetPassord(char *pPassword)
 
 
 /*
-    rules: "%s" means string
-    e.g: CTL_MakeChoice("%s%s", "It occurs fatal error", "Please make a choice");
+    Rules: "%s" means string
+    E.g: CTL_MakeChoice("%s%s", "It occurs fatal error", "Please make a choice");
+    Return: STAT_RETRY, STAT_GO_BACK, STAT_EXIT
 */
 G_STATUS CTL_MakeChoice(const char*format, ...)
 {
@@ -428,7 +443,7 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
     const char *pFormat = format;
     int lines = 0, cols = 20, tmp = 0;
 
-    //parse format
+    //Parse format
     while(*pFormat != '\0')
     {
         if('%' == *pFormat++)
@@ -475,7 +490,7 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
         return STAT_ERR;
     }
 #ifdef __DEBUG    
-    if(lines < 6) //top and bottom symbols is 4 lines, choice string is 1 lines
+    if(lines < 6) //Top and bottom symbols is 4 lines, choice string is 1 lines
     {
         FreePtrLinkList(&StrHeadNode);
         DISP_ERR_PLUS("%s%d\n", STR_ERR_STR_IS_NULL, lines);
@@ -503,7 +518,7 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
 
     int Str1StartX = (cols-16)/3; //STR_RETRY and STR_BACK are about 16 bytes
     int Str2StartX = cols - Str1StartX - 8; //STR_BACK is 8 bytes
-    int StartPosY = lines-1-2; //bottom symbols are 2 lines, and the line counts from 0
+    int StartPosY = lines-1-2; //Bottom symbols are 2 lines, and the line counts from 0
     mvwaddstr(win, StartPosY, Str2StartX, STR_BACK);
     wattron(win, A_REVERSE);
     mvwaddstr(win, StartPosY, Str1StartX, STR_RETRY);
@@ -557,3 +572,20 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
 
     return STAT_RETRY;
 }
+
+
+
+//Static inline functions
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+static inline void FreePtrLinkList(PtrLinkList_t *pHeadNode)
+{
+    PtrLinkList_t *pCurNode = pHeadNode->pNext_t;
+    PtrLinkList_t *pTmpNode;
+    while(pCurNode != NULL)
+    {
+        pTmpNode = pCurNode->pNext_t;
+        free(pCurNode);
+        pCurNode = pTmpNode;
+    }
+}
+

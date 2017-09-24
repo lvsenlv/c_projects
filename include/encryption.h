@@ -46,7 +46,7 @@ typedef struct FileListStruct
     struct FileListStruct *pNext;
 }FileList_t;
 
-static inline G_STATUS CheckFileList(__IO FileList_t *pFileList)
+static inline G_STATUS CheckFileListArg(__IO FileList_t *pFileList)
 {
 #ifdef __DEBUG
     if(NULL == pFileList)

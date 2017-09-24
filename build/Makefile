@@ -2,7 +2,7 @@ CC = gcc
 OBJS = common.o control.o encryption.o core_code.o main.o str.o
 OBJS_DIR = ./objects
 LIBS := -lcurses -lpthread
-DEF := -D__LINUX -D__64BIT 
+DEF := -D__LINUX -D__64BIT -D__DEBUG
 INCLUDES := -I../include
 CFLAGS := -g -Wall -Wno-unused-function
 $(shell mkdir -p $(OBJS_DIR))

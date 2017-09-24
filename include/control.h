@@ -76,18 +76,6 @@ typedef struct PtrLinkList
     struct PtrLinkList *pNext_t;
 }PtrLinkList_t;
 
-static inline void FreePtrLinkList(PtrLinkList_t *pHeadNode)
-{
-    PtrLinkList_t *pCurNode = pHeadNode->pNext_t;
-    PtrLinkList_t *pTmpNode;
-    while(pCurNode != NULL)
-    {
-        pTmpNode = pCurNode->pNext_t;
-        free(pCurNode);
-        pCurNode = pTmpNode;
-    }
-}
-
 G_STATUS CTL_InitConsole(void);
 void CTL_DrawStdConsole(void);
 G_STATUS CTL_ShowMenu(char *pFunc);

@@ -27,6 +27,7 @@ void *Pthread_ProcessFile(void *arg)
     PthreadArg_t *pArg_t = (PthreadArg_t *)arg;
     G_STATUS status;
 
+#ifdef __DEBUG
     if(CheckPthreadArg(pArg_t) != STAT_OK)
     {
         pthread_mutex_lock(&g_LogLock);
@@ -36,7 +37,7 @@ void *Pthread_ProcessFile(void *arg)
         return NULL;
     }
 
-    if(CheckFileList(pArg_t->pCurFileList) != STAT_OK)
+    if(CheckFileListArg(pArg_t->pCurFileList) != STAT_OK)
     {
         pthread_mutex_lock(&g_LogLock);
         DISP_LOG(STR_NULL, STR_ERR_INVALID_FILE_LIST_ARG);
@@ -44,6 +45,7 @@ void *Pthread_ProcessFile(void *arg)
         pthread_mutex_unlock(&g_LogLock);
         return NULL;
     }
+#endif
 
     if(0 == pArg_t->pCurFileList->FileSize)
     {
@@ -77,7 +79,8 @@ void *Pthread_ProcessFolder(void *arg)
 {
     PthreadArg_t *pArg_t = (PthreadArg_t *)arg;
     G_STATUS status = STAT_OK;
-
+    
+#ifdef __DEBUG
     if(CheckPthreadArg(pArg_t) != STAT_OK)
     {
         pthread_mutex_lock(&g_LogLock);
@@ -86,6 +89,7 @@ void *Pthread_ProcessFolder(void *arg)
         pthread_mutex_unlock(&g_LogLock);
         return NULL;
     }
+#endif
 
     pthread_mutex_lock(&g_FileLock);
     if(NULL == g_pCurFilelist)
@@ -97,11 +101,12 @@ void *Pthread_ProcessFolder(void *arg)
     
     pArg_t->pCurFileList = g_pCurFilelist;
     g_pCurFilelist = g_pCurFilelist->pNext;
+    pArg_t->RefreshFlag = 1;
     pthread_mutex_unlock(&g_FileLock);
 
     while(1)
     {
-        if(CheckFileList(pArg_t->pCurFileList) != STAT_OK)
+        if(CheckFileListArg(pArg_t->pCurFileList) != STAT_OK)
         {
             pthread_mutex_lock(&g_FileLock);
             DISP_LOG(STR_NULL, STR_ERR_INVALID_FILE_LIST_ARG);
@@ -117,6 +122,7 @@ void *Pthread_ProcessFolder(void *arg)
             
             pArg_t->pCurFileList = g_pCurFilelist;
             g_pCurFilelist = g_pCurFilelist->pNext;
+            pArg_t->RefreshFlag = 1;
             pthread_mutex_unlock(&g_FileLock);
             
             continue;
@@ -138,6 +144,7 @@ void *Pthread_ProcessFolder(void *arg)
             
             pArg_t->pCurFileList = g_pCurFilelist;
             g_pCurFilelist = g_pCurFilelist->pNext;
+            pArg_t->RefreshFlag = 1;
             pthread_mutex_unlock(&g_FileLock);
             
             continue;
@@ -146,13 +153,15 @@ void *Pthread_ProcessFolder(void *arg)
         status = (*pArg_t->pFunc)(pArg_t->pCurFileList->FileName, pArg_t->pCurFileList->FileSize, 
             pArg_t->pRatioFactor);
         
-        pthread_mutex_lock(pArg_t->pLock);
+        pthread_mutex_lock(&g_FileLock);
+        //pthread_mutex_lock(pArg_t->pLock);
         if(status != STAT_OK)
         {
             if(STAT_FATAL_ERR == status)
             {
                 *pArg_t->pRatioFactor = PROCESS_STATUS_FATAL_ERR;
-                pthread_mutex_unlock(pArg_t->pLock);
+                //pthread_mutex_unlock(pArg_t->pLock);
+                pthread_mutex_unlock(&g_FileLock);
                 return NULL;
             }
             
@@ -162,9 +171,9 @@ void *Pthread_ProcessFolder(void *arg)
         {
             pArg_t->SuccessCount++;
         }
-        pthread_mutex_unlock(pArg_t->pLock);
+        //pthread_mutex_unlock(pArg_t->pLock);
         
-        pthread_mutex_lock(&g_FileLock);
+        //pthread_mutex_lock(&g_FileLock);
         if(NULL == g_pCurFilelist)
         {
             pArg_t->ProcessStatus = (pArg_t->FailCount == 0) ? 
@@ -175,6 +184,7 @@ void *Pthread_ProcessFolder(void *arg)
         
         pArg_t->pCurFileList = g_pCurFilelist;
         g_pCurFilelist = g_pCurFilelist->pNext;
+        pArg_t->RefreshFlag = 1;
         pthread_mutex_unlock(&g_FileLock);
     }
     
@@ -228,7 +238,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     int PasswordLenght = 0;
     const char *pPassword = g_password;
 
-    //get encrypt factor
+    //Get encrypt factor
     while(*pPassword != '\0')
     {
         EncyptFactor += (uint32_t)*pPassword;
@@ -274,7 +284,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     {
         *pRatioFactor = index*100;
         
-        //read data from original file
+        //Read data from original file
         memset(pData, 0, sizeof(uint8_t)*CYT_SMALL_FILE_SIZE);
         size = fread(pData, sizeof(uint8_t), CYT_SMALL_FILE_SIZE, fp);
         if(size != CYT_SMALL_FILE_SIZE)
@@ -291,7 +301,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
 
         *pRatioFactor += 10;
         
-        //proccess 1
+        //Proccess 1
         pTmp = pData;
         for(i = 0; i < CYT_SMALL_FILE_SIZE; i++)
         {
@@ -304,7 +314,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
 
         *pRatioFactor += 50;
 
-        //proccess 2
+        //Proccess 2
         pTmp = pBackupData;
         pTmp2 = pData + CYT_SMALL_FILE_SIZE - 1;
         for(i = 0; i < PasswordLenght; i++)
@@ -328,7 +338,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         
         *pRatioFactor += 10;
 
-        //proccess 3
+        //Proccess 3
         pPassword = g_password;
         pTmp = pData + CYT_SMALL_FILE_SIZE - 1;
         for(i = 0; i < PasswordLenght; i++)
@@ -342,7 +352,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
 
         *pRatioFactor += 10;
 
-        //write encyption data to new file
+        //Write encyption data to new file
         size = fwrite(pData, sizeof(uint8_t), CYT_SMALL_FILE_SIZE, NewFp);
         if(size != CYT_SMALL_FILE_SIZE)
         {        
@@ -357,10 +367,10 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         }
     }
 
-    //encrypt rest data
+    //Encrypt rest data
     int RestDataSize = (int)(FileSize % CYT_SMALL_FILE_SIZE);
     
-    //read data from original file
+    //Read data from original file
     memset(pData, 0, sizeof(uint8_t)*CYT_SMALL_FILE_SIZE);
     size = fread(pData, sizeof(uint8_t), RestDataSize, fp);
     if(size != RestDataSize)
@@ -375,7 +385,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         return STAT_ERR;
     }
     
-    //proccess 1
+    //Proccess 1
     pTmp = pData;
     for(i = 0; i < RestDataSize; i++)
     {
@@ -386,7 +396,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         *pTmp++ = TmpData;
     }
 
-    //proccess 2
+    //Proccess 2
     if(RestDataSize <= PasswordLenght)
     {
         pTmp = pData;
@@ -423,7 +433,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         }
     }
 
-    //proccess 3
+    //Proccess 3
     if(RestDataSize > 256)
     {
         pPassword = g_password;
@@ -438,7 +448,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         }
     }
     
-    //write encyption data to new file
+    //Write encyption data to new file
     size = fwrite(pData, sizeof(uint8_t), RestDataSize, NewFp);
     if(size != RestDataSize)
     {        
@@ -522,7 +532,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     int PasswordLenght = 0;
     const char *pPassword = g_password;
 
-    //get decrypt factor
+    //Get decrypt factor
     while(*pPassword != '\0')
     {
         EncyptFactor += (uint)*pPassword;
@@ -568,7 +578,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     {
         *pRatioFactor = index*100;
         
-        //read data from original file
+        //Read data from original file
         memset(pData, 0, sizeof(uint8_t)*CYT_SMALL_FILE_SIZE);
         size = fread(pData, sizeof(uint8_t), CYT_SMALL_FILE_SIZE, fp);
         if(size != CYT_SMALL_FILE_SIZE)
@@ -585,7 +595,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
 
         *pRatioFactor += 10;
         
-        //proccess 3
+        //Proccess 3
         pPassword = g_password + PasswordLenght - 1;
         pTmp = pData + CYT_SMALL_FILE_SIZE - PasswordLenght;
         for(i = 0; i < PasswordLenght; i++)
@@ -599,7 +609,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
 
         *pRatioFactor += 10;
 
-        //proccess 2
+        //Proccess 2
         pTmp = pBackupData;
         pTmp2 = pData;
         for(i = 0; i < PasswordLenght; i++)
@@ -623,7 +633,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
 
         *pRatioFactor += 10;
 
-        //proccess 1
+        //Proccess 1
         pTmp = pData;
         for(i = 0; i < CYT_SMALL_FILE_SIZE; i++)
         {
@@ -636,7 +646,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
 
         *pRatioFactor += 50;
 
-        //write encyption data to new file
+        //Write encyption data to new file
         size = fwrite(pData, sizeof(uint8_t), CYT_SMALL_FILE_SIZE, NewFp);
         if(size != CYT_SMALL_FILE_SIZE)
         {        
@@ -651,10 +661,10 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         }
     }
 
-    //encrypt rest data
+    //Encrypt rest data
     int RestDataSize = (int)(FileSize % CYT_SMALL_FILE_SIZE);
     
-    //read data from original file
+    //Read data from original file
     memset(pData, 0, sizeof(uint8_t)*CYT_SMALL_FILE_SIZE);
     size = fread(pData, sizeof(uint8_t), RestDataSize, fp);
     if(size != RestDataSize)
@@ -669,7 +679,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         return STAT_ERR;
     }
     
-    //proccess 3
+    //Proccess 3
     if(RestDataSize > 256)
     {
         pPassword = g_password + PasswordLenght - 1;
@@ -684,7 +694,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         }
     }       
 
-    //proccess 2
+    //Proccess 2
     if(RestDataSize <= PasswordLenght)
     {
         pTmp = pData;
@@ -721,7 +731,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         }
     }    
 
-    //proccess 1
+    //Proccess 1
     pTmp = pData;
     for(i = 0; i < RestDataSize; i++)
     {
@@ -733,7 +743,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     }
 
     
-    //write encyption data to new file
+    //Write encyption data to new file
     size = fwrite(pData, sizeof(uint8_t), RestDataSize, NewFp);
     if(size != RestDataSize)
     {        
@@ -775,13 +785,15 @@ static G_STATUS CheckPthreadArg(PthreadArg_t *pArg_t)
         pArg_t->SuccessCount = 0;
     if(pArg_t->FailCount != 0)
         pArg_t->FailCount = 0;
+    if(pArg_t->RefreshFlag != 0)
+        pArg_t->RefreshFlag = 0;
 
     return STAT_OK;
 }
 
 
 
-//static inline functions
+//Static inline functions
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 static inline void DeleteEncyptSuffix(char *pFileName)
 {
