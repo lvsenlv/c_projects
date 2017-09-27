@@ -924,81 +924,97 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
         return status;
 
     WINDOW *WinLabel = newwin(1, COLS, LINES-1, 0);
+    
+    keypad(WinLabel, true);
     CTL_SET_COLOR(WinLabel, CTL_PANEL_CYAN);
     wattron(WinLabel, A_REVERSE);
     mvwaddstr(win, 0, 0, STR_RESULT_WIN_LABEL);
     wattroff(WinLabel, A_REVERSE);
     wrefresh(WinLabel);
-    
-    win = newwin(LINES-1, COLS, 0, 0);
-    int i;
-    log_t *pCurLog = log.pNext;
-    char TopFlag = 0; //1 means it has been in top position, i.e can't to page up again
 
-    //scrollok(win, true);
+    win = newwin(LINES-1, COLS, 0, 0);
+    log_t *pCurLog = log.pNext;     //pCurLog can't be NULL
+    char BottomFlag = 0;            //1 means it has been in bottom position, i.e can't to page down again
+    int PageCount = 0, LineCount = 0;
+    int i;
+    
     wmove(win, 0, 0);
+    for(i = 0; i < (LINES-1)/2; i++)
+    {
+        CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
+        wprintw(win, "%s\n", pCurLog->pFileName);
+        CTL_SET_COLOR(win, CTL_PANEL_RED);
+        wprintw(win, "%s\n", pCurLog->pReason);
+                
+        if(NULL == pCurLog->pNext) //It means only one page at the first time of display
+        {
+            BottomFlag = 1;     
+            break;
+        }
+
+        pCurLog = pCurLog->pNext; 
+    }
+    wrefresh(win);
 
     while(1)
     {
-        key = wgetch(win);
+        wmove(WinLabel, 0, sizeof(STR_RESULT_WIN_LABEL)-1);
+        key = wgetch(WinLabel);
+        
         if(KEY_NPAGE == key)
         {
-            for(i = 0; i < LINES-1; i++)
+            if(BottomFlag)
+                continue;
+                
+            wclear(win);
+            wmove(win, 0, 0);
+            for(i = 0; i < (LINES-1)/2; i++)
             {
-                if(NULL == pCurLog)
-                    break;
-    
                 CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
                 wprintw(win, "%s\n", pCurLog->pFileName);
                 CTL_SET_COLOR(win, CTL_PANEL_RED);
                 wprintw(win, "%s\n", pCurLog->pReason);
                 
                 if(NULL == pCurLog->pNext)
+                {
+                    BottomFlag = 1;
                     break;
-                    
+                }
+
                 pCurLog = pCurLog->pNext; 
             }
-            
-            TopFlag = 0;
+            wrefresh(win);
+
+            LineCount = i + (LINES-1)/2;
+            PageCount++;
         }
         else if(KEY_PPAGE == key)
         {
-            if(TopFlag)
+            if(PageCount <= 0)
                 continue;
-            
-            for(i = 0; i < LINES-1; i++)
+
+            for(i = 0; i < LineCount; i++)
             {
-                if(NULL == pCurLog)
-                {
-                    break;
-                }
-                
-                if(NULL == pCurLog->pPrevious)
-                    break;
-                
                 pCurLog = pCurLog->pPrevious;
             }
 
-            if(pCurLog == &log)
-                TopFlag = 1;
+            BottomFlag = 0;
+            PageCount--;
 
             wclear(win);
-            
-            for(i = 0; i < LINES-1; i++)
+            wmove(win, 0, 0);
+            for(i = 0; i < (LINES-1)/2; i++)
             {
-                if(NULL == pCurLog)
-                    break;
-    
                 CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
                 wprintw(win, "%s\n", pCurLog->pFileName);
                 CTL_SET_COLOR(win, CTL_PANEL_RED);
                 wprintw(win, "%s\n", pCurLog->pReason);
-                
-                if(NULL == pCurLog->pNext)
-                    break;
                     
                 pCurLog = pCurLog->pNext; 
             }
+            wrefresh(win);
+            
+            LineCount = i + (LINES-1)/2;
         }
         else if(27 == key) //Esc key
         {
@@ -1015,7 +1031,7 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     FreeLog(&log);
     delwin(WinLabel);
     delwin(win);
-    touchwin(win);
+    touchwin(stdscr);
     refresh();
     
     return STAT_OK;

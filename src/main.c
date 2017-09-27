@@ -17,7 +17,7 @@ int main(void)
     int i = 0;
     char buf[BUF_SIZE];
     
-    for(i = 0; i < 200; i++)
+    for(i = 0; i < 35; i++)
     {
         snprintf(buf, sizeof(buf), "test%d", i);
         DISP_LOG(STR_NULL, buf);

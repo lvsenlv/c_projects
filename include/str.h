@@ -50,7 +50,7 @@
 #define STR_FAIL_COUNT                      "Fail: "
 #define STR_VIEW_LOG                        "[ view log ]"
 #define STR_GO_BACK                         "[ go back ]"
-#define STR_RESULT_WIN_LABEL                "Pgdn: next page     Pgup: last page     Enter: go back"
+#define STR_RESULT_WIN_LABEL                "Pgdn: next page    Pgup: last page    Enter: go back    Esc: exit"
 
 #define STR_ERR_INVALID_FUNC                "Error: invalid func"
 #define STR_ERR_INVALID_COLS                "Error: need wider console, at least: "
@@ -66,8 +66,8 @@
 #define STR_ERR_INVALID_PTHREAD_ARG         "Error: invalid pthread arguments"
 #define STR_ERR_INVALID_FILE_LIST           "Error: invalid FlieList"
 #define STR_ERR_INVALID_FILE_LIST_ARG       "Error: invalid FlieList arguments"
-#define STR_ERR_PTHREAD_NUM_TOO_SMALL       "PTHREAD_NUM_MAX must be equare to or bigger than 2"
-#define STR_ERR_PTHREAD_NUM_TOO_BIG         "PTHREAD_NUM_MAX must be equare to or less than 8"
+#define STR_ERR_PTHREAD_NUM_TOO_SMALL       "Error: PTHREAD_NUM_MAX must be equare to or bigger than 2"
+#define STR_ERR_PTHREAD_NUM_TOO_BIG         "Error: PTHREAD_NUM_MAX must be equare to or less than 8"
 #define STR_ERR_INVALID_LOG_FILE            "Error: invalid log file format"
 
 extern char *g_pMenuStr[];
