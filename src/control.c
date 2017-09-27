@@ -25,15 +25,6 @@ G_STATUS CTL_InitConsole(void)
     noecho();
     keypad(stdscr, true);
     
-    if(OK == start_color())
-    {
-        init_pair(CTL_PANEL_CYAN, COLOR_CYAN, COLOR_BLACK);
-        init_pair(CTL_PANEL_RED, COLOR_RED, COLOR_BLACK);
-        init_pair(CTL_PANEL_YELLOW, COLOR_YELLOW, COLOR_BLACK);
-        init_pair(CTL_PANEL_GREEN, COLOR_GREEN, COLOR_BLACK);
-        init_pair(CTL_PANEL_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
-    }    
-
     if(COLS < CTL_CONSOLE_COLS)
     {
         DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_COLS, CTL_CONSOLE_COLS);
@@ -45,6 +36,17 @@ G_STATUS CTL_InitConsole(void)
         DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_LINES, CTL_CONSOLE_LINES);
         return STAT_ERR;
     }
+    
+    if(OK == start_color())
+    {
+        init_pair(CTL_PANEL_CYAN, COLOR_CYAN, COLOR_BLACK);
+        init_pair(CTL_PANEL_RED, COLOR_RED, COLOR_BLACK);
+        init_pair(CTL_PANEL_YELLOW, COLOR_YELLOW, COLOR_BLACK);
+        init_pair(CTL_PANEL_GREEN, COLOR_GREEN, COLOR_BLACK);
+        init_pair(CTL_PANEL_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
+    }
+    
+    CTL_SET_COLOR(stdscr, CTL_PANEL_CYAN);
 
     return STAT_OK;
 }
@@ -52,7 +54,6 @@ G_STATUS CTL_InitConsole(void)
 void CTL_DrawStdConsole(void)
 {
     clear();
-    CTL_SET_COLOR(stdscr, CTL_PANEL_CYAN);
     border('|', '|', '-', '-', '+', '+', '+', '+');
     
     attron(A_REVERSE);
@@ -71,7 +72,7 @@ void CTL_DrawStdConsole(void)
 /*
     Return: STAT_EXIT, STAT_OK
 */
-G_STATUS CTL_ShowMenu(char *pFunc)
+G_STATUS CTL_ShowMenu(CTL_MENU *pFunc)
 {
     WINDOW *win = newwin(CTL_MENU_WIN_LINES, CTL_MENU_WIN_COLS, 
         (LINES-CTL_MENU_WIN_LINES)/2, (COLS-CTL_MENU_WIN_COLS)/2);
@@ -140,7 +141,7 @@ G_STATUS CTL_ShowMenu(char *pFunc)
     
 }
 
-void CTL_ShowInstruction(void)
+void CTL_MENU_ShowInstruction(void)
 {
     WINDOW *win = newwin(LINES, COLS, 0, 0);
     char **ptr = pInstruction;
@@ -157,7 +158,7 @@ void CTL_ShowInstruction(void)
     }
 
     wattron(win, A_REVERSE);
-    mvwaddstr(win, LINES-1, 0, STR_GO_BACK);
+    mvwaddstr(win, LINES-1, 0, STR_PRESS_ENTER_TO_GO_BACK);
     wattroff(win, A_REVERSE);
 
     int key;
@@ -172,8 +173,8 @@ void CTL_ShowInstruction(void)
     }
 
     delwin(win);
-//    touchwin(stdscr);
-//    refresh();
+    touchwin(stdscr);
+    refresh();
 }
 
 #if 0
@@ -220,7 +221,7 @@ G_STATUS CTL_GetFileName(char *pFileName)
     CTL_SET_COLOR(win, CTL_PANEL_CYAN);
 
     G_STATUS status;
-    keypad(win, false);    
+    keypad(win, false);
     
     while(1)
     {
@@ -517,7 +518,7 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
     }
 
     int Str1StartX = (cols-16)/3; //STR_RETRY and STR_BACK are about 16 bytes
-    int Str2StartX = cols - Str1StartX - 8; //STR_BACK is 8 bytes
+    int Str2StartX = cols - Str1StartX - sizeof(STR_BACK)+1;
     int StartPosY = lines-1-2; //Bottom symbols are 2 lines, and the line counts from 0
     mvwaddstr(win, StartPosY, Str2StartX, STR_BACK);
     wattron(win, A_REVERSE);
@@ -588,4 +589,3 @@ static inline void FreePtrLinkList(PtrLinkList_t *pHeadNode)
         pCurNode = pTmpNode;
     }
 }
-

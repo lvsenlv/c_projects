@@ -7,75 +7,21 @@
 
 #include "core_code.h"
 #include <string.h>
+#include <unistd.h>
 
 static G_STATUS CheckPthreadArg(PthreadArg_t *pArg_t);
 static inline void DeleteEncyptSuffix(char *pFileName);
-static inline void ConvertFileFormat(char *pFileName);
 
 __IO FileList_t *g_pCurFilelist = NULL;
-pthread_mutex_t g_LogLock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t g_FileLock = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t g_StatusLock[4] = {
-    PTHREAD_MUTEX_INITIALIZER, PTHREAD_MUTEX_INITIALIZER,
-    PTHREAD_MUTEX_INITIALIZER, PTHREAD_MUTEX_INITIALIZER,
-};
+
+
 
 //Pthread
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-void *Pthread_ProcessFile(void *arg)
-{
-    PthreadArg_t *pArg_t = (PthreadArg_t *)arg;
-    G_STATUS status;
 
-#ifdef __DEBUG
-    if(CheckPthreadArg(pArg_t) != STAT_OK)
-    {
-        pthread_mutex_lock(&g_LogLock);
-        DISP_LOG(STR_NULL, STR_ERR_INVALID_PTHREAD_ARG);
-        pArg_t->ProcessStatus = PROCESS_STATUS_FATAL_ERR;
-        pthread_mutex_unlock(&g_LogLock);
-        return NULL;
-    }
-
-    if(CheckFileListArg(pArg_t->pCurFileList) != STAT_OK)
-    {
-        pthread_mutex_lock(&g_LogLock);
-        DISP_LOG(STR_NULL, STR_ERR_INVALID_FILE_LIST_ARG);
-        pArg_t->ProcessStatus = PROCESS_STATUS_ERR;
-        pthread_mutex_unlock(&g_LogLock);
-        return NULL;
-    }
-#endif
-
-    if(0 == pArg_t->pCurFileList->FileSize)
-    {
-        pthread_mutex_lock(&g_LogLock);
-        DISP_LOG(pArg_t->pCurFileList->FileName, STR_FILE_IS_NULL);
-        pArg_t->ProcessStatus = PROCESS_STATUS_ERR;
-        pthread_mutex_unlock(&g_LogLock);
-        return NULL;
-    }
-    
-    status = (*pArg_t->pFunc)(pArg_t->pCurFileList->FileName, pArg_t->pCurFileList->FileSize, 
-        pArg_t->pRatioFactor);
-
-    pthread_mutex_lock(pArg_t->pLock);
-    if(status != STAT_OK)
-    {
-        pArg_t->ProcessStatus = (STAT_FATAL_ERR == status) ? 
-            PROCESS_STATUS_FATAL_ERR : PROCESS_STATUS_ERR;
-    }
-    else
-    {
-        pArg_t->ProcessStatus = PROCESS_STATUS_SUCCESS;
-    }
-    pthread_mutex_unlock(pArg_t->pLock);
-    
-    return NULL;
-}
-
-//g_pCurFilelist must be initialized before invoked following function
-void *Pthread_ProcessFolder(void *arg)
+//Note: g_pCurFilelist must be initialized before invoked following function
+void *Pthread_EncryptDecrypt(void *arg)
 {
     PthreadArg_t *pArg_t = (PthreadArg_t *)arg;
     G_STATUS status = STAT_OK;
@@ -83,97 +29,16 @@ void *Pthread_ProcessFolder(void *arg)
 #ifdef __DEBUG
     if(CheckPthreadArg(pArg_t) != STAT_OK)
     {
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(STR_NULL, STR_ERR_INVALID_PTHREAD_ARG);
         pArg_t->ProcessStatus = PROCESS_STATUS_FATAL_ERR;
-        pthread_mutex_unlock(&g_LogLock);
         return NULL;
     }
 #endif
 
-    pthread_mutex_lock(&g_FileLock);
-    if(NULL == g_pCurFilelist)
-    {
-        pArg_t->ProcessStatus = PROCESS_STATUS_SUCCESS;
-        pthread_mutex_unlock(&g_FileLock);
-        return NULL;
-    }
-    
-    pArg_t->pCurFileList = g_pCurFilelist;
-    g_pCurFilelist = g_pCurFilelist->pNext;
-    pArg_t->RefreshFlag = 1;
-    pthread_mutex_unlock(&g_FileLock);
-
     while(1)
     {
-        if(CheckFileListArg(pArg_t->pCurFileList) != STAT_OK)
-        {
-            pthread_mutex_lock(&g_FileLock);
-            DISP_LOG(STR_NULL, STR_ERR_INVALID_FILE_LIST_ARG);
-            pArg_t->FailCount++;
-
-            if(NULL == g_pCurFilelist)
-            {
-                pArg_t->ProcessStatus = (pArg_t->FailCount == 0) ? 
-                    PROCESS_STATUS_SUCCESS : PROCESS_STATUS_ERR;
-                pthread_mutex_unlock(&g_FileLock);
-                break;
-            }
-            
-            pArg_t->pCurFileList = g_pCurFilelist;
-            g_pCurFilelist = g_pCurFilelist->pNext;
-            pArg_t->RefreshFlag = 1;
-            pthread_mutex_unlock(&g_FileLock);
-            
-            continue;
-        }
-        
-        if(0 == pArg_t->pCurFileList->FileSize)
-        {
-            pthread_mutex_lock(&g_FileLock);
-            DISP_LOG(pArg_t->pCurFileList->FileName, STR_FILE_IS_NULL);
-            pArg_t->FailCount++;
-
-            if(NULL == g_pCurFilelist)
-            {
-                pArg_t->ProcessStatus = (pArg_t->FailCount == 0) ? 
-                    PROCESS_STATUS_SUCCESS : PROCESS_STATUS_ERR;
-                pthread_mutex_unlock(&g_FileLock);
-                break;
-            }
-            
-            pArg_t->pCurFileList = g_pCurFilelist;
-            g_pCurFilelist = g_pCurFilelist->pNext;
-            pArg_t->RefreshFlag = 1;
-            pthread_mutex_unlock(&g_FileLock);
-            
-            continue;
-        }
-        
-        status = (*pArg_t->pFunc)(pArg_t->pCurFileList->FileName, pArg_t->pCurFileList->FileSize, 
-            pArg_t->pRatioFactor);
-        
+        //File lock >>>
         pthread_mutex_lock(&g_FileLock);
-        //pthread_mutex_lock(pArg_t->pLock);
-        if(status != STAT_OK)
-        {
-            if(STAT_FATAL_ERR == status)
-            {
-                *pArg_t->pRatioFactor = PROCESS_STATUS_FATAL_ERR;
-                //pthread_mutex_unlock(pArg_t->pLock);
-                pthread_mutex_unlock(&g_FileLock);
-                return NULL;
-            }
-            
-            pArg_t->FailCount++;
-        }
-        else
-        {
-            pArg_t->SuccessCount++;
-        }
-        //pthread_mutex_unlock(pArg_t->pLock);
-        
-        //pthread_mutex_lock(&g_FileLock);
         if(NULL == g_pCurFilelist)
         {
             pArg_t->ProcessStatus = (pArg_t->FailCount == 0) ? 
@@ -184,8 +49,77 @@ void *Pthread_ProcessFolder(void *arg)
         
         pArg_t->pCurFileList = g_pCurFilelist;
         g_pCurFilelist = g_pCurFilelist->pNext;
-        pArg_t->RefreshFlag = 1;
+        pArg_t->RefreshFlag = REFRESH_FLAG_TRUE;
+        
+        if(CheckFileListArg(pArg_t->pCurFileList) != STAT_OK)
+        {
+            DISP_LOG(STR_NULL, STR_ERR_INVALID_FILE_LIST_ARG);
+            pArg_t->FailCount++;
+            pthread_mutex_unlock(&g_FileLock);
+            continue;
+        }
+        
+        if(0 == pArg_t->pCurFileList->FileSize)
+        {
+            DISP_LOG(pArg_t->pCurFileList->FileName, STR_FILE_IS_NULL);
+            pArg_t->FailCount++;
+            pthread_mutex_unlock(&g_FileLock);
+            
+            pArg_t->RefreshFlag = REFRESH_FLAG_TRUE;
+            //Wait for clear refresh flag <=> wait for dispalying curent file name
+            while(REFRESH_FLAG_FALSE != pArg_t->RefreshFlag)
+            {
+                usleep(PTHREAD_WAIT_INTERVAL);
+            }
+            
+            pArg_t->RefreshFlag = REFRESH_FLAG_FAIL;
+            //Wait for clear refresh flag <=> wait for dispalying process status
+            while(REFRESH_FLAG_FALSE != pArg_t->RefreshFlag)
+            {
+                usleep(PTHREAD_WAIT_INTERVAL);
+            }
+            continue;
+        }
         pthread_mutex_unlock(&g_FileLock);
+        //File lock <<<
+        
+        //Wait for clear refresh flag <=> wait for dispalying curent file name
+        while(REFRESH_FLAG_FALSE != pArg_t->RefreshFlag)
+        {
+            usleep(PTHREAD_WAIT_INTERVAL);
+        }
+        
+        status = (*pArg_t->pFunc)(pArg_t->pCurFileList->FileName, pArg_t->pCurFileList->FileSize, 
+            pArg_t->pRatioFactor);
+        
+        //File lock >>>
+        pthread_mutex_lock(&g_FileLock);
+        if(status != STAT_OK)
+        {
+            if(STAT_FATAL_ERR == status)
+            {
+                pArg_t->ProcessStatus = PROCESS_STATUS_FATAL_ERR;
+                pthread_mutex_unlock(&g_FileLock);
+                return NULL;
+            }
+            
+            pArg_t->FailCount++;
+            pArg_t->RefreshFlag = REFRESH_FLAG_FAIL;
+        }
+        else
+        {
+            pArg_t->SuccessCount++;
+            pArg_t->RefreshFlag = REFRESH_FLAG_SUCCESS;
+        }
+        pthread_mutex_unlock(&g_FileLock);
+        //File lock <<<
+        
+        //Wait for clear refresh flag <=> wait for dispalying process status
+        while(REFRESH_FLAG_FALSE != pArg_t->RefreshFlag)
+        {
+            usleep(PTHREAD_WAIT_INTERVAL);
+        }
+        
     }
     
     return NULL;
@@ -201,9 +135,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     fp = fopen(pFileName, "rb");
     if(NULL == fp)
     {
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(pFileName, STR_FOPEN_ERR);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_ERR;
     }
     fseek(fp, 0, SEEK_SET);
@@ -215,9 +147,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     if(NULL == NewFp)
     {
         fclose(fp);
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(NewFileName, STR_FAIL_TO_CREATE_OPEN_FILE);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_ERR;
     }
 
@@ -227,9 +157,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     {
         fclose(fp);
         fclose(NewFp);
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(pFileName, STR_ERR_FAIL_TO_MALLOC);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_FATAL_ERR;
     }
         
@@ -250,9 +178,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         free(pData);
         fclose(fp);
         fclose(NewFp);
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(pFileName, STR_PASSWORD_NULL);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_ERR;
     }
     EncyptFactor %= 8;
@@ -274,9 +200,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         free(pData);
         fclose(fp);
         fclose(NewFp);
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(pFileName, STR_ERR_FAIL_TO_MALLOC);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_FATAL_ERR;
     }
 
@@ -293,9 +217,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
             free(pBackupData);
             fclose(fp);
             fclose(NewFp);
-            pthread_mutex_lock(&g_LogLock);
             DISP_LOG(pFileName, STR_FAIL_TO_READ_FILE);
-            pthread_mutex_unlock(&g_LogLock);
             return STAT_ERR;
         }
 
@@ -360,9 +282,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
             free(pBackupData);
             fclose(fp);
             fclose(NewFp);
-            pthread_mutex_lock(&g_LogLock);
             DISP_LOG(NewFileName, STR_FAIL_TO_WRITE_FILE);
-            pthread_mutex_unlock(&g_LogLock);
             return STAT_ERR;
         }
     }
@@ -379,9 +299,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         free(pBackupData);
         fclose(fp);
         fclose(NewFp);
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(pFileName, STR_FAIL_TO_READ_FILE);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_ERR;
     }
     
@@ -456,9 +374,7 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         free(pBackupData);
         fclose(fp);
         fclose(NewFp);
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(NewFileName, STR_FAIL_TO_WRITE_FILE);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_ERR;
     }
 
@@ -470,17 +386,15 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     NewFp = NULL;
 
 #ifdef __LINUX
-    snprintf(NewFileName, sizeof(NewFileName), "rm -rf %s", pFileName);
+    snprintf(NewFileName, sizeof(NewFileName), "rm -rf %s >/dev/null 2>&1", pFileName);
 #elif defined __WINDOWS
-    ConvertFileFormat(pFileName);
+    ConvertNameFormat(pFileName);
     snprintf(NewFileName, sizeof(NewFileName), "del /a /f /q %s >nul 2>nul", pFileName);
 #endif
     fp = popen(NewFileName, "r");
     if(NULL == fp)
     {
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(pFileName, STR_FAIL_TO_DELETE_OLD_FILE);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_ERR;
     }
 
@@ -488,15 +402,17 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     return STAT_OK;    
 }
 
+/*
+    Note: the pFileName can't be "." or ".." or "..." or ".ept" or "..ept" or "...ept".
+        And the pFileName must contain symbol '.'
+*/
 G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
 {
     FILE *fp = NULL;
     fp = fopen(pFileName, "rb");
     if(NULL == fp)
     {
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(pFileName, STR_FOPEN_ERR);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_ERR;
     }
     fseek(fp, 0, SEEK_SET);
@@ -504,14 +420,13 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     char NewFileName[CYT_FILE_NAME_LENGHT];
     snprintf(NewFileName, sizeof(NewFileName), "%s", pFileName);
     DeleteEncyptSuffix(NewFileName);
+    
     FILE *NewFp = NULL;
     NewFp = fopen(NewFileName, "wb+");
     if(NULL == NewFp)
     {
         fclose(fp);
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(NewFileName, STR_FAIL_TO_CREATE_OPEN_FILE);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_ERR;
     }
 
@@ -521,9 +436,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     {
         fclose(fp);
         fclose(NewFp);
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(pFileName, STR_ERR_FAIL_TO_MALLOC);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_FATAL_ERR;
     }
         
@@ -544,9 +457,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         free(pData);
         fclose(fp);
         fclose(NewFp);
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(pFileName, STR_PASSWORD_NULL);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_ERR;
     }
     EncyptFactor %= 8;
@@ -568,9 +479,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         free(pData);
         fclose(fp);
         fclose(NewFp);
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(pFileName, STR_ERR_FAIL_TO_MALLOC);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_FATAL_ERR;
     }
 
@@ -587,9 +496,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
             free(pBackupData);
             fclose(fp);
             fclose(NewFp);
-            pthread_mutex_lock(&g_LogLock);
             DISP_LOG(pFileName, STR_FAIL_TO_READ_FILE);
-            pthread_mutex_unlock(&g_LogLock);
             return STAT_ERR;
         }
 
@@ -654,9 +561,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
             free(pBackupData);
             fclose(fp);
             fclose(NewFp);
-            pthread_mutex_lock(&g_LogLock);
             DISP_LOG(NewFileName, STR_FAIL_TO_WRITE_FILE);
-            pthread_mutex_unlock(&g_LogLock);
             return STAT_ERR;
         }
     }
@@ -673,9 +578,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         free(pBackupData);
         fclose(fp);
         fclose(NewFp);
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(pFileName, STR_FAIL_TO_READ_FILE);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_ERR;
     }
     
@@ -751,9 +654,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         free(pBackupData);
         fclose(fp);
         fclose(NewFp);
-        pthread_mutex_lock(&g_LogLock);
         DISP_LOG(NewFileName, STR_FAIL_TO_WRITE_FILE);
-        pthread_mutex_unlock(&g_LogLock);
         return STAT_ERR;
     }
 
@@ -770,13 +671,13 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 static G_STATUS CheckPthreadArg(PthreadArg_t *pArg_t)
 {
-#ifdef __DEBG    
+#ifdef __DEBUG
     if(NULL == pArg_t)
         return STAT_ERR;
 #endif
     
     if((NULL == pArg_t->pFunc) || (NULL == pArg_t->pRatioFactor) || 
-        (NULL == pArg_t->pLock) || (NULL == pArg_t->pCurFileList))
+       (NULL == pArg_t->pCurFileList))
         return STAT_ERR;
 
     if(pArg_t->ProcessStatus != PROCESS_STATUS_BUSY)
@@ -785,8 +686,8 @@ static G_STATUS CheckPthreadArg(PthreadArg_t *pArg_t)
         pArg_t->SuccessCount = 0;
     if(pArg_t->FailCount != 0)
         pArg_t->FailCount = 0;
-    if(pArg_t->RefreshFlag != 0)
-        pArg_t->RefreshFlag = 0;
+    if(pArg_t->RefreshFlag != REFRESH_FLAG_FALSE)
+        pArg_t->RefreshFlag = REFRESH_FLAG_FALSE;
 
     return STAT_OK;
 }
@@ -809,14 +710,3 @@ static inline void DeleteEncyptSuffix(char *pFileName)
     if(len != 0)
         *ptr = '\0';
 }
-
-static inline void ConvertFileFormat(char *pFileName)
-{
-    while(*pFileName != '\0')
-    {
-        if('/' == *pFileName)
-            *pFileName = 92;    //'\' ASCII is 92 
-        pFileName++;
-    }
-}
-

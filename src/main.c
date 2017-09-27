@@ -14,8 +14,18 @@ static inline void CheckError(G_STATUS status);
 
 int main(void)
 {
+    int i = 0;
+    char buf[BUF_SIZE];
+    
+    for(i = 0; i < 200; i++)
+    {
+        snprintf(buf, sizeof(buf), "test%d", i);
+        DISP_LOG(STR_NULL, buf);
+    }
+    
     G_STATUS status;
-    char func = 0;
+
+    CTL_MENU func = 0;
 
     status = CTL_InitConsole();
     if(status != STAT_OK)
@@ -23,6 +33,9 @@ int main(void)
         CheckError(status);
         CTL_ExitConsole();
     }
+    AfterEncryptDecrypt(PROCESS_STATUS_ELSE_ERR);
+    while(1);
+#if 0
 
     while(1)
     {
@@ -37,12 +50,12 @@ int main(void)
 
         if(CTL_MENU_SHOW_INSTRUCTION == func)
         {
-            CTL_ShowInstruction();
+            CTL_MENU_ShowInstruction();
             continue;
         }
         else if((CTL_MENU_ENCRYPT == func) || (CTL_MENU_DECRYPT == func))
         {
-            status = EncryptDecrypt(func);
+            status = CTL_MENU_EncryptDecrypt(func);
             CheckError(status);
             if(STAT_EXIT == status)
             {
@@ -54,8 +67,9 @@ int main(void)
             }
         }
     }
-    
+#endif    
     CTL_ExitConsole();
+
 } 
 
 static inline void CheckError(G_STATUS status)
@@ -63,7 +77,7 @@ static inline void CheckError(G_STATUS status)
     if(STAT_ERR == status)
     {
         endwin();
-        fprintf(stderr, "%s\n", g_ErrBuf);
+        fprintf(stderr, "%s", g_ErrBuf);
         exit(-1);
     }
 }

@@ -37,6 +37,9 @@ typedef enum {
 #define CTL_GET_PASSWORD_WIN_LINES          6
 #define CTL_ENCRYPT_FILE_WIN_COLS           60
 #define CTL_DECRYPT_FILE_WIN_COLS           60
+#define CTL_RESULT_WIN_COLS                 40
+#define CTL_RESULT_WIN_LINES                7
+
 
 #define CTL_PANEL_CYAN                      1
 #define CTL_PANEL_RED                       2
@@ -78,8 +81,8 @@ typedef struct PtrLinkList
 
 G_STATUS CTL_InitConsole(void);
 void CTL_DrawStdConsole(void);
-G_STATUS CTL_ShowMenu(char *pFunc);
-void CTL_ShowInstruction(void);
+G_STATUS CTL_ShowMenu(CTL_MENU *pFunc);
+void CTL_MENU_ShowInstruction(void);
 G_STATUS CTL_GetFileName(char *pFileName);
 G_STATUS CTL_MakeChoice(const char*format, ...);
 
