@@ -30,6 +30,7 @@ static inline void FreeLog(log_t *pHeadNode);
 
 char g_password[CTL_PASSWORD_LENGHT_MAX];
 pthread_mutex_t g_LogLock = PTHREAD_MUTEX_INITIALIZER;
+static int g_SuccessFailCountTable[2] = {0, 0};
 
 
 
@@ -310,11 +311,18 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
     
     touchwin(stdscr);
     refresh();
-    
+
+    int j;
     for(i = 0; i < PTHREAD_NUM_MAX; i++)
     {
         if(PROCESS_STATUS_SUCCESS != PthreadArg[i].ProcessStatus)
         {
+            for(j = 0; j < PTHREAD_NUM_MAX; j++)
+            {
+                g_SuccessFailCountTable[0] += PthreadArg[j].SuccessCount;
+                g_SuccessFailCountTable[1] += PthreadArg[j].FailCount;
+            }
+            
             if(PROCESS_STATUS_FATAL_ERR == PthreadArg[i].ProcessStatus)
                 return PROCESS_STATUS_FATAL_ERR;
                 
@@ -816,6 +824,9 @@ void DispFileList(FileList_t *pHeadNode)
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
 {
+    if(PROCESS_STATUS_ELSE_ERR == ProcessStatus)
+        return STAT_ERR;
+    
     WINDOW *win = newwin(CTL_RESULT_WIN_LINES, CTL_RESULT_WIN_COLS, 
             (LINES-CTL_RESULT_WIN_LINES)/2, (COLS-CTL_RESULT_WIN_COLS)/2);
     int key;
@@ -831,8 +842,8 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
             (CTL_RESULT_WIN_COLS-sizeof(STR_SUCCESS)+1)/2, STR_SUCCESS);
         wattroff(win, A_BOLD);
         
-        CTL_SET_COLOR(win, CTL_PANEL_CYAN);
-        wborder(win, '|', '|', '-', '-', '+', '+', '+', '+');
+        CTL_SET_COLOR(win, CTL_PANEL_GREEN);
+        wborder(win, '*', '*', '*', '*', '*', '*', '*', '*');
         mvwaddstr(win, CTL_RESULT_WIN_LINES/3, 
             (CTL_RESULT_WIN_COLS-sizeof(STR_GO_BACK)+1)/2, STR_GO_BACK);
         wrefresh(win);
@@ -857,14 +868,20 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
 
         return STAT_OK;
     }
-    
-    CTL_SET_COLOR(win, CTL_PANEL_RED);
+
+    char buf[COLS - 4];
+    snprintf(buf, sizeof(buf), "Success:%d   Fail:%d", g_SuccessFailCountTable[0], 
+        g_SuccessFailCountTable[1]);
+    CTL_SET_COLOR(win, CTL_PANEL_GREEN);
     wattron(win, A_BOLD);
-    mvwaddstr(win, CTL_RESULT_WIN_LINES/3, (CTL_RESULT_WIN_COLS-sizeof(STR_FAIL)+1)/2, STR_FAIL);
+    mvwprintw(win, CTL_RESULT_WIN_LINES/3, (CTL_RESULT_WIN_COLS-strlen(buf))/2, 
+        "Success:%d   ", g_SuccessFailCountTable[0]);
+    CTL_SET_COLOR(win, CTL_PANEL_RED);
+    wprintw(win, "Fail:%d", g_SuccessFailCountTable[1]);
     wattroff(win, A_BOLD);
         
-    CTL_SET_COLOR(win, CTL_PANEL_CYAN);
-    wborder(win, '|', '|', '-', '-', '+', '+', '+', '+');
+    CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
+    wborder(win, '*', '*', '*', '*', '*', '*', '*', '*');
     
     int Str1StartX = (CTL_RESULT_WIN_COLS - sizeof(STR_VIEW_LOG)+1 - sizeof(STR_GO_BACK)+1)/3;
     int Str2StartX = CTL_RESULT_WIN_COLS - Str1StartX - sizeof(STR_GO_BACK)+1;
@@ -910,11 +927,10 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     
     delwin(win);
     touchline(stdscr, (LINES-CTL_RESULT_WIN_LINES)/2, CTL_RESULT_WIN_LINES);
+    CTL_HIDE_CONSOLE_END_LINE();
 
     if(flag)
         return STAT_GO_BACK;
-
-    CTL_HIDE_CONSOLE_END_LINE();
 
     G_STATUS status;
     log_t log;
@@ -933,28 +949,48 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     wrefresh(WinLabel);
 
     win = newwin(LINES-1, COLS, 0, 0);
-    log_t *pCurLog = log.pNext;     //pCurLog can't be NULL
+    log_t *pCurNode = log.pNext;
     char BottomFlag = 0;            //1 means it has been in bottom position, i.e can't to page down again
-    int PageCount = 0, LineCount = 0;
-    int i;
-    
-    wmove(win, 0, 0);
-    for(i = 0; i < (LINES-1)/2; i++)
-    {
-        CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
-        wprintw(win, "%s\n", pCurLog->pFileName);
-        CTL_SET_COLOR(win, CTL_PANEL_RED);
-        wprintw(win, "%s\n", pCurLog->pReason);
-                
-        if(NULL == pCurLog->pNext) //It means only one page at the first time of display
-        {
-            BottomFlag = 1;     
-            break;
-        }
+    int PageCount = 0, LogCount = 0;
+    int i, LineCount;
 
-        pCurLog = pCurLog->pNext; 
+    if(NULL == pCurNode)
+    {
+        BottomFlag = 1;
+        CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
+        mvwaddstr(win, (LINES-1)/2, (COLS-sizeof(STR_LOG_IS_NULL)+1)/2, STR_LOG_IS_NULL);
+        wrefresh(win);
     }
-    wrefresh(win);
+    else
+    {
+        wmove(win, 0, 0);
+        for(i = 0, LineCount = 0; i < (LINES-1)/2; i++)
+        {
+            CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
+            if(pCurNode->flag)
+            {
+                wprintw(win, "%s", pCurNode->pFileName);
+            }
+            else
+            {
+                wprintw(win, "%s\n", pCurNode->pFileName);
+            }
+            CTL_SET_COLOR(win, CTL_PANEL_RED);
+            wprintw(win, "%s\n", pCurNode->pReason);
+            
+            if(NULL == pCurNode->pNext) //It means only one page at the first time of display
+            {
+                BottomFlag = 1;     
+                break;
+            }
+
+            LineCount += pCurNode->lines;
+            pCurNode = pCurNode->pNext;
+            if((LineCount + pCurNode->lines) > (LINES-1))
+                break;
+        }
+        wrefresh(win);
+    }
 
     while(1)
     {
@@ -968,24 +1004,37 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
                 
             wclear(win);
             wmove(win, 0, 0);
-            for(i = 0; i < (LINES-1)/2; i++)
+            for(i = 0, LineCount = 0; i < (LINES-1)/2; i++)
             {
                 CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
-                wprintw(win, "%s\n", pCurLog->pFileName);
+                if(pCurNode->flag)
+                {
+                    wprintw(win, "%s", pCurNode->pFileName);
+                }
+                else
+                {
+                    wprintw(win, "%s\n", pCurNode->pFileName);
+                }
                 CTL_SET_COLOR(win, CTL_PANEL_RED);
-                wprintw(win, "%s\n", pCurLog->pReason);
-                
-                if(NULL == pCurLog->pNext)
+                wprintw(win, "%s\n", pCurNode->pReason);
+
+                if(NULL == pCurNode->pNext)
                 {
                     BottomFlag = 1;
                     break;
                 }
 
-                pCurLog = pCurLog->pNext; 
+                LineCount += pCurNode->lines;
+                pCurNode = pCurNode->pNext;
+                if((LineCount + pCurNode->lines) > (LINES-1))
+                {
+                    i++;
+                    break;
+                }
             }
             wrefresh(win);
 
-            LineCount = i + (LINES-1)/2;
+            LogCount = i;
             PageCount++;
         }
         else if(KEY_PPAGE == key)
@@ -993,9 +1042,20 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
             if(PageCount <= 0)
                 continue;
 
-            for(i = 0; i < LineCount; i++)
+            for(i = LogCount; i > 0; i--)
             {
-                pCurLog = pCurLog->pPrevious;
+                pCurNode = pCurNode->pPrevious;
+            }
+                
+            for(i = 0, LineCount = 0; i < (LINES-1)/2; i++)
+            {
+                pCurNode = pCurNode->pPrevious;
+                LineCount += pCurNode->lines;
+                
+                if(&log == pCurNode->pPrevious)
+                    break;
+                if((LineCount + pCurNode->pPrevious->lines) > (LINES-1))
+                    break;
             }
 
             BottomFlag = 0;
@@ -1003,18 +1063,31 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
 
             wclear(win);
             wmove(win, 0, 0);
-            for(i = 0; i < (LINES-1)/2; i++)
+            for(i = 0, LineCount = 0; i < (LINES-1)/2; i++)
             {
                 CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
-                wprintw(win, "%s\n", pCurLog->pFileName);
+                if(pCurNode->flag)
+                {
+                    wprintw(win, "%s", pCurNode->pFileName);
+                }
+                else
+                {
+                    wprintw(win, "%s\n", pCurNode->pFileName);
+                }
                 CTL_SET_COLOR(win, CTL_PANEL_RED);
-                wprintw(win, "%s\n", pCurLog->pReason);
-                    
-                pCurLog = pCurLog->pNext; 
+                wprintw(win, "%s\n", pCurNode->pReason);
+                
+                LineCount += pCurNode->lines;
+                pCurNode = pCurNode->pNext;
+                if((LineCount + pCurNode->lines) > (LINES-1))
+                {
+                    i++;
+                    break;
+                }
             }
             wrefresh(win);
             
-            LineCount = i + (LINES-1)/2;
+            LogCount = i;
         }
         else if(27 == key) //Esc key
         {
@@ -1053,10 +1126,12 @@ static G_STATUS ParseLog(log_t *pHeadNode)
     log_t *pCurNode = pHeadNode, *pNewNode;
     pHeadNode->pFileName = NULL;
     pHeadNode->pReason = NULL;
+    pHeadNode->lines = 0;
+    pHeadNode->flag = 0;
     pHeadNode->pNext = NULL;
     pHeadNode->pPrevious = NULL;
     
-    char buf[CYT_FILE_NAME_LENGHT+BUF_SIZE];
+    char buf[CYT_FILE_NAME_LENGHT*2];
     char *pTmp;
     int len;
 
@@ -1071,20 +1146,35 @@ static G_STATUS ParseLog(log_t *pHeadNode)
 
         len = strlen(buf);
         buf[len-1] = '\0'; //buf[len-1] is '\n' before
-        pTmp = (char *)malloc(len);
+        len--;
+        if(COLS == len)
+        {
+            pNewNode->flag = 1;
+            pNewNode->lines = 1;
+        }
+        else
+        {
+            pNewNode->flag = 0;
+            pNewNode->lines = len/COLS + 1;
+        }
+            
+        pTmp = (char *)malloc(len+1);
         if(NULL == pTmp)
         {
             DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
             return STAT_ERR;
         }
 
-        memcpy(pTmp, buf, len);
+        memcpy(pTmp, buf, len+1); //len+1: end with '\0'
         pNewNode->pFileName = pTmp;
 
         if((NULL != fgets(buf, sizeof(buf), g_pDispFile)) && (0 == feof(g_pDispFile)))
         {
             len = strlen(buf);
             buf[len-1] = '\0'; //buf[len-1] is '\n' before
+            buf[COLS-1] = '\0'; //Make sure content of buf occupy only one line
+            pNewNode->lines++;
+                
             pTmp = (char *)malloc(len);
             if(NULL == pTmp)
             {

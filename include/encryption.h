@@ -34,7 +34,11 @@ extern FILE *g_pDispFile;
 #define     DISP_LOG(file, reason) \
             { \
                 pthread_mutex_lock(&g_LogLock); \
-                fprintf(g_pDispFile, "[FileName]: %s\n[Reason]: %s\n", file, reason); \
+                g_ti = time(NULL); \
+                g_time = localtime(&g_ti); \
+                fprintf(g_pDispFile, "[%4d-%02d-%02d %02d:%02d:%02d]: %s\n[Reason]: %s\n", \
+                    g_time->tm_year+1900, g_time->tm_mon, g_time->tm_mday, \
+                    g_time->tm_hour, g_time->tm_min, g_time->tm_sec, file, reason); \
                 pthread_mutex_unlock(&g_LogLock); \
             }
 
@@ -72,6 +76,8 @@ typedef struct LogStruct
 {
     char *pFileName;
     char *pReason;
+    int16_t lines;
+    char flag;      //1 means the parameter lines is equal to COLS
     struct LogStruct *pNext;
     struct LogStruct *pPrevious;
 }log_t;

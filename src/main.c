@@ -15,12 +15,44 @@ static inline void CheckError(G_STATUS status);
 int main(void)
 {
     int i = 0;
-    char buf[BUF_SIZE];
+    char buf[CYT_FILE_NAME_LENGHT*2];
     
-    for(i = 0; i < 35; i++)
+    for(i = 0; i < 97; i++)
     {
-        snprintf(buf, sizeof(buf), "test%d", i);
-        DISP_LOG(STR_NULL, buf);
+        snprintf(buf, sizeof(buf), "%d-------------------Created Time: August 9th,2017 Wednesday 08:48:52", i);
+        DISP_LOG(buf, STR_NULL);
+        i++;
+        snprintf(buf, sizeof(buf), "%d-------------------Created Time: August 9th,2017 Wednesday 08:48:52"
+            "-------------------Created Time: August 9th,2017 Wednesday 08:48:52"
+            "-------------------Created Time: August 9th,2017 Wednesday 08:48:52", i);
+        DISP_LOG(buf, STR_NULL);
+        i++;
+        snprintf(buf, sizeof(buf), "%d-------------------Created Time: August 9th,2017 Wednesday 08:48:52"
+            "-------------------Created Time: August 9th,2017 Wednesday 08:48:52"
+            "-------------------Created Time: August 9th,2017 Wednesday 08:48:52"
+            "-------------------Created Time: August 9th,2017 Wednesday 08:48:52"
+            "-------------------Created Time: August 9th,2017 Wednesday 08:48:52", i);
+        DISP_LOG(buf, STR_NULL);
+        i++;
+        snprintf(buf, sizeof(buf), "%d-------------------Created Time: August 9th,2017 Wednesday 08:48:52"
+            "-------------------Created Time: August 9th,2017 Wednesday 08:48:52"
+            "-------------------Created Time: August 9th,2017 Wednesday 08:48:52"
+            "-------------------Created Time: August 9th,2017 Wednesday 08:48:52", i);
+        DISP_LOG(buf, STR_NULL);
+        i++;
+        snprintf(buf, sizeof(buf), "%d-------------------Created Time: August 9th,2017 Wednesday 08:48:52"
+            "-------------------Created Time: August 9th,2017 Wednesday 08:48:52", i);
+        DISP_LOG(buf, STR_NULL);
+        i++;
+        snprintf(buf, sizeof(buf), "%d-------------------Created Time: August 9th,2017 Wednesday 08:48:52", i);
+        DISP_LOG(buf, STR_NULL);
+        i++;
+        snprintf(buf, sizeof(buf), "%d-------------------Created Time: August 9th,2017 Wednesday 08:48:52"
+            "-------------------Created Time: August 9th,2017 Wednesday 08:48:52"
+            "-------------------Created Time: August 9th,2017 Wednesday 08:48:52"
+            "-------------------Created Time: August 9th,2017 Wednesday 08:48:52"
+            "-------------------Created Time: August 9th,2017 Wednesday 08:48:52", i);
+        DISP_LOG(buf, STR_NULL);
     }
     
     G_STATUS status;
@@ -33,7 +65,8 @@ int main(void)
         CheckError(status);
         CTL_ExitConsole();
     }
-    AfterEncryptDecrypt(PROCESS_STATUS_ELSE_ERR);
+    status = AfterEncryptDecrypt(PROCESS_STATUS_ERR);
+    CheckError(status);
     while(1);
 #if 0
 

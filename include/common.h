@@ -105,7 +105,10 @@ extern char g_ErrBuf[BUF_SIZE];
 #endif //#if 0
 
 #ifdef __LINUX
+    #include <time.h>
     #include <sys/time.h>
+    extern time_t g_ti;
+    extern struct tm *g_time;
     extern struct timeval g_StartTime, g_StopTime;
     #define     START_COUNT                     gettimeofday(&g_StartTime, NULL)
     #define     STOP_COUNT                      gettimeofday(&g_StopTime, NULL)

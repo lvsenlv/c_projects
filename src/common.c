@@ -33,6 +33,12 @@
 
 FILE *g_pDispFile = NULL;
 char g_ErrBuf[BUF_SIZE];
+
+#ifdef __LINUX
+time_t g_ti;
+struct tm *g_time;
+#endif
+
 void __attribute__((constructor)) BeforeMain(void)
 {
     g_pDispFile = fopen(LOG_FILE_NAME, "w+");
