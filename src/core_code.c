@@ -61,7 +61,7 @@ void *Pthread_EncryptDecrypt(void *arg)
         
         if(0 == pArg_t->pCurFileList->FileSize)
         {
-            DISP_LOG(pArg_t->pCurFileList->FileName, STR_FILE_IS_NULL);
+            DISP_LOG(pArg_t->pCurFileList->pFileName, STR_FILE_IS_NULL);
             pArg_t->FailCount++;
             pthread_mutex_unlock(&g_FileLock);
             
@@ -89,7 +89,7 @@ void *Pthread_EncryptDecrypt(void *arg)
             usleep(PTHREAD_WAIT_INTERVAL);
         }
         
-        status = (*pArg_t->pFunc)(pArg_t->pCurFileList->FileName, pArg_t->pCurFileList->FileSize, 
+        status = (*pArg_t->pFunc)(pArg_t->pCurFileList->pFileName, pArg_t->pCurFileList->FileSize, 
             pArg_t->pRatioFactor);
         
         //File lock >>>

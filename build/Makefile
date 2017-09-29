@@ -4,7 +4,7 @@ OBJS_DIR = ./objects
 LIBS := -lcurses -lpthread
 DEF := -D__LINUX -D__64BIT -D__DEBUG
 INCLUDES := -I../include
-CFLAGS := -g -Wall -Wno-unused-function -O0
+CFLAGS := -g -Wall -Wno-unused-function -O2
 $(shell mkdir -p $(OBJS_DIR))
 
 test : $(OBJS)

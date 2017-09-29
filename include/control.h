@@ -39,7 +39,8 @@ typedef enum {
 #define CTL_DECRYPT_FILE_WIN_COLS           60
 #define CTL_RESULT_WIN_COLS                 40
 #define CTL_RESULT_WIN_LINES                7
-
+#define CTL_CONFIRM_WIN_COLS                40
+#define CTL_CONFIRM_WIN_LINES               7
 
 #define CTL_PANEL_CYAN                      1
 #define CTL_PANEL_RED                       2
@@ -54,7 +55,16 @@ typedef enum {
 #elif defined __WINDOWS
 #define CLEAR_STR_SCR()                     system("cls")
 #endif
-#define CTL_ExitConsole()                   {endwin();exit(0);}
+
+//Must invoke InitConsole before using this macro
+#define CTL_ExitConsole() \
+        { \
+            if(STAT_OK == CTL_ConfirmOperation(STR_EXIT_PROJECT, sizeof(STR_EXIT_PROJECT)-1)) \
+            { \
+                endwin(); \
+                exit(0); \
+            } \
+        }
 #define CTL_HIDE_CONSOLE_END_LINE()         {mvhline(LINES-2, 2, ' ', COLS-3);refresh();}
 #define CTL_SHOW_CONSOLE_END_LINE() \
         { \
@@ -84,8 +94,8 @@ void CTL_DrawStdConsole(void);
 G_STATUS CTL_ShowMenu(CTL_MENU *pFunc);
 void CTL_MENU_ShowInstruction(void);
 G_STATUS CTL_GetFileName(char *pFileName);
-G_STATUS CTL_MakeChoice(const char*format, ...);
-
 G_STATUS CTL_GetPassord(char *pPassword);
+G_STATUS CTL_MakeChoice(const char*format, ...);
+G_STATUS CTL_ConfirmOperation(const char *pStr, int StrLenght);
 
 #endif

@@ -18,7 +18,7 @@
 
 static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func);
 static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func);
-//static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus);
+static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus);
 static FileList_t *ScanDirectory(char *pFolderName);
 static FileList_t *ScanEncryptFile(char *pFolderName);
 static G_STATUS ParseLog(log_t *pHeadNode);
@@ -82,18 +82,18 @@ G_STATUS CTL_MENU_EncryptDecrypt(CTL_MENU func)
     if(status != STAT_OK)
         return status;
 
-    PROCESS_STATUS ProcessStatus;
+    PROCESS_STATUS ProcessStatus = PROCESS_STATUS_ERR;
 
     if(S_IFREG & FileInfo.st_mode)
     {
         FileList_t HeadNode, FileList;
 
-        HeadNode.FileName = NULL;
+        HeadNode.pFileName = NULL;
         HeadNode.FileNameLenght = 0;
         HeadNode.FileSize = 1;
         HeadNode.pNext = &FileList;
         
-        FileList.FileName = FileName;
+        FileList.pFileName = FileName;
         FileList.FileNameLenght = FileNameLenght;
         FileList.FileSize = FileInfo.st_size;
         FileList.pNext = NULL;
@@ -113,17 +113,30 @@ G_STATUS CTL_MENU_EncryptDecrypt(CTL_MENU func)
             return STAT_ERR;
         }
 
+        char buf[BUF_SIZE];
+        if(CTL_MENU_ENCRYPT == func)
+        {
+            snprintf(buf, sizeof(buf), "%s%s", STR_IN_ENCRYPTING, FileName);
+            status = CTL_ConfirmOperation(buf, FileNameLenght+sizeof(STR_IN_ENCRYPTING)-1);
+        }
+        else
+        {
+            snprintf(buf, sizeof(buf), "%s%s", STR_IN_DECRYPTING, FileName);
+            status = CTL_ConfirmOperation(buf, FileNameLenght+sizeof(STR_IN_DECRYPTING)-1);
+        }
+        
+        if(STAT_OK != status)
+            return status;
+        
         ProcessStatus = EncryptDecrypt(pFileList, func);
 
         FreeFileList(pFileList);
     }
 
-    AfterEncryptDecrypt(ProcessStatus);
+    status = AfterEncryptDecrypt(ProcessStatus);
 
-    return STAT_OK;
+    return status;
 }
-
-
 
 
 
@@ -268,8 +281,6 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
                         case REFRESH_FLAG_FAIL:
                             mvwprintw(ScheduleWin[i], 0, (COLS*3/5 + sizeof(STR_FAIL_COUNT)-1), 
                                 "%d", PthreadArg[i].FailCount);
-                            //mvwhline(ScheduleWin[i], 0, (COLS*4/5 + sizeof(STR_RATE)-1), ' ', 4);
-                            //mvwprintw(ScheduleWin[i], 0, (COLS*4/5 + sizeof(STR_RATE)-1), "0%%");
                             CTL_SET_COLOR(win[i], CTL_PANEL_RED);
                             wattron(win[i], A_BOLD);
                             wprintw(win[i], " %s\n", STR_FAIL);
@@ -281,8 +292,7 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
                             denominator[i] = (int)(PthreadArg[i].pCurFileList->FileSize / CYT_SMALL_FILE_SIZE);
                             if(0 == denominator[i])
                                 denominator[i] = 100;
-                            //mvwhline(ScheduleWin[i], 0, (COLS*4/5 + sizeof(STR_RATE)-1), ' ', 4);
-                            wprintw(win[i], "%s", PthreadArg[i].pCurFileList->FileName);
+                            wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
                             break;
                     }
                     
@@ -312,17 +322,16 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
     touchwin(stdscr);
     refresh();
 
-    int j;
+    for(i = 0; i < PTHREAD_NUM_MAX; i++)
+    {
+        g_SuccessFailCountTable[0] += PthreadArg[i].SuccessCount;
+        g_SuccessFailCountTable[1] += PthreadArg[i].FailCount;
+    }
+    
     for(i = 0; i < PTHREAD_NUM_MAX; i++)
     {
         if(PROCESS_STATUS_SUCCESS != PthreadArg[i].ProcessStatus)
         {
-            for(j = 0; j < PTHREAD_NUM_MAX; j++)
-            {
-                g_SuccessFailCountTable[0] += PthreadArg[j].SuccessCount;
-                g_SuccessFailCountTable[1] += PthreadArg[j].FailCount;
-            }
-            
             if(PROCESS_STATUS_FATAL_ERR == PthreadArg[i].ProcessStatus)
                 return PROCESS_STATUS_FATAL_ERR;
                 
@@ -490,7 +499,7 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
                             if(0 == denominator[i])
                                 denominator[i] = 100;
                             //mvwhline(ScheduleWin[i], 0, (COLS*4/5 + sizeof(STR_RATE)-1), ' ', 4);
-                            wprintw(win[i], "%s", PthreadArg[i].pCurFileList->FileName);
+                            wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
                             break;
                     }
                     
@@ -619,8 +628,8 @@ static FileList_t *ScanDirectory(char *pFolderName)
                 pCurFileList = pCurFileList->pNext;
             }
             
-            if(pNewFileList->FileName != NULL)
-                free(pNewFileList->FileName);
+            if(pNewFileList->pFileName != NULL)
+                free(pNewFileList->pFileName);
             free(pNewFileList);
         }
         else if((DT_REG == pEntry->d_type) && (FileInfo.st_mode & S_IFREG))
@@ -634,7 +643,7 @@ static FileList_t *ScanDirectory(char *pFolderName)
                 return NULL;
             }
             
-            pNewFileList->FileName = pFileName;
+            pNewFileList->pFileName = pFileName;
             pNewFileList->FileNameLenght = FileNameLenght;
             pNewFileList->FileSize = FileInfo.st_size;
             pNewFileList->pNext = NULL;
@@ -721,11 +730,7 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
 
         }
         
-        FileNameLenght = strlen(pEntry->d_name);
-        if(STAT_OK != IsEncryptFile(pEntry->d_name, FileNameLenght))
-            continue;
-
-        FileNameLenght += FolderNameLenght + 2; //contains '/' or '\' and '\0'
+        FileNameLenght = FolderNameLenght + strlen(pEntry->d_name) + 2; //contains '/' or '\' and '\0'
         pFileName = (char *)malloc(FileNameLenght);
         if(NULL == pFileName)
         {
@@ -748,7 +753,7 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
         
         if((DT_DIR == pEntry->d_type) && (FileInfo.st_mode & S_IFDIR))
         {
-            pNewFileList = ScanDirectory(pFileName);
+            pNewFileList = ScanEncryptFile(pFileName);
             if(NULL == pNewFileList)
             {
                 free(pFileName);
@@ -764,12 +769,15 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
                 pCurFileList = pCurFileList->pNext;
             }
             
-            if(pNewFileList->FileName != NULL)
-                free(pNewFileList->FileName);
+            if(pNewFileList->pFileName != NULL)
+                free(pNewFileList->pFileName);
             free(pNewFileList);
         }
         else if((DT_REG == pEntry->d_type) && (FileInfo.st_mode & S_IFREG))
         {
+            if(STAT_OK != IsEncryptFile(pEntry->d_name, FileNameLenght-FolderNameLenght-2))
+                continue;
+            
             pNewFileList = (FileList_t *)malloc(sizeof(FileList_t));
             if(NULL == pNewFileList)
             {
@@ -779,7 +787,7 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
                 return NULL;
             }
             
-            pNewFileList->FileName = pFileName;
+            pNewFileList->pFileName = pFileName;
             pNewFileList->FileNameLenght = FileNameLenght;
             pNewFileList->FileSize = FileInfo.st_size;
             pNewFileList->pNext = NULL;
@@ -806,14 +814,13 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
     return pHeadNode;
 }
 
-
 void DispFileList(FileList_t *pHeadNode)
 {
     FileList_t *pFileList = pHeadNode->pNext;
-    
+
     while(pFileList != NULL)
     {
-        printf("%s\n", pFileList->FileName);
+        printf("%s\n", pFileList->pFileName);
         pFileList = pFileList->pNext;
     }
 }
@@ -822,7 +829,7 @@ void DispFileList(FileList_t *pHeadNode)
 
 //Log related
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
+static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
 {
     if(PROCESS_STATUS_ELSE_ERR == ProcessStatus)
         return STAT_ERR;
@@ -830,6 +837,7 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     WINDOW *win = newwin(CTL_RESULT_WIN_LINES, CTL_RESULT_WIN_COLS, 
             (LINES-CTL_RESULT_WIN_LINES)/2, (COLS-CTL_RESULT_WIN_COLS)/2);
     int key;
+    char buf[COLS - 4];
 
     CTL_SHOW_CONSOLE_END_LINE();
     keypad(win, true);
@@ -838,13 +846,14 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     {
         CTL_SET_COLOR(win, CTL_PANEL_GREEN);
         wattron(win, A_BOLD);
+        snprintf(buf, sizeof(buf), "Success, in total:%d", g_SuccessFailCountTable[0]);
         mvwaddstr(win, CTL_RESULT_WIN_LINES/3, 
-            (CTL_RESULT_WIN_COLS-sizeof(STR_SUCCESS)+1)/2, STR_SUCCESS);
+            (CTL_RESULT_WIN_COLS-strlen(buf))/2, buf);
         wattroff(win, A_BOLD);
         
         CTL_SET_COLOR(win, CTL_PANEL_GREEN);
         wborder(win, '*', '*', '*', '*', '*', '*', '*', '*');
-        mvwaddstr(win, CTL_RESULT_WIN_LINES/3, 
+        mvwaddstr(win, CTL_RESULT_WIN_LINES*2/3, 
             (CTL_RESULT_WIN_COLS-sizeof(STR_GO_BACK)+1)/2, STR_GO_BACK);
         wrefresh(win);
         
@@ -869,7 +878,6 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
         return STAT_OK;
     }
 
-    char buf[COLS - 4];
     snprintf(buf, sizeof(buf), "Success:%d   Fail:%d", g_SuccessFailCountTable[0], 
         g_SuccessFailCountTable[1]);
     CTL_SET_COLOR(win, CTL_PANEL_GREEN);
@@ -944,14 +952,14 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     keypad(WinLabel, true);
     CTL_SET_COLOR(WinLabel, CTL_PANEL_CYAN);
     wattron(WinLabel, A_REVERSE);
-    mvwaddstr(win, 0, 0, STR_RESULT_WIN_LABEL);
-    wattroff(WinLabel, A_REVERSE);
+    mvwaddstr(WinLabel, 0, 0, STR_RESULT_WIN_LABEL);
     wrefresh(WinLabel);
 
     win = newwin(LINES-1, COLS, 0, 0);
     log_t *pCurNode = log.pNext;
     char BottomFlag = 0;            //1 means it has been in bottom position, i.e can't to page down again
-    int PageCount = 0, LogCount = 0;
+    int PageCount = 1;              //PageCount must be initialize as 1
+    int CurPage = 0, LogCount = 0;
     int i, LineCount;
 
     if(NULL == pCurNode)
@@ -960,23 +968,38 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
         CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
         mvwaddstr(win, (LINES-1)/2, (COLS-sizeof(STR_LOG_IS_NULL)+1)/2, STR_LOG_IS_NULL);
         wrefresh(win);
+        PageCount = 0;
     }
     else
     {
+        LineCount = 0;
+        while(NULL != pCurNode->pNext)
+        {
+            LineCount += pCurNode->lines;
+            if((LineCount + pCurNode->pNext->lines) > LINES-1)
+            {
+                PageCount++;
+                LineCount = 0;
+            }
+            pCurNode = pCurNode->pNext;
+        }
+    
+        pCurNode = log.pNext;
+    
         wmove(win, 0, 0);
         for(i = 0, LineCount = 0; i < (LINES-1)/2; i++)
         {
             CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
             if(pCurNode->flag)
             {
-                wprintw(win, "%s", pCurNode->pFileName);
+                wprintw(win, "%s", pCurNode->pEntry);
             }
             else
             {
-                wprintw(win, "%s\n", pCurNode->pFileName);
+                wprintw(win, "%s\n", pCurNode->pEntry);
             }
             CTL_SET_COLOR(win, CTL_PANEL_RED);
-            wprintw(win, "%s\n", pCurNode->pReason);
+            wprintw(win, "%s\n", pCurNode->pDetail);
             
             if(NULL == pCurNode->pNext) //It means only one page at the first time of display
             {
@@ -990,11 +1013,11 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
                 break;
         }
         wrefresh(win);
+        mvwprintw(WinLabel, 0, sizeof(STR_RESULT_WIN_LABEL)-1, "[%d/%d] ", PageCount, CurPage+1);
     }
 
     while(1)
     {
-        wmove(WinLabel, 0, sizeof(STR_RESULT_WIN_LABEL)-1);
         key = wgetch(WinLabel);
         
         if(KEY_NPAGE == key)
@@ -1009,14 +1032,14 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
                 CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
                 if(pCurNode->flag)
                 {
-                    wprintw(win, "%s", pCurNode->pFileName);
+                    wprintw(win, "%s", pCurNode->pEntry);
                 }
                 else
                 {
-                    wprintw(win, "%s\n", pCurNode->pFileName);
+                    wprintw(win, "%s\n", pCurNode->pEntry);
                 }
                 CTL_SET_COLOR(win, CTL_PANEL_RED);
-                wprintw(win, "%s\n", pCurNode->pReason);
+                wprintw(win, "%s\n", pCurNode->pDetail);
 
                 if(NULL == pCurNode->pNext)
                 {
@@ -1035,11 +1058,13 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
             wrefresh(win);
 
             LogCount = i;
-            PageCount++;
+            CurPage++;
+
+            mvwprintw(WinLabel, 0, sizeof(STR_RESULT_WIN_LABEL)-1, "[%d/%d] ", PageCount, CurPage+1);            
         }
         else if(KEY_PPAGE == key)
         {
-            if(PageCount <= 0)
+            if(CurPage <= 0)
                 continue;
 
             for(i = LogCount; i > 0; i--)
@@ -1059,7 +1084,7 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
             }
 
             BottomFlag = 0;
-            PageCount--;
+            CurPage--;
 
             wclear(win);
             wmove(win, 0, 0);
@@ -1068,14 +1093,14 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
                 CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
                 if(pCurNode->flag)
                 {
-                    wprintw(win, "%s", pCurNode->pFileName);
+                    wprintw(win, "%s", pCurNode->pEntry);
                 }
                 else
                 {
-                    wprintw(win, "%s\n", pCurNode->pFileName);
+                    wprintw(win, "%s\n", pCurNode->pEntry);
                 }
                 CTL_SET_COLOR(win, CTL_PANEL_RED);
-                wprintw(win, "%s\n", pCurNode->pReason);
+                wprintw(win, "%s\n", pCurNode->pDetail);
                 
                 LineCount += pCurNode->lines;
                 pCurNode = pCurNode->pNext;
@@ -1086,8 +1111,9 @@ G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
                 }
             }
             wrefresh(win);
-            
             LogCount = i;
+            
+            mvwprintw(WinLabel, 0, sizeof(STR_RESULT_WIN_LABEL)-1, "[%d/%d] ", PageCount, CurPage+1);
         }
         else if(27 == key) //Esc key
         {
@@ -1124,8 +1150,8 @@ static G_STATUS ParseLog(log_t *pHeadNode)
     rewind(g_pDispFile);
 
     log_t *pCurNode = pHeadNode, *pNewNode;
-    pHeadNode->pFileName = NULL;
-    pHeadNode->pReason = NULL;
+    pHeadNode->pEntry = NULL;
+    pHeadNode->pDetail = NULL;
     pHeadNode->lines = 0;
     pHeadNode->flag = 0;
     pHeadNode->pNext = NULL;
@@ -1166,7 +1192,7 @@ static G_STATUS ParseLog(log_t *pHeadNode)
         }
 
         memcpy(pTmp, buf, len+1); //len+1: end with '\0'
-        pNewNode->pFileName = pTmp;
+        pNewNode->pEntry = pTmp;
 
         if((NULL != fgets(buf, sizeof(buf), g_pDispFile)) && (0 == feof(g_pDispFile)))
         {
@@ -1183,7 +1209,7 @@ static G_STATUS ParseLog(log_t *pHeadNode)
             }
 
             memcpy(pTmp, buf, len);
-            pNewNode->pReason = pTmp;
+            pNewNode->pDetail = pTmp;
         }
         else
         {
@@ -1208,8 +1234,8 @@ void DispLog(log_t *pHeadNode)
 
     while(NULL != CurNode)
     {
-        fprintf(stdout, "%s\n", CurNode->pFileName);
-        fprintf(stdout, "%s\n", CurNode->pReason);
+        fprintf(stdout, "%s\n", CurNode->pEntry);
+        fprintf(stdout, "%s\n", CurNode->pDetail);
         CurNode = CurNode->pNext;
     }
 }
@@ -1228,7 +1254,7 @@ static inline void DeleteTailSymbol(char *pFileName, int FileNameLenght)
 
 static inline void InitFileListNode(FileList_t *pFileList)
 {
-    pFileList->FileName = NULL;
+    pFileList->pFileName = NULL;
     pFileList->FileNameLenght = 0;
     pFileList->FileSize = 0;
     pFileList->pNext = NULL;
@@ -1241,8 +1267,8 @@ static inline void FreeFileList(FileList_t *pHeadNode)
     while(CurNode != NULL)
     {
         TmpNode = CurNode->pNext;
-        if(CurNode->FileName != NULL)
-            free(CurNode->FileName);
+        if(CurNode->pFileName != NULL)
+            free(CurNode->pFileName);
         free(CurNode);
         CurNode = TmpNode;
     }
@@ -1264,10 +1290,10 @@ static inline void FreeLog(log_t *pHeadNode)
     while(CurNode != NULL)
     {
         TmpNode = CurNode->pNext;
-        if(NULL != CurNode->pFileName)
-            free(CurNode->pFileName);
-        if(NULL != CurNode->pReason)
-            free(CurNode->pReason);
+        if(NULL != CurNode->pEntry)
+            free(CurNode->pEntry);
+        if(NULL != CurNode->pDetail)
+            free(CurNode->pDetail);
         free(CurNode);
         CurNode = TmpNode;
     }

@@ -51,6 +51,75 @@ G_STATUS CTL_InitConsole(void)
     return STAT_OK;
 }
 
+G_STATUS CTL_ConfirmOperation(const char *pStr, int StrLenght)
+{
+    int cols;
+    if(CTL_CONFIRM_WIN_COLS < StrLenght)
+    {
+        cols = StrLenght+4;
+    }
+    else
+    {
+        cols = CTL_CONFIRM_WIN_COLS;
+    }
+
+    
+    WINDOW *win = newwin(CTL_CONFIRM_WIN_LINES, cols, 
+        (LINES-CTL_CONFIRM_WIN_LINES)/2, (COLS-cols)/2);
+    
+    CTL_SET_COLOR(win, CTL_PANEL_CYAN);
+    wborder(win, '*', '*', '*', '*', '*', '*', '*', '*');
+
+    mvwaddstr(win, 2, (cols-StrLenght)/2, pStr);
+
+    int Str1StartX = (cols - sizeof(STR_CONTINUE)+1 - sizeof(STR_GO_BACK)+1)/3;
+    int Str2StartX = cols - Str1StartX - sizeof(STR_GO_BACK)+1;
+    mvwaddstr(win, 4, Str2StartX, STR_GO_BACK);
+    wattron(win, A_REVERSE);
+    mvwaddstr(win, 4, Str1StartX, STR_CONTINUE);
+    wattroff(win, A_REVERSE);
+
+    char flag = 0;
+    int key;
+    keypad(win, true);
+    while(1)
+    {
+        key = wgetch(win);
+        if((KEY_LEFT == key) || (KEY_RIGHT == key))
+        {
+            flag ^= 1;
+        }        
+        else if(13 == key) //Enter key
+            break;
+        else
+            continue;
+
+        if(flag)
+        {
+            mvwaddstr(win, 4, Str1StartX, STR_CONTINUE);
+            wattron(win, A_REVERSE);
+            mvwaddstr(win, 4, Str2StartX, STR_GO_BACK);
+            wattroff(win, A_REVERSE);
+        }
+        else
+        {
+            mvwaddstr(win, 4, Str2StartX, STR_GO_BACK);
+            wattron(win, A_REVERSE);
+            mvwaddstr(win, 4, Str1StartX, STR_CONTINUE);
+            wattroff(win, A_REVERSE);
+        }
+    }
+
+    delwin(win);
+    touchline(stdscr, (LINES-CTL_CONFIRM_WIN_LINES)/2, CTL_CONFIRM_WIN_LINES);
+    refresh();
+
+    if(flag)
+        return STAT_GO_BACK;
+
+    return STAT_OK;
+}
+
 void CTL_DrawStdConsole(void)
 {
     clear();

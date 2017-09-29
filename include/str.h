@@ -50,8 +50,10 @@
 #define STR_FAIL_COUNT                      "Fail: "
 #define STR_VIEW_LOG                        "[ view log ]"
 #define STR_GO_BACK                         "[ go back ]"
-#define STR_RESULT_WIN_LABEL                "Pgdn: next page    Pgup: last page    Enter: go back    Esc: exit"
+#define STR_CONTINUE                        "[ continue ]"
+#define STR_RESULT_WIN_LABEL                "Pgdn: next    Pgup: last    Enter: go back    Esc: exit    "
 #define STR_LOG_IS_NULL                     "Log is empty"
+#define STR_EXIT_PROJECT                    "Continue to exit project ?"
 
 #define STR_ERR_INVALID_FUNC                "Error: invalid func"
 #define STR_ERR_INVALID_COLS                "Error: need wider console, at least: "

@@ -36,7 +36,7 @@ extern FILE *g_pDispFile;
                 pthread_mutex_lock(&g_LogLock); \
                 g_ti = time(NULL); \
                 g_time = localtime(&g_ti); \
-                fprintf(g_pDispFile, "[%4d-%02d-%02d %02d:%02d:%02d]: %s\n[Reason]: %s\n", \
+                fprintf(g_pDispFile, "[%4d-%02d-%02d %02d:%02d:%02d]: %s\n[Detail]: %s\n", \
                     g_time->tm_year+1900, g_time->tm_mon, g_time->tm_mday, \
                     g_time->tm_hour, g_time->tm_min, g_time->tm_sec, file, reason); \
                 pthread_mutex_unlock(&g_LogLock); \
@@ -66,7 +66,7 @@ typedef enum
 
 typedef struct FileListStruct
 {
-    char *FileName;
+    char *pFileName;
     int FileNameLenght;
     int64_t FileSize;
     struct FileListStruct *pNext;
@@ -74,9 +74,9 @@ typedef struct FileListStruct
 
 typedef struct LogStruct
 {
-    char *pFileName;
-    char *pReason;
-    int16_t lines;
+    char *pEntry;
+    char *pDetail;
+    int16_t lines;  //The number of lines for pEntry
     char flag;      //1 means the parameter lines is equal to COLS
     struct LogStruct *pNext;
     struct LogStruct *pPrevious;
@@ -89,7 +89,7 @@ static inline G_STATUS CheckFileListArg(__IO FileList_t *pFileList)
         return STAT_ERR;
 #endif
 
-    if((NULL == pFileList->FileName) || (0 == pFileList->FileNameLenght))
+    if((NULL == pFileList->pFileName) || (0 == pFileList->FileNameLenght))
         return STAT_ERR;
 
     return STAT_OK;
@@ -109,6 +109,5 @@ static inline void ConvertNameFormat(char *pFileName)
 
 G_STATUS CTL_MENU_EncryptDecrypt(CTL_MENU func);
 void DispFileList(FileList_t *pHeadNode);
-G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus);
 
 #endif
