@@ -39,8 +39,7 @@ G_STATUS CTL_MENU_EncryptDecrypt(CTL_MENU func)
 {
     if((func != CTL_MENU_ENCRYPT) && (func != CTL_MENU_DECRYPT))
     {
-        DISP_ERR(STR_ERR_INVALID_FUNC);
-        return STAT_ERR;
+        CTL_ErrExit(STR_ERR_INVALID_FUNC);
     }
     
     G_STATUS status;

@@ -13,10 +13,7 @@
 
 static inline void FreePtrLinkList(PtrLinkList_t *pHeadNode);
 
-/*
-    Return: STAT_ERR, STAT_OK
-*/
-G_STATUS CTL_InitConsole(void)
+void CTL_InitConsole(void)
 {
     setlocale(LC_ALL,"");
     initscr();
@@ -27,14 +24,12 @@ G_STATUS CTL_InitConsole(void)
     
     if(COLS < CTL_CONSOLE_COLS)
     {
-        DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_COLS, CTL_CONSOLE_COLS);
-        return STAT_ERR;
+        CTL_ErrExit("%s%d\n", STR_ERR_INVALID_COLS, CTL_CONSOLE_COLS);
     }
     
     if(LINES < CTL_CONSOLE_LINES)
     {
-        DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_LINES, CTL_CONSOLE_LINES);
-        return STAT_ERR;
+        CTL_ErrExit("%s%d\n", STR_ERR_INVALID_LINES, CTL_CONSOLE_LINES);
     }
     
     if(OK == start_color())
@@ -47,8 +42,6 @@ G_STATUS CTL_InitConsole(void)
     }
     
     CTL_SET_COLOR(stdscr, CTL_PANEL_CYAN);
-
-    return STAT_OK;
 }
 
 G_STATUS CTL_ConfirmOperation(const char *pStr, int StrLenght)
@@ -73,10 +66,10 @@ G_STATUS CTL_ConfirmOperation(const char *pStr, int StrLenght)
     mvwaddstr(win, 2, (cols-StrLenght)/2, pStr);
 
     int Str1StartX = (cols - sizeof(STR_CONTINUE)+1 - sizeof(STR_GO_BACK)+1)/3;
-    int Str2StartX = cols - Str1StartX - sizeof(STR_GO_BACK)+1;
-    mvwaddstr(win, 4, Str2StartX, STR_GO_BACK);
+    int Str2StartX = cols - Str1StartX - sizeof(STR_CONTINUE)+1;
+    mvwaddstr(win, 4, Str2StartX, STR_CONTINUE);
     wattron(win, A_REVERSE);
-    mvwaddstr(win, 4, Str1StartX, STR_CONTINUE);
+    mvwaddstr(win, 4, Str1StartX, STR_GO_BACK);
     wattroff(win, A_REVERSE);
 
     char flag = 0;
@@ -96,16 +89,16 @@ G_STATUS CTL_ConfirmOperation(const char *pStr, int StrLenght)
 
         if(flag)
         {
-            mvwaddstr(win, 4, Str1StartX, STR_CONTINUE);
+            mvwaddstr(win, 4, Str1StartX, STR_GO_BACK);
             wattron(win, A_REVERSE);
-            mvwaddstr(win, 4, Str2StartX, STR_GO_BACK);
+            mvwaddstr(win, 4, Str2StartX, STR_CONTINUE);
             wattroff(win, A_REVERSE);
         }
         else
         {
-            mvwaddstr(win, 4, Str2StartX, STR_GO_BACK);
+            mvwaddstr(win, 4, Str2StartX, STR_CONTINUE);
             wattron(win, A_REVERSE);
-            mvwaddstr(win, 4, Str1StartX, STR_CONTINUE);
+            mvwaddstr(win, 4, Str1StartX, STR_GO_BACK);
             wattroff(win, A_REVERSE);
         }
     }
@@ -114,7 +107,7 @@ G_STATUS CTL_ConfirmOperation(const char *pStr, int StrLenght)
     touchline(stdscr, (LINES-CTL_CONFIRM_WIN_LINES)/2, CTL_CONFIRM_WIN_LINES);
     refresh();
 
-    if(flag)
+    if(0 == flag)
         return STAT_GO_BACK;
 
     return STAT_OK;
@@ -138,10 +131,7 @@ void CTL_DrawStdConsole(void)
     refresh();
 }
 
-/*
-    Return: STAT_EXIT, STAT_OK
-*/
-G_STATUS CTL_ShowMenu(CTL_MENU *pFunc)
+void CTL_ShowMenu(CTL_MENU *pFunc)
 {
     WINDOW *win = newwin(CTL_MENU_WIN_LINES, CTL_MENU_WIN_COLS, 
         (LINES-CTL_MENU_WIN_LINES)/2, (COLS-CTL_MENU_WIN_COLS)/2);
@@ -179,7 +169,9 @@ G_STATUS CTL_ShowMenu(CTL_MENU *pFunc)
             mvwaddstr(win, CurPosY--, 2, g_pMenuStr[CurMenuPos--]);
         }        
         else if(27 == key) //Esc key
-            return STAT_EXIT;
+        {
+            CTL_ForceExit();
+        }
         else if(13 == key) //Enter key
             break;
         else
@@ -205,9 +197,6 @@ G_STATUS CTL_ShowMenu(CTL_MENU *pFunc)
     delwin(win);
     touchline(stdscr, (LINES-CTL_MENU_WIN_LINES)/2, CTL_MENU_WIN_LINES);
     refresh();
-    
-    return STAT_OK;
-    
 }
 
 void CTL_MENU_ShowInstruction(void)
@@ -307,20 +296,12 @@ G_STATUS CTL_GetFileName(char *pFileName)
         if(0 == access(pFileName, F_OK))
             break;
 
+        noecho();
         CTL_SHOW_CONSOLE_END_LINE();
         status = CTL_MakeChoice("%s", STR_FILE_NOT_EXIST);
-        if(STAT_EXIT == status)
+        if(STAT_GO_BACK == status)
         {
             delwin(win);
-            return STAT_EXIT;
-        }
-        else if(STAT_GO_BACK == status)
-        {
-            noecho();
-            delwin(win);
-//            touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, 
-//                CTL_GET_FILE_NAME_WIN_LINES);
-//            CTL_SHOW_CONSOLE_END_LINE();
             return STAT_GO_BACK;
         }
         
@@ -337,7 +318,7 @@ G_STATUS CTL_GetFileName(char *pFileName)
 }
 
 /*
-    Return: STAT_EXIT, STAT_GO_BACK, STAT_ERR, STAT_OK
+    Return: STAT_GO_BACK, STAT_OK
 */
 G_STATUS CTL_GetPassord(char *pPassword)
 {
@@ -385,8 +366,8 @@ G_STATUS CTL_GetPassord(char *pPassword)
             }            
             else if(27 == key) //Esc key
             {
-                delwin(win);
-                return STAT_EXIT;
+                CTL_SafeExit(win);
+                continue;
             }
             else if((13 == key) || (9 == key)) //Enter key or Tab key
                 break;
@@ -400,26 +381,14 @@ G_STATUS CTL_GetPassord(char *pPassword)
         if(i < CTL_PASSWORD_LENGHT_MIN)
         {
             status = CTL_MakeChoice("%s", STR_PASSWORD_TOO_SHORT);
-            if(STAT_EXIT == status)
+            if(STAT_GO_BACK == status)
             {
                 delwin(win);
-                return STAT_EXIT;
-            }
-            else if(STAT_GO_BACK == status)
-            {
-                delwin(win);
-//                touchline(stdscr, (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, 
-//                    CTL_GET_PASSWORD_WIN_LINES);
-//                refresh();
                 return STAT_GO_BACK;
             }
-            else if(STAT_RETRY == status)
-            {
-                wclear(win);
-                continue;
-            }
-            else
-                return status;
+
+            wclear(win);
+            continue;
         }
 
         i = 0;
@@ -450,8 +419,8 @@ G_STATUS CTL_GetPassord(char *pPassword)
             }            
             else if(27 == key) //Esc key
             {
-                delwin(win);
-                return STAT_EXIT;
+                CTL_SafeExit(win);
+                continue;
             }
             else if(13 == key) //Enter key
                 break;
@@ -466,26 +435,14 @@ G_STATUS CTL_GetPassord(char *pPassword)
             break;
 
         status = CTL_MakeChoice("%s", STR_PASSWORD_NOT_MATCH);
-        if(STAT_EXIT == status)
+        if(STAT_GO_BACK == status)
         {
             delwin(win);
-            return STAT_EXIT;
-        }
-        else if(STAT_GO_BACK == status)
-        {
-            delwin(win);
-//            touchline(stdscr, (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, 
-//                CTL_GET_PASSWORD_WIN_LINES);
-//            refresh();
             return STAT_GO_BACK;
         }
-        else if(STAT_RETRY == status)
-        {
-            wclear(win);
-            continue;
-        }
-        else
-            return status;
+
+        wclear(win);
+        continue;
     }
 
     delwin(win);
@@ -500,7 +457,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
 /*
     Rules: "%s" means string
     E.g: CTL_MakeChoice("%s%s", "It occurs fatal error", "Please make a choice");
-    Return: STAT_RETRY, STAT_GO_BACK, STAT_EXIT
+    Return: STAT_RETRY, STAT_GO_BACK
 */
 G_STATUS CTL_MakeChoice(const char*format, ...)
 {
@@ -524,8 +481,7 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
                 pTmpNode = (PtrLinkList_t *)malloc(sizeof(PtrLinkList_t));
                 if(NULL == pTmpNode)
                 {
-                    DISP_ERR(STR_ERR_FAIL_TO_MALLOC);
-                    return STAT_ERR;
+                    CTL_ErrExit(STR_ERR_FAIL_TO_MALLOC);
                 }
                 
                 pTmpNode->ptr = va_arg(pArg, char *);
@@ -544,33 +500,29 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
 
     va_end(pArg);
 
-    lines += 5;
+    lines += 6;
     if(lines > CTL_CONSOLE_LINES)
     {
-        FreePtrLinkList(&StrHeadNode);
-        DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_LINES, lines);
-        return STAT_ERR;
+        //FreePtrLinkList(&StrHeadNode);
+        CTL_ErrExit("%s%d\n", STR_ERR_INVALID_LINES, lines);
     }
 
     cols += 4;
     if(cols > CTL_CONSOLE_COLS)
     {
-        FreePtrLinkList(&StrHeadNode);
-        DISP_ERR_PLUS("%s%d\n", STR_ERR_INVALID_COLS, cols);
-        return STAT_ERR;
+        //FreePtrLinkList(&StrHeadNode);
+        CTL_ErrExit("%s%d\n", STR_ERR_INVALID_COLS, cols);
     }
-#ifdef __DEBUG    
-    if(lines < 6) //Top and bottom symbols is 4 lines, choice string is 1 lines
+#ifdef __DEBUG
+    if(lines < 7) //Top and bottom symbols is 4 lines, choice string is 3 lines
     {
-        FreePtrLinkList(&StrHeadNode);
-        DISP_ERR_PLUS("%s%d\n", STR_ERR_STR_IS_NULL, lines);
-        return STAT_ERR;
+        //FreePtrLinkList(&StrHeadNode);
+        CTL_ErrExit("%s%d\n", STR_ERR_STR_IS_NULL, lines);
     }
     if(cols < 20)  //STR_RETRY and STR_BACK are 16 bytes in total, side symbols are 4 bytes
     {
-        FreePtrLinkList(&StrHeadNode);
-        DISP_ERR_PLUS("%s%d\n", STR_ERR_STR_TOO_SHORT, cols);
-        return STAT_ERR;
+        //FreePtrLinkList(&StrHeadNode);
+        CTL_ErrExit("%s%d\n", STR_ERR_STR_TOO_SHORT, cols);
     }
 #endif
 
@@ -605,10 +557,14 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
             flag ^= 1;
         }        
         else if(27 == key) //Esc key
-        {            
+        {
+            CTL_SafeExit(win);
+            
             FreePtrLinkList(&StrHeadNode);
             delwin(win);
-            return STAT_EXIT;
+            touchline(stdscr, (LINES-lines)/2, lines);
+            refresh();
+            return STAT_RETRY;
         }
         else if(13 == key) //Enter key
             break;
@@ -631,11 +587,10 @@ G_STATUS CTL_MakeChoice(const char*format, ...)
         }
     }
 
+    FreePtrLinkList(&StrHeadNode);
     delwin(win);
     touchline(stdscr, (LINES-lines)/2, lines);
     refresh();
-
-    FreePtrLinkList(&StrHeadNode);
 
     if(flag)
         return STAT_GO_BACK;

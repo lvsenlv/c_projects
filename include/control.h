@@ -21,6 +21,7 @@ typedef enum {
     CTL_MENU_ENCRYPT,
     CTL_MENU_DECRYPT,
     CTL_MENU_COUNT,
+    CTL_MENU_MAX,
 }CTL_MENU;
 
 #define CTL_PASSWORD_LENGHT_MAX             19 //real is 19-1=18
@@ -57,13 +58,12 @@ typedef enum {
 #endif
 
 //Must invoke InitConsole before using this macro
-#define CTL_ExitConsole() \
+#define CTL_ForceExit()                     {endwin();exit(0);}
+#define CTL_ErrExit(format, arg...) \
         { \
-            if(STAT_OK == CTL_ConfirmOperation(STR_EXIT_PROJECT, sizeof(STR_EXIT_PROJECT)-1)) \
-            { \
-                endwin(); \
-                exit(0); \
-            } \
+            endwin(); \
+            fprintf(stderr, format, ##arg); \
+            exit(0); \
         }
 #define CTL_HIDE_CONSOLE_END_LINE()         {mvhline(LINES-2, 2, ' ', COLS-3);refresh();}
 #define CTL_SHOW_CONSOLE_END_LINE() \
@@ -89,13 +89,25 @@ typedef struct PtrLinkList
     struct PtrLinkList *pNext_t;
 }PtrLinkList_t;
 
-G_STATUS CTL_InitConsole(void);
+G_STATUS CTL_ConfirmOperation(const char *pStr, int StrLenght);
+
+static inline void CTL_SafeExit(WINDOW *win)
+{
+    if(STAT_OK == CTL_ConfirmOperation(STR_EXIT_PROJECT, sizeof(STR_EXIT_PROJECT)-1))
+    {
+        endwin();
+        exit(0);
+    }
+    touchwin(win);
+}
+
+void CTL_InitConsole(void);
 void CTL_DrawStdConsole(void);
-G_STATUS CTL_ShowMenu(CTL_MENU *pFunc);
+void CTL_ShowMenu(CTL_MENU *pFunc);
+
 void CTL_MENU_ShowInstruction(void);
 G_STATUS CTL_GetFileName(char *pFileName);
 G_STATUS CTL_GetPassord(char *pPassword);
 G_STATUS CTL_MakeChoice(const char*format, ...);
-G_STATUS CTL_ConfirmOperation(const char *pStr, int StrLenght);
 
 #endif

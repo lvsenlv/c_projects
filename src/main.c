@@ -9,32 +9,20 @@
 #include "control.h"
 #include "str.h"
 #include "encryption.h"
-#include <string.h>
 
 static inline void CheckError(G_STATUS status);
 
 int main(void)
 {
     G_STATUS status;
-    CTL_MENU func = CTL_MENU_SHOW_INSTRUCTION;
+    CTL_MENU func = CTL_MENU_MAX;
 
-    status = CTL_InitConsole();
-    if(status != STAT_OK)
-    {
-        CheckError(status);
-        CTL_ExitConsole();
-    }
+    CTL_InitConsole();
 
     while(1)
     {
         CTL_DrawStdConsole();
-        
-        status = CTL_ShowMenu(&func);
-        if(status != STAT_OK)
-        {
-            CheckError(status);
-            CTL_ExitConsole();
-        }
+        CTL_ShowMenu(&func);
 
         if(CTL_MENU_SHOW_INSTRUCTION == func)
         {
@@ -47,7 +35,7 @@ int main(void)
             CheckError(status);
             if(STAT_EXIT == status)
             {
-                CTL_ExitConsole();
+                CTL_SafeExit(stdscr);
             }
             else if(STAT_GO_BACK == status)
             {
@@ -56,7 +44,7 @@ int main(void)
         }
     }
     
-    CTL_ExitConsole();
+    CTL_SafeExit(stdscr);
 } 
 
 static inline void CheckError(G_STATUS status)
