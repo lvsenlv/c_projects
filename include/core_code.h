@@ -10,7 +10,7 @@
 
 #include "encryption.h"
 
-#define PTHREAD_WAIT_INTERVAL               (1*1000) //Unit: us
+#define PTHREAD_WAIT_INTERVAL               1 //Unit: ms
 
 extern __IO FileList_t *g_pCurFilelist;
 

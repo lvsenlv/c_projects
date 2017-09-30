@@ -57,6 +57,8 @@ typedef enum {
 }ALIGN_4K G_STATUS;
 
 extern char g_ErrBuf[BUF_SIZE];
+extern time_t g_ti;
+extern struct tm *g_time;
 #define     DISP(format, args...) \
             snprintf(g_ErrBuf, sizeof(g_ErrBuf), format, ##args)
 #ifdef __DEBUG
@@ -107,8 +109,6 @@ extern char g_ErrBuf[BUF_SIZE];
 #ifdef __LINUX
     #include <time.h>
     #include <sys/time.h>
-    extern time_t g_ti;
-    extern struct tm *g_time;
     extern struct timeval g_StartTime, g_StopTime;
     #define     START_COUNT                     gettimeofday(&g_StartTime, NULL)
     #define     STOP_COUNT                      gettimeofday(&g_StopTime, NULL)

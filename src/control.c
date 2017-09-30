@@ -44,6 +44,11 @@ void CTL_InitConsole(void)
     CTL_SET_COLOR(stdscr, CTL_PANEL_CYAN);
 }
 
+//G_STATUS CTL_ConfirmOperation(const char *format, int StrLenght)
+//{
+//    
+//}
+
 G_STATUS CTL_ConfirmOperation(const char *pStr, int StrLenght)
 {
     int cols;
@@ -206,7 +211,9 @@ void CTL_MENU_ShowInstruction(void)
 
     CTL_SET_COLOR(win, CTL_PANEL_GREEN);
     wattron(win, A_REVERSE);
-    mvwaddstr(win, 0, (COLS - strlen(*ptr))/2, *ptr++);
+    //mvwaddstr(win, 0, (COLS - strlen(*ptr))/2, *ptr++); //MinGW doesn't support
+    mvwaddstr(win, 0, (COLS - strlen(*ptr))/2, *ptr);
+    ptr++; 
     wattroff(win, A_REVERSE);
 
     wmove(win, 1, 0);
@@ -235,42 +242,8 @@ void CTL_MENU_ShowInstruction(void)
     refresh();
 }
 
-#if 0
-G_STATUS CTL_GetFileName(char *pFileName)
-{
-    endwin();
-    clear();
-    
-    G_STATUS status;    
-    while(1)
-    {
-        CLEAR_STR_SCR();
-        printf("%s\n", STR_INPUT_FILE_NAME);
-        printf("%s\n", STR_INPUT_FILE_NAME_EG);
-        printf("%s", STR_INPUT);
-        fgets(pFileName, CTL_FILE_NAME_LENGHT, stdin);
-        if(0 == access(pFileName, F_OK))
-            break;
-
-        CTL_SHOW_CONSOLE_END_LINE();
-        status = CTL_MakeChoice("%s", STR_FILE_NOT_EXIST);
-        if(STAT_EXIT == status)
-        {
-            return STAT_EXIT;
-        }
-        else if(STAT_GO_BACK == status)
-        {
-            return STAT_GO_BACK;
-        }
-    }
-
-    CTL_DrawStdConsole();
-    return STAT_OK;
-}
-#endif
-
 /*
-    Return: STAT_EXIT, STAT_GO_BACK, STAT_OK
+    Return: STAT_GO_BACK, STAT_OK
 */
 G_STATUS CTL_GetFileName(char *pFileName)
 {

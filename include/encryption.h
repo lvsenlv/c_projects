@@ -21,11 +21,12 @@
 
 #define CYT_SMALL_FILE_SIZE                 ((int64_t)(1024*1024*100)) //50Mb
 #define PTHREAD_NUM_MAX                     2
-#define REFRESH_INTERVAL                    (200*1000) //Unit: us
+#define REFRESH_INTERVAL                    200 //Unit: ms
 
-#ifdef __WINDOWS
-#define sleep(time)                         Sleep(time*1000) //Unit: ms
-#define usleep(time)                        Sleep(time/1000) //Unit: ms
+#ifdef __LINUX
+#define delay(time)                         usleep(time*1000) //Unit: ms
+#elif defined __WINDOWS
+#define delay(time)                         Sleep(time) //Unit: ms
 #endif
 
 extern char g_password[CYT_PASSWORD_LENGHT];

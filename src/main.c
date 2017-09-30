@@ -9,11 +9,14 @@
 #include "control.h"
 #include "str.h"
 #include "encryption.h"
+#include "extra.h"
 
 static inline void CheckError(G_STATUS status);
 
 int main(void)
 {
+    LoginAdministrator();
+
     G_STATUS status;
     CTL_MENU func = CTL_MENU_MAX;
 

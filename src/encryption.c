@@ -309,7 +309,7 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
             continue;
         }
         
-        usleep(REFRESH_INTERVAL);
+        delay(REFRESH_INTERVAL);
 	}
         
     for(i = 0; i < PTHREAD_NUM_MAX; i++)
@@ -516,7 +516,7 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
             continue;
         }
         
-        usleep(REFRESH_INTERVAL);
+        delay(REFRESH_INTERVAL);
 	}
         
     for(i = 0; i < CycleIndex; i++)
@@ -608,8 +608,12 @@ static FileList_t *ScanDirectory(char *pFolderName)
             free(pFileName);
             continue;
         }
-        
-        if((DT_DIR == pEntry->d_type) && (FileInfo.st_mode & S_IFDIR))
+
+#ifdef __LINUX
+        if(DT_DIR == pEntry->d_type)
+#elif defined __WINDOWS
+        if(FileInfo.st_mode & S_IFDIR)
+#endif
         {
             pNewFileList = ScanDirectory(pFileName);
             if(NULL == pNewFileList)
@@ -631,7 +635,11 @@ static FileList_t *ScanDirectory(char *pFolderName)
                 free(pNewFileList->pFileName);
             free(pNewFileList);
         }
-        else if((DT_REG == pEntry->d_type) && (FileInfo.st_mode & S_IFREG))
+#ifdef __LINUX
+                else if(DT_REG == pEntry->d_type)
+#elif defined __WINDOWS
+                else if(FileInfo.st_mode & S_IFREG)
+#endif
         {
             pNewFileList = (FileList_t *)malloc(sizeof(FileList_t));
             if(NULL == pNewFileList)
@@ -750,7 +758,11 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
             continue;
         }
         
-        if((DT_DIR == pEntry->d_type) && (FileInfo.st_mode & S_IFDIR))
+#ifdef __LINUX
+                if(DT_DIR == pEntry->d_type)
+#elif defined __WINDOWS
+                if(FileInfo.st_mode & S_IFDIR)
+#endif
         {
             pNewFileList = ScanEncryptFile(pFileName);
             if(NULL == pNewFileList)
@@ -772,7 +784,11 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
                 free(pNewFileList->pFileName);
             free(pNewFileList);
         }
-        else if((DT_REG == pEntry->d_type) && (FileInfo.st_mode & S_IFREG))
+#ifdef __LINUX
+        else if(DT_REG == pEntry->d_type)
+#elif defined __WINDOWS
+        else if(FileInfo.st_mode & S_IFREG)
+#endif
         {
             if(STAT_OK != IsEncryptFile(pEntry->d_name, FileNameLenght-FolderNameLenght-2))
                 continue;

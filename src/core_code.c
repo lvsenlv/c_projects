@@ -59,34 +59,13 @@ void *Pthread_EncryptDecrypt(void *arg)
             continue;
         }
         
-        if(0 == pArg_t->pCurFileList->FileSize)
-        {
-            DISP_LOG(pArg_t->pCurFileList->pFileName, STR_FILE_IS_NULL);
-            pArg_t->FailCount++;
-            pthread_mutex_unlock(&g_FileLock);
-            
-            pArg_t->RefreshFlag = REFRESH_FLAG_TRUE;
-            //Wait for clear refresh flag <=> wait for dispalying curent file name
-            while(REFRESH_FLAG_FALSE != pArg_t->RefreshFlag)
-            {
-                usleep(PTHREAD_WAIT_INTERVAL);
-            }
-            
-            pArg_t->RefreshFlag = REFRESH_FLAG_FAIL;
-            //Wait for clear refresh flag <=> wait for dispalying process status
-            while(REFRESH_FLAG_FALSE != pArg_t->RefreshFlag)
-            {
-                usleep(PTHREAD_WAIT_INTERVAL);
-            }
-            continue;
-        }
         pthread_mutex_unlock(&g_FileLock);
         //File lock <<<
         
         //Wait for clear refresh flag <=> wait for dispalying curent file name
         while(REFRESH_FLAG_FALSE != pArg_t->RefreshFlag)
         {
-            usleep(PTHREAD_WAIT_INTERVAL);
+            delay(PTHREAD_WAIT_INTERVAL);
         }
         
         status = (*pArg_t->pFunc)(pArg_t->pCurFileList->pFileName, pArg_t->pCurFileList->FileSize, 
@@ -117,7 +96,7 @@ void *Pthread_EncryptDecrypt(void *arg)
         //Wait for clear refresh flag <=> wait for dispalying process status
         while(REFRESH_FLAG_FALSE != pArg_t->RefreshFlag)
         {
-            usleep(PTHREAD_WAIT_INTERVAL);
+            delay(PTHREAD_WAIT_INTERVAL);
         }
         
     }
@@ -149,6 +128,13 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         fclose(fp);
         DISP_LOG(NewFileName, STR_FAIL_TO_CREATE_OPEN_FILE);
         return STAT_ERR;
+    }
+
+    if(0 == FileSize)
+    {
+        fclose(fp);
+        fclose(NewFp);
+        goto GOTO_DELETE_FILE;
     }
 
     uint8_t *pData = NULL;
@@ -385,6 +371,8 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     fp = NULL;
     NewFp = NULL;
 
+GOTO_DELETE_FILE:
+
 #ifdef __LINUX
     snprintf(NewFileName, sizeof(NewFileName), "rm -rf %s >/dev/null 2>&1", pFileName);
 #elif defined __WINDOWS
@@ -430,6 +418,13 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         return STAT_ERR;
     }
 
+    if(0 == FileSize)
+    {
+        fclose(fp);
+        fclose(NewFp);
+        return STAT_OK;
+    }
+
     uint8_t *pData = NULL;
     pData = (uint8_t *)malloc(sizeof(uint8_t) * CYT_SMALL_FILE_SIZE);
     if(NULL == pData)
@@ -448,7 +443,7 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     //Get decrypt factor
     while(*pPassword != '\0')
     {
-        EncyptFactor += (uint)*pPassword;
+        EncyptFactor += (int)*pPassword;
         pPassword++;
         PasswordLenght++;
     }

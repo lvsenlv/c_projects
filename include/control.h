@@ -12,7 +12,7 @@
 #ifdef __LINUX
 #include <curses.h>
 #elif defined __WINDOWS
-#include "curses_win.h"
+#include "curses.h"
 #endif
 #include "str.h"
 
