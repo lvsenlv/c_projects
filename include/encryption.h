@@ -18,6 +18,12 @@
 #define CYT_FILE_NAME_LENGHT                CTL_FILE_NAME_LENGHT
 #define CYT_PASSWORD_LENGHT                 CTL_PASSWORD_LENGHT_MAX
 #define ENCRYPT_FILE_SUFFIX_NAME            ".ept"
+#define FILE_LIST_LOG_NAME                  "file_list.log"
+#ifdef __LINUX
+#define DIR_DELIMITER                       '/'
+#elif defined __WINDOWS
+#define DIR_DELIMITER                       '\\'
+#endif
 
 #define CYT_SMALL_FILE_SIZE                 ((int64_t)(1024*1024*100)) //50Mb
 #define PTHREAD_NUM_MAX                     2

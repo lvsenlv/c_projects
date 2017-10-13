@@ -10,12 +10,15 @@
 #include <string.h>
 #include <unistd.h>
 #include <locale.h>
+#include <signal.h>
 
 static inline void FreePtrLinkList(PtrLinkList_t *pHeadNode);
 
 void CTL_InitConsole(void)
 {
     setlocale(LC_ALL,"");
+    signal(SIGINT, SIG_IGN);
+    
     initscr();
     cbreak();
     nonl();

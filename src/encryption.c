@@ -159,6 +159,13 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
     }
 #endif
 
+    FILE *fp = fopen(FILE_LIST_LOG_NAME, "wb");
+    if(NULL == fp)
+    {
+        DISP_ERR(STR_ERR_FAIL_TO_OPEN_LOG_FILE);
+        return PROCESS_STATUS_ELSE_ERR;
+    }
+
     //Create the window >>>
     WINDOW *ScheduleWin[PTHREAD_NUM_MAX];
     WINDOW *win[PTHREAD_NUM_MAX];
@@ -198,7 +205,7 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
         wmove(win[i], 0, 0);
         scrollok(win[i], true);
         
-        wattron(ScheduleWin[i], A_UNDERLINE);
+        wattron(ScheduleWin[i], A_REVERSE);
         mvwhline(ScheduleWin[i], 0, 0, ' ', COLS);
 
         mvwprintw(ScheduleWin[i], 0, 0, "%s%d->%s", STR_TASK, i+1, 
@@ -239,6 +246,7 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
         ret = pthread_create(&PthreadID[i], NULL, Pthread_EncryptDecrypt, &PthreadArg[i]);
 	    if(ret != 0)
 	    {
+	        fclose(fp);
 		    DISP_ERR(STR_ERR_PTHREAD_CREATE);
             return PROCESS_STATUS_ELSE_ERR;
 	    }
@@ -268,6 +276,10 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
                     switch(PthreadArg[i].RefreshFlag)
                     {
                         case REFRESH_FLAG_SUCCESS:
+                            if(CTL_MENU_DECRYPT == func)
+                            {
+                                fprintf(fp, "%s\n", PthreadArg[i].pCurFileList->pFileName);
+                            }
                             mvwprintw(ScheduleWin[i], 0, (COLS*2/5 + sizeof(STR_SUCCESS_COUNT)-1), 
                                 "%d", PthreadArg[i].SuccessCount);
                             mvwprintw(ScheduleWin[i], 0, (COLS*4/5 + sizeof(STR_RATE)-1), "100%%");
@@ -311,6 +323,8 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
         
         delay(REFRESH_INTERVAL);
 	}
+	
+	fclose(fp);
         
     for(i = 0; i < PTHREAD_NUM_MAX; i++)
     {
@@ -359,6 +373,13 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
         return PROCESS_STATUS_ELSE_ERR;
     }
 #endif
+
+    FILE *fp = fopen(FILE_LIST_LOG_NAME, "wb");
+    if(NULL == fp)
+    {
+        DISP_ERR(STR_ERR_FAIL_TO_OPEN_LOG_FILE);
+        return PROCESS_STATUS_ELSE_ERR;
+    }
 
     //Create the window >>>
     WINDOW *ScheduleWin[PTHREAD_NUM_MAX];
@@ -443,6 +464,7 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
         ret = pthread_create(&PthreadID[i], NULL, Pthread_EncryptDecrypt, &PthreadArg[i]);
 	    if(ret != 0)
 	    {
+	        fclose(fp);
 		    DISP_ERR(STR_ERR_PTHREAD_CREATE);
             return PROCESS_STATUS_ELSE_ERR;
 	    }
@@ -472,6 +494,7 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
                     switch(PthreadArg[i].RefreshFlag)
                     {
                         case REFRESH_FLAG_SUCCESS:
+                            fprintf(fp, "%s\n", PthreadArg[i].pCurFileList->pFileName);
                             mvwprintw(ScheduleWin[i], 0, (COLS*2/5 + sizeof(STR_SUCCESS_COUNT)-1), 
                                 "%d", PthreadArg[i].SuccessCount);
                             mvwprintw(ScheduleWin[i], 0, (COLS*4/5 + sizeof(STR_RATE)-1), "100%%");
@@ -518,6 +541,8 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
         
         delay(REFRESH_INTERVAL);
 	}
+
+    fclose(fp);
         
     for(i = 0; i < CycleIndex; i++)
     {
@@ -597,7 +622,8 @@ static FileList_t *ScanDirectory(char *pFolderName)
             return NULL;
         }
 
-        snprintf(pFileName, FileNameLenght, "%s/%s", pFolderName, pEntry->d_name);
+        snprintf(pFileName, FileNameLenght, "%s%c%s", pFolderName, 
+            DIR_DELIMITER, pEntry->d_name);
         
 #ifdef __LINUX
         if(0 != lstat(pFileName, &FileInfo))
@@ -734,7 +760,6 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
             else if(('e' == pEntry->d_name[1]) && ('p' == pEntry->d_name[2]) && 
                     ('t' == pEntry->d_name[3]) && ('\0' == pEntry->d_name[4]))
                 continue;
-
         }
         
         FileNameLenght = FolderNameLenght + strlen(pEntry->d_name) + 2; //contains '/' or '\' and '\0'
@@ -746,7 +771,8 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
             return NULL;
         }
 
-        snprintf(pFileName, FileNameLenght, "%s/%s", pFolderName, pEntry->d_name);
+        snprintf(pFileName, FileNameLenght, "%s%c%s", pFolderName, 
+            DIR_DELIMITER, pEntry->d_name);
         
 #ifdef __LINUX
         if(0 != lstat(pFileName, &FileInfo))

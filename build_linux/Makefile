@@ -24,4 +24,4 @@ $(TARGET) : $(OBJS)
 	$(CC) -c $< -o $(OBJ_DIR)/$@ $(DEF) $(INC) $(CFLAGS)
 
 clean :
-	rm -rf $(OBJ_DIR) $(TARGET) *log* /usr/lib/libextra.so
+	rm -rf $(OBJ_DIR) $(TARGET) log /usr/lib/libextra.so
