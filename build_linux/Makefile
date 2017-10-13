@@ -1,24 +1,27 @@
 TARGET = encrypt
-CC = gcc
+
+OBJ_DIR = ./objects
 OBJS = common.o control.o encryption.o core_code.o main.o str.o
-OBJS_DIR = ./objects
-LIBS := -lcurses -lpthread -L../libs/linux -lextra
+
+CC = gcc
+LIBS := -lcurses -lpthread -L../lib/linux -lextra
 DEF := -D__LINUX -D__64BIT -D__DEBUG
-INCLUDES := -I../include
-CFLAGS := -g -Wall -Wno-unused-function -O2
-$(shell mkdir -p $(OBJS_DIR))
+INC := -I../include -I../lib/extra/include
+CFLAGS := -g -Wall -Wno-unused-function
+
+$(shell mkdir -p $(OBJ_DIR))
 
 all : libextra.so $(TARGET)
 
 libextra.so :
-	$(CC) -fPIC -shared ../src/extra.c -o ../libs/linux/libextra.so $(INCLUDES) $(CFLAGS)
-	cp ../libs/linux/libextra.so /usr/lib
+	$(CC) -fPIC -shared ../lib/extra/src/extra.c -o ../lib/linux/libextra.so $(INC) $(CFLAGS)
+	cp ../lib/linux/libextra.so /usr/lib
 
 $(TARGET) : $(OBJS)
-	$(CC) $(wildcard $(OBJS_DIR)/*.o) -o $@ $(LIBS)
+	$(CC) $(wildcard $(OBJ_DIR)/*.o) -o $@ $(LIBS)
 
 %.o : ../src/%.c
-	$(CC) -c $< -o $(OBJS_DIR)/$@ $(DEF) $(INCLUDES) $(LIBS) $(CFLAGS)
+	$(CC) -c $< -o $(OBJ_DIR)/$@ $(DEF) $(INC) $(CFLAGS)
 
 clean :
-	rm -rf $(OBJS_DIR) $(TARGET) *log* /usr/lib/libextra.so
+	rm -rf $(OBJ_DIR) $(TARGET) *log* /usr/lib/libextra.so
