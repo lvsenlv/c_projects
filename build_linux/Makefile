@@ -1,10 +1,11 @@
 TARGET = encrypt
 
 OBJ_DIR = ./objects
-OBJS = common.o control.o encryption.o core_code.o main.o str.o
+OBJS = common.o str.o control.o main.o
+#encryption.o core_code.o main.o 
 
 CC = gcc
-LIBS := -lcurses -lpthread -L../lib/linux -lextra
+LIBS := -lncursesw -lpthread -L../lib/linux -lextra
 DEF := -D__LINUX -D__64BIT -D__DEBUG
 INC := -I../include -I../lib/extra/include
 CFLAGS := -g -Wall -Wno-unused-function
