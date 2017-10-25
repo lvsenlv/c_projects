@@ -5,9 +5,7 @@
 	> Created Time: August 9th,2017 Wednesday 08:48:52
  ************************************************************************/
 
-#include "common.h"
 #include "control.h"
-#include "str.h"
 #include "encryption.h"
 #include "extra.h"
 
@@ -15,6 +13,7 @@ static inline void CheckError(G_STATUS status);
 
 int main(void)
 {
+    char buf[128];
     LoginAdministrator();
 
     G_STATUS status;
@@ -22,33 +21,29 @@ int main(void)
 
     CTL_InitConsole();
     CTL_ChooseLanguage();
-    /*CTL_DispWarning("中文测试\t\tabcdefg\t\tabcdefg\tabcdefgdafsaf\n> File Name: main.c"
-	"> Author: lvsenlv\n"
-	"> Mail: lvsen46000@163.com\n"
-	"> Created Time: August 9th,2017 Wednesday 08:48:52\n"
-	"> Author: lvsenlv\n"
-	"> Mail: lvsen46000@163.com\n"
-	"> Created Time: August 9th,2017 Wednesday 08:48:52\n"
-	"> Author: lvsenlv\n"
-	"> Mail: lvsen46000@163.com\n"
-	"> Author: lvsenlv\n"
-	"> Mail: lvsen46000@163.com\n"
-	"> Author: lvsenlv\n"
-	"> Mail: lvsen46000@163.com\n"
-	"> Mail: lvsen46000@163.com\n"
-	"> Created Time: August 9th,2017 Wednesday 08:48:52\n"
-	"> Author: lvsenlv\n"
-	"> Mail: lvsen46000@163.com\n"
-	"> Created Time: August 9th,2017 Wednesday 08:48:52\n");*/
-    CTL_DispWarning("[%s][%d]: test for display warning: adafaeedafdeadf1234ada\n", __func__, __LINE__);
 
     while(1)
     {
         CTL_DrawStdConsole();
         CTL_ShowMenu(&func);
         
-        if(STAT_OK != CTL_ShowFile("./test_file"))
-            CTL_SafeExit(NULL);
+        CTL_HIDE_CONSOLE_END_LINE(); //Shield the end line of standard screen 
+        
+        if(CTL_MENU_CHANGE_LANGUAGE == func)
+        {
+            CTL_ChooseLanguage();
+        }
+        else if(CTL_MENU_SHOW_INSTRUCTION == func)
+        {
+            CTL_ShowInstruction();
+        }
+        
+        CTL_GetPassord(buf);
+        CTL_GetFileName(buf);
+        CTL_GetPassord(buf);
+        CTL_GetFileName(buf);
+        
+        CTL_SHOW_CONSOLE_END_LINE();
 
 //        if(CTL_MENU_SHOW_INSTRUCTION == func)
 //        {

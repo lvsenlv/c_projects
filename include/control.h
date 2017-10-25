@@ -24,11 +24,12 @@ typedef enum {
     CTL_MENU_MAX,
 }CTL_MENU;
 
-#define CTL_PASSWORD_LENGHT_MAX             19 //real is 19-1=18
+#define CTL_PASSWORD_LENGHT_MAX             19 //real is 19-1=18, end with '\0'
 #define CTL_PASSWORD_LENGHT_MIN             8
-#define CTL_FILE_NAME_LENGHT                256
+#define CTL_FILE_NAME_LENGHT                (CTL_GET_FILE_NAME_WIN_COLS + 32)
 #define CTL_FILE_SIZE_MAX                   (1024*1024*50) //50Mb
 #define CTL_SINGLE_LINE_WIDTH               (COLS*3 + 1) //3 bytes per special char, end with '\0'
+#define CTL_INSTRUCTION_FILE_NAME           "./read_me"
 
 #define CTL_CONSOLE_COLS                    80
 #define CTL_CONSOLE_LINES                   24
@@ -39,10 +40,10 @@ typedef enum {
 #define CTL_MENU_WIN_COLS                   25
 #define CTL_MENU_WIN_LINES                  (CTL_MENU_MAX+2)
 
-#define CTL_GET_FILE_NAME_WIN_COLS          (sizeof(STR_INPUT_FILE_NAME)-1)
-#define CTL_GET_FILE_NAME_WIN_LINES         7
+#define CTL_GET_FILE_NAME_WIN_COLS          60
+#define CTL_GET_FILE_NAME_WIN_LINES         6
 
-#define CTL_GET_PASSWORD_WIN_COLS           (sizeof(STR_INPUT_PASSWORD_CONFIRM)-1+CTL_PASSWORD_LENGHT_MAX)
+#define CTL_GET_PASSWORD_WIN_COLS           40
 #define CTL_GET_PASSWORD_WIN_LINES          6
 
 #define CTL_ENCRYPT_FILE_WIN_COLS           60
@@ -54,8 +55,11 @@ typedef enum {
 #define CTL_CONFIRM_WIN_COLS                40
 #define CTL_CONFIRM_WIN_LINES               7
 
-#define CTL_WARNING_WIN_COLS                60
+#define CTL_WARNING_WIN_COLS                40
 #define CTL_WARNING_WIN_LINES               7
+
+#define CTL_MAKE_CHOICE_WIN_COLS            40
+#define CTL_MAKE_CHOICE_WIN_LINES           7
 
 #define CTL_PANEL_CYAN                      1
 #define CTL_PANEL_RED                       2
@@ -87,15 +91,6 @@ typedef enum {
             attroff(A_REVERSE); \
             refresh(); \
         }
-
-
-#if defined __WINDOWS
-enum
-{
-    false = 0,
-    true,
-};
-#endif
 
 typedef struct FileContentStruct
 {
@@ -134,7 +129,7 @@ void CTL_DrawStdConsole(void);
 void CTL_ChooseLanguage(void);
 void CTL_ShowMenu(CTL_MENU *pFunc);
 G_STATUS CTL_ShowFile(const char *pFileName);
-void CTL_MENU_ShowInstruction(void);
+void CTL_ShowInstruction(void);
 G_STATUS CTL_GetFileName(char *pFileName);
 G_STATUS CTL_GetPassord(char *pPassword);
 G_STATUS CTL_MakeChoice(const char*format, ...);

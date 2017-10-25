@@ -46,12 +46,17 @@ typedef     unsigned long long              uint64_t;
 #define     LOG_FILE_NAME                   "./log"
 
 typedef enum {
+    false = 0,
+    true = !false,
+}bool;
+
+typedef enum {
     STAT_OK = 0,
     STAT_ERR,
     
     STAT_FATAL_ERR,
     
-    STAT_GO_BACK,
+    STAT_BACK,
     STAT_RETRY,
     STAT_EXIT,          //exit project with normal state
 }ALIGN_4K G_STATUS;

@@ -9,6 +9,7 @@
 #define __STR_H
 
 #define STR_BACK                               ((0 == g_LanguageFlag) ? STR_EN_BACK                         : STR_CH_BACK                          )
+#define STR_BEYOND_RANGE_OF_DISP               ((0 == g_LanguageFlag) ? STR_EN_BEYOND_RANGE_OF_DISP         : STR_CH_BEYOND_RANGE_OF_DISP          )
 #define STR_CONSOLE_END_LINE                   ((0 == g_LanguageFlag) ? STR_EN_CONSOLE_END_LINE             : STR_CH_CONSOLE_END_LINE              )
 #define STR_CONSOLE_LABEL                      ((0 == g_LanguageFlag) ? STR_EN_CONSOLE_LABEL                : STR_CH_CONSOLE_LABEL                 )
 #define STR_CONTINUE                           ((0 == g_LanguageFlag) ? STR_EN_CONTINUE                     : STR_CH_CONTINUE                      )
@@ -80,6 +81,7 @@
                                  English
  ************************************************************************/
 #define STR_EN_BACK                             "[ back ]"
+#define STR_EN_BEYOND_RANGE_OF_DISP             "Beyond range of displaying"
 #define STR_EN_CONSOLE_END_LINE                 "Press Esc to exit project | Version 1.0.0 | Copyright 2017-2017"
 #define STR_EN_CONSOLE_LABEL                    "Encryption System"
 #define STR_EN_CONTINUE                         "[ continue ]"
@@ -157,6 +159,7 @@
                                  Chinese
  ************************************************************************/
 #define STR_CH_BACK                             "[ back ]"
+#define STR_CH_BEYOND_RANGE_OF_DISP             "超出显示范围"
 #define STR_CH_CONSOLE_END_LINE                 "按 Esc 键退出系统 | 版本号 1.0.0 | 版权期 2017-2017"
 #define STR_CH_CONSOLE_LABEL                    "加密系统"
 #define STR_CH_CONTINUE                         "[ 继续 ]"
@@ -181,7 +184,7 @@
 #define STR_CH_INPUT_PASSWORD_CONFIRM           "Confirm password: "
 #define STR_CH_LANGUAGE                         "中文"
 #define STR_CH_LOG_IS_NULL                      "Log is empty"
-#define STR_CH_MENU                             "Menu"
+#define STR_CH_MENU                             "菜单"
 #define STR_CH_NOT_A_FILE                       "不是一个文件"
 #define STR_CH_NULL                             "NULL"
 #define STR_CH_PASSWORD_NOT_MATCH               "Two password do not match"
@@ -228,10 +231,16 @@
 #define STR_CH_ERR_STR_IS_NULL                  "Error: string is null in CTL_MakeChoice: "
 #define STR_CH_ERR_STR_TOO_SHORT                "Error: string is too short in CTL_MakeChoice: "
 
+#define LAN_EN                                  0
+#define LAN_CH                                  (!LAN_EN)
+
 extern char **g_menu;
 extern char *g_EnMenu[];
 extern char *g_ChMenu[];
 extern char g_LanguageFlag;
+extern char *EnInstruction[];
+extern char *ChInstruction[];
+
 
 //Inline function >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 /*
