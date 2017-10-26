@@ -58,12 +58,13 @@ typedef enum {
     
     STAT_BACK,
     STAT_RETRY,
-    STAT_EXIT,          //exit project with normal state
 }ALIGN_4K G_STATUS;
 
+extern FILE *g_LogFile;
 extern char g_ErrBuf[BUF_SIZE];
 extern time_t g_ti;
 extern struct tm *g_time;
+
 #define     DISP(format, args...) \
             snprintf(g_ErrBuf, sizeof(g_ErrBuf), format, ##args)
 #ifdef __DEBUG
@@ -111,6 +112,7 @@ extern struct tm *g_time;
 #endif //(defined __LINUX) || (defined __WINDOWS)
 #endif //#if 0
 
+#if 0
 #ifdef __LINUX
     #include <time.h>
     #include <sys/time.h>
@@ -129,5 +131,6 @@ extern struct tm *g_time;
                      g_StopTime.tv_usec - g_StartTime.tv_usec)
     #endif //__REDIRECTION
 #endif //__LINUX
+#endif
 
 #endif

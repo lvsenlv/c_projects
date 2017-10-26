@@ -9,7 +9,6 @@
 #include "common.h"
 #include "str.h"
 
-char **g_menu = NULL;
 char g_LanguageFlag = LAN_EN;
 
 char *g_EnMenu[] = {
@@ -86,6 +85,5 @@ char *ChInstruction[] = {
 
 void InitStr(void)
 {
-    g_menu = g_EnMenu;
     g_LanguageFlag = 0;
 }

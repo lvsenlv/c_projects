@@ -35,15 +35,15 @@
 #define delay(time)                         Sleep(time) //Unit: ms
 #endif
 
-extern char g_password[CYT_PASSWORD_LENGHT];
-pthread_mutex_t g_LogLock;
-extern FILE *g_pDispFile;
+char g_password[CTL_PASSWORD_LENGHT_MAX];
+extern pthread_mutex_t g_LogLock;
+
 #define     DISP_LOG(file, reason) \
             { \
                 pthread_mutex_lock(&g_LogLock); \
                 g_ti = time(NULL); \
                 g_time = localtime(&g_ti); \
-                fprintf(g_pDispFile, "[%4d-%02d-%02d %02d:%02d:%02d]: %s\n[Detail]: %s\n", \
+                fprintf(g_LogFile, "[%4d-%02d-%02d %02d:%02d:%02d]: %s\n[Detail]: %s\n", \
                     g_time->tm_year+1900, g_time->tm_mon, g_time->tm_mday, \
                     g_time->tm_hour, g_time->tm_min, g_time->tm_sec, file, reason); \
                 pthread_mutex_unlock(&g_LogLock); \
@@ -79,15 +79,23 @@ typedef struct FileListStruct
     struct FileListStruct *pNext;
 }FileList_t;
 
-typedef struct LogStruct
+G_STATUS CTL_EncryptDecrypt(CTL_MENU func);
+
+
+
+//Static inline functions
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#ifdef __WINDOWS
+static inline void ConvertNameFormat(char *pFileName)
 {
-    char *pEntry;
-    char *pDetail;
-    int16_t lines;  //The number of lines for pEntry
-    char flag;      //1 means the parameter lines is equal to COLS
-    struct LogStruct *pNext;
-    struct LogStruct *pPrevious;
-}log_t;
+    while(*pFileName != '\0')
+    {
+        if('/' == *pFileName)
+            *pFileName = 92;    //'\' ASCII is 92 
+        pFileName++;
+    }
+}
+#endif
 
 static inline G_STATUS CheckFileListArg(__IO FileList_t *pFileList)
 {
@@ -101,20 +109,5 @@ static inline G_STATUS CheckFileListArg(__IO FileList_t *pFileList)
 
     return STAT_OK;
 }
-
-#ifdef __WINDOWS
-static inline void ConvertNameFormat(char *pFileName)
-{
-    while(*pFileName != '\0')
-    {
-        if('/' == *pFileName)
-            *pFileName = 92;    //'\' ASCII is 92 
-        pFileName++;
-    }
-}
-#endif
-
-G_STATUS CTL_MENU_EncryptDecrypt(CTL_MENU func);
-void DispFileList(FileList_t *pHeadNode);
 
 #endif

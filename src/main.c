@@ -9,11 +9,8 @@
 #include "encryption.h"
 #include "extra.h"
 
-static inline void CheckError(G_STATUS status);
-
 int main(void)
 {
-    char buf[128];
     LoginAdministrator();
 
     G_STATUS status;
@@ -28,53 +25,22 @@ int main(void)
         CTL_ShowMenu(&func);
         
         CTL_HIDE_CONSOLE_END_LINE(); //Shield the end line of standard screen 
-        
-        if(CTL_MENU_CHANGE_LANGUAGE == func)
+        switch(func)
         {
-            CTL_ChooseLanguage();
+            case CTL_MENU_SHOW_INSTRUCTION:
+                CTL_ShowInstruction();
+                break;
+            case CTL_MENU_CHANGE_LANGUAGE:
+                CTL_ChooseLanguage();
+                break;
+            case CTL_MENU_ENCRYPT:
+            case CTL_MENU_DECRYPT:
+                CTL_EncryptDecrypt(func);
+            default :
+                break;
         }
-        else if(CTL_MENU_SHOW_INSTRUCTION == func)
-        {
-            CTL_ShowInstruction();
-        }
-        
-        CTL_GetPassord(buf);
-        CTL_GetFileName(buf);
-        CTL_GetPassord(buf);
-        CTL_GetFileName(buf);
-        
         CTL_SHOW_CONSOLE_END_LINE();
-
-//        if(CTL_MENU_SHOW_INSTRUCTION == func)
-//        {
-//            CTL_MENU_ShowInstruction();
-//            continue;
-//        }
-//        else if((CTL_MENU_ENCRYPT == func) || (CTL_MENU_DECRYPT == func))
-//        {
-//            status = CTL_MENU_EncryptDecrypt(func);
-//            CheckError(status);
-//            if(STAT_EXIT == status)
-//            {
-//                CTL_SafeExit(stdscr);
-//            }
-//            else if(STAT_GO_BACK == status)
-//            {
-//                continue;
-//            }
-//        }
     }
     
-    CTL_SafeExit(stdscr);
+    CTL_ForceExit();
 } 
-
-static inline void CheckError(G_STATUS status)
-{
-    if(STAT_ERR == status)
-    {
-        endwin();
-        fprintf(stderr, "%s", g_ErrBuf);
-        exit(-1);
-    }
-}
-

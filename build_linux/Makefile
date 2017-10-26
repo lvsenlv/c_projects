@@ -1,8 +1,7 @@
 TARGET = encrypt
 
 OBJ_DIR = ./objects
-OBJS = common.o str.o control.o main.o
-#encryption.o core_code.o main.o 
+OBJS = common.o str.o control.o main.o encryption.o core_code.o
 
 CC = gcc
 LIBS := -lncursesw -lpthread -L../lib/linux -lextra
@@ -25,4 +24,4 @@ $(TARGET) : $(OBJS)
 	$(CC) -c $< -o $(OBJ_DIR)/$@ $(DEF) $(INC) $(CFLAGS)
 
 clean :
-	rm -rf $(OBJ_DIR) $(TARGET) log /usr/lib/libextra.so
+	rm -rf $(OBJ_DIR) $(TARGET) *log* /usr/lib/libextra.so

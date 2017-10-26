@@ -10,19 +10,17 @@
 #include <string.h>
 #include <unistd.h>
 #ifdef __LINUX
-
 #include <locale.h>
 #include <signal.h>
-
 #endif
-
 #include <sys/stat.h>
 
-static inline void FreePtrLinkList(PtrLinkList_t *pHeadNode);
-static inline void FreeFileContent(FileContent_t *pHeadNode);
-static inline G_STATUS ReplaceChar(char *ptr, char SrcChar, char TarChar);
 static int CountLines(char *pBuf, int cols);
 static G_STATUS MoveString(char *pHead, char *pTail);
+static inline void FreeFileContent(FileContent_t *pHeadNode);
+static inline G_STATUS ReplaceChar(char *ptr, char SrcChar, char TarChar);
+
+
 
 /*
  *  Briefs: Use for initializing the standard screen
@@ -120,15 +118,19 @@ void CTL_ChooseLanguage(void)
     while(1)
     {
         key = wgetch(win);
-        if((KEY_DOWN == key) || (KEY_UP == key) || (9 == key)) //Tab key
+        switch(key)
         {
-            flag ^= 1;
-        }        
-        else if(13 == key) //Enter key
-            break;
-        else
-            continue;
-
+            case CTL_KEY_DOWN:
+            case CTL_KEY_UP:
+            case CTL_KEY_TAB:
+                flag ^= 1;
+                break;
+            case CTL_KEY_ENTER:
+                goto while_out;
+            default :
+                continue;
+        }
+        
         if(flag)
         {
             mvwaddstr(win, 1, Str1StartX, STR_EN_LANGUAGE);
@@ -144,17 +146,10 @@ void CTL_ChooseLanguage(void)
             wattroff(win, A_REVERSE);
         }
     }
+
+while_out :
     
-    if(flag)
-    {
-        g_menu = g_ChMenu;
-        g_LanguageFlag = LAN_CH;
-    }
-    else
-    {
-        g_menu = g_EnMenu;
-        g_LanguageFlag = LAN_EN;
-    }
+    g_LanguageFlag = (flag) ? LAN_CH : LAN_EN;
 
     delwin(win);
     touchline(stdscr, (LINES-CTL_CHOOSE_LANGUAGE_WIN_LINES)/2, 
@@ -178,62 +173,117 @@ void CTL_ShowMenu(CTL_MENU *pFunc)
     mvwaddstr(win, 0, (CTL_MENU_WIN_COLS-GetWidth(STR_MENU))/2, STR_MENU);
     wattroff(win, A_REVERSE);
 
-    int key;
     int CurPosY = 2;
-    while(NULL != g_menu[CurPosY-1])
+    char **menu = (g_LanguageFlag == LAN_EN) ? g_EnMenu : g_ChMenu;
+    
+    while(NULL != menu[CurPosY-1])
     {
-        mvwaddstr(win, CurPosY, 2, g_menu[CurPosY-1]);
+        mvwaddstr(win, CurPosY, 2, menu[CurPosY-1]);
         CurPosY++;
     }
 
     CurPosY = 1;
     wattron(win, A_REVERSE);
-    mvwaddstr(win, CurPosY, 2, g_menu[0]);
+    mvwaddstr(win, CurPosY, 2, menu[0]);
     wattroff(win, A_REVERSE);
     wrefresh(win);
+    
+    int key;
     
     keypad(win, true);
     while(1)
     {
         key = wgetch(win);
-        if((KEY_DOWN == key) || (9 == key)) //Tab key
+        switch(key)
         {
-            mvwaddstr(win, CurPosY, 2, g_menu[CurPosY-1]);
-            CurPosY++;
+            case CTL_KEY_DOWN:
+            case CTL_KEY_TAB:
+                mvwaddstr(win, CurPosY, 2, menu[CurPosY-1]);
+                CurPosY++;
+                break;
+            case CTL_KEY_UP:
+                mvwaddstr(win, CurPosY, 2, menu[CurPosY-1]);
+                CurPosY--;
+                break;
+            case CTL_KEY_ESC:
+                CTL_ForceExit();
+                break;
+            case CTL_KEY_ENTER:
+                goto while_out;
+            default :
+                continue;
         }
-        else if(KEY_UP == key)
-        {
-            mvwaddstr(win, CurPosY, 2, g_menu[CurPosY-1]);
-            CurPosY--;
-        }
-        else if(27 == key) //Esc key
-        {
-            CTL_ForceExit();
-        }
-        else if(13 == key) //Enter key
-            break;
-        else
-            continue;
 
-        if(CurPosY < 1)
+        if(1 > CurPosY)
         {
             CurPosY = CTL_MENU_MAX;
         }
-        else if((CurPosY-1) >= CTL_MENU_MAX)
+        else if(CTL_MENU_MAX <= (CurPosY-1))
         {
             CurPosY = 1;
         }
 
         wattron(win, A_REVERSE);
-        mvwaddstr(win, CurPosY, 2, g_menu[CurPosY-1]);
+        mvwaddstr(win, CurPosY, 2, menu[CurPosY-1]);
         wattroff(win, A_REVERSE);
     }
+
+while_out :
 
     *pFunc = CurPosY-1;
     delwin(win);
     touchline(stdscr, (LINES-CTL_MENU_WIN_LINES)/2, CTL_MENU_WIN_LINES);
     refresh();
 }
+
+/*  
+ *  Briefs: Show instruction
+ *  Return: None
+ *  Note:   None
+ */
+void CTL_ShowInstruction(void)
+{
+    WINDOW *win = newwin(LINES, COLS, 0, 0);
+    char **ptr = (g_LanguageFlag == LAN_EN) ? EnInstruction : ChInstruction;
+
+    CTL_SET_COLOR(win, CTL_PANEL_GREEN);
+    wattron(win, A_REVERSE);
+    //mvwaddstr(win, 0, (COLS - strlen(*ptr))/2, *ptr++); //MinGW doesn't support
+    mvwaddstr(win, 0, (COLS - GetWidth(*ptr))/2, *ptr);
+    ptr++;
+    wattroff(win, A_REVERSE);
+
+    wmove(win, 1, 0);
+    while(NULL != *ptr)
+    {
+        wprintw(win, "%s\n", *ptr++);
+    }
+
+    wattron(win, A_REVERSE);
+    mvwaddstr(win, LINES-1, 0, STR_PRESS_ENTER_TO_GO_BACK);
+    wattroff(win, A_REVERSE);
+
+    int key;
+    keypad(win, true);
+    while(1)
+    {
+        key = wgetch(win);
+        switch(key)
+        {
+            case CTL_KEY_ENTER:
+                goto while_out;
+            default :
+                continue;
+        }
+    }
+    
+while_out :    
+
+    delwin(win);
+    touchwin(stdscr);
+    refresh();
+}
+
 
 /*  
  *  Briefs: Show file
@@ -423,91 +473,93 @@ G_STATUS CTL_ShowFile(const char *pFileName)
     while(1)
     {
         key = wgetch(WinLabel);
-        
-        if(KEY_NPAGE == key)
+        switch(key)
         {
-            if(BottomFlag)
-                continue;
+            case CTL_KEY_NPAGE:
+                if(BottomFlag)
+                    continue;
                 
-            wclear(win);
-            wmove(win, 0, 0);
-            for(i = 0, LineCount = 0; i < (LINES-1); i++)
-            {
-                CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
-                wprintw(win, (pCurNode->flag) ? "%s" : "%s\n", pCurNode->pContent);
-                CTL_SET_COLOR(win, CTL_PANEL_RED);
-
-                if(NULL == pCurNode->pNext)
+                wclear(win);
+                wmove(win, 0, 0);
+                for(i = 0, LineCount = 0; i < (LINES-1); i++)
                 {
-                    BottomFlag = 1;
-                    break;
+                    CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
+                    wprintw(win, (pCurNode->flag) ? "%s" : "%s\n", pCurNode->pContent);
+                    CTL_SET_COLOR(win, CTL_PANEL_RED);
+    
+                    if(NULL == pCurNode->pNext)
+                    {
+                        BottomFlag = 1;
+                        break;
+                    }
+
+                    LineCount += pCurNode->ContentLines;
+                    pCurNode = pCurNode->pNext;
+                    if((LINES-1) < (LineCount + pCurNode->ContentLines))
+                    {
+                        i++;
+                        break;
+                    }
+                }
+                wrefresh(win);
+    
+                LogCount = i;
+                CurPage++;
+    
+                mvwprintw(WinLabel, 0, LabelWidth, "[%d/%d] ", PageCount, CurPage+1);
+                break;
+            case CTL_KEY_PPAGE:
+                if(0 >= CurPage)
+                    continue;
+
+                for(i = LogCount; i > 0; i--)
+                {
+                    pCurNode = pCurNode->pPrev;
+                }
+                
+                for(i = 0, LineCount = 0; i < (LINES-1); i++)
+                {
+                    pCurNode = pCurNode->pPrev;
+                    LineCount += pCurNode->ContentLines;
+                
+                    if(&HeadNode == pCurNode->pPrev)
+                        break;
+                    if((LINES-1) < (LineCount + pCurNode->pPrev->ContentLines))
+                        break;
                 }
 
-                LineCount += pCurNode->ContentLines;
-                pCurNode = pCurNode->pNext;
-                if((LINES-1) < (LineCount + pCurNode->ContentLines))
+                BottomFlag = 0;
+                CurPage--;
+
+                wclear(win);
+                wmove(win, 0, 0);
+                for(i = 0, LineCount = 0; i < (LINES-1); i++)
                 {
-                    i++;
-                    break;
+                    CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
+                    wprintw(win, (pCurNode->flag) ? "%s" : "%s\n", pCurNode->pContent);
+                    CTL_SET_COLOR(win, CTL_PANEL_RED);
+                
+                    LineCount += pCurNode->ContentLines;
+                    pCurNode = pCurNode->pNext;
+                    if((LINES-1) < (LineCount + pCurNode->ContentLines))
+                    {
+                        i++;
+                        break;
+                    }
                 }
-            }
-            wrefresh(win);
-
-            LogCount = i;
-            CurPage++;
-
-            mvwprintw(WinLabel, 0, LabelWidth, "[%d/%d] ", PageCount, CurPage+1);            
-        }
-        else if(KEY_PPAGE == key)
-        {
-            if(0 >= CurPage)
-                continue;
-
-            for(i = LogCount; i > 0; i--)
-            {
-                pCurNode = pCurNode->pPrev;
-            }
-                
-            for(i = 0, LineCount = 0; i < (LINES-1); i++)
-            {
-                pCurNode = pCurNode->pPrev;
-                LineCount += pCurNode->ContentLines;
-                
-                if(&HeadNode == pCurNode->pPrev)
-                    break;
-                if((LINES-1) < (LineCount + pCurNode->pPrev->ContentLines))
-                    break;
-            }
-
-            BottomFlag = 0;
-            CurPage--;
-
-            wclear(win);
-            wmove(win, 0, 0);
-            for(i = 0, LineCount = 0; i < (LINES-1); i++)
-            {
-                CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
-                wprintw(win, (pCurNode->flag) ? "%s" : "%s\n", pCurNode->pContent);
-                CTL_SET_COLOR(win, CTL_PANEL_RED);
-                
-                LineCount += pCurNode->ContentLines;
-                pCurNode = pCurNode->pNext;
-                if((LINES-1) < (LineCount + pCurNode->ContentLines))
-                {
-                    i++;
-                    break;
-                }
-            }
-            wrefresh(win);
-            LogCount = i;
+                wrefresh(win);
+                LogCount = i;
             
-            mvwprintw(WinLabel, 0, LabelWidth, "[%d/%d] ", PageCount, CurPage+1);
+                mvwprintw(WinLabel, 0, LabelWidth, "[%d/%d] ", PageCount, CurPage+1);
+                break;
+            case CTL_KEY_ENTER:
+                goto while_out;
+            default :
+                continue;
         }
-        else if(13 == key) //Enter key
-            break;
-        else
-            continue;
     }
+
+while_out :
 
     FreeFileContent(&HeadNode);
     delwin(WinLabel);
@@ -516,49 +568,6 @@ G_STATUS CTL_ShowFile(const char *pFileName)
     refresh();
 
     return STAT_OK;
-}
-
-/*  
- *  Briefs: Show instruction
- *  Return: None
- *  Note:   None
- */
-void CTL_ShowInstruction(void)
-{
-    WINDOW *win = newwin(LINES, COLS, 0, 0);
-    char **ptr = (g_LanguageFlag == LAN_EN) ? EnInstruction : ChInstruction;
-
-    CTL_SET_COLOR(win, CTL_PANEL_GREEN);
-    wattron(win, A_REVERSE);
-    //mvwaddstr(win, 0, (COLS - strlen(*ptr))/2, *ptr++); //MinGW doesn't support
-    mvwaddstr(win, 0, (COLS - GetWidth(*ptr))/2, *ptr);
-    ptr++;
-    wattroff(win, A_REVERSE);
-
-    wmove(win, 1, 0);
-    while(NULL != *ptr)
-    {
-        wprintw(win, "%s\n", *ptr++);
-    }
-
-    wattron(win, A_REVERSE);
-    mvwaddstr(win, LINES-1, 0, STR_PRESS_ENTER_TO_GO_BACK);
-    wattroff(win, A_REVERSE);
-
-    int key;
-    keypad(win, true);
-    while(1)
-    {
-        key = wgetch(win);
-        if(13 == key) //Enter key
-            break;
-        else
-            continue;
-    }
-
-    delwin(win);
-    touchwin(stdscr);
-    refresh();
 }
 
 /*  
@@ -641,28 +650,24 @@ G_STATUS CTL_GetPassord(char *pPassword)
         while(1)
         {
             key = wgetch(win);
-            if((key >= 32) && (key <= 126)) //Space key to "~" key
+            if((32 <= key) && (126 >= key)) //Space key to "~" key
             {
-                if(i >= (CTL_PASSWORD_LENGHT_MAX-1))
+                if((CTL_PASSWORD_LENGHT_MAX-1) <= i)
                     continue;
                     
                 waddch(win, '*');
                 CurPosX++;
                 pPassword[i++] = (char)key;
             }
-            #ifdef __LINUX
-            else if(KEY_BACKSPACE == key)
-            #elif defined __WINDOWS
-            else if(8 == key)  //Backspace key
-            #endif
+            else if(CTL_KEY_BACKSPACE == key)
             {
-                if(i > 0)
+                if(0 < i)
                 {
                     i--;
                     mvwaddch(win, 2, --CurPosX, ' ');
                 }
             }
-            else if((13 == key) || (9 == key)) //Enter key or Tab key
+            else if((CTL_KEY_ENTER == key) || (CTL_KEY_TAB == key))
                 break;
             else 
                 continue;
@@ -671,7 +676,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
         }
         pPassword[i] = '\0';
 
-        if(i < CTL_PASSWORD_LENGHT_MIN)
+        if(CTL_PASSWORD_LENGHT_MIN > i)
         {
             status = CTL_MakeChoice(STR_PASSWORD_TOO_SHORT);
             if(STAT_BACK == status)
@@ -695,27 +700,23 @@ G_STATUS CTL_GetPassord(char *pPassword)
         while(1)
         {
             key = wgetch(win);
-            if((key >= 32) && (key <= 126)) //Space key to "~" key
+            if((32 <= key) && (126 >= key)) //Space key to "~" key
             {
-                if(i >= (CTL_PASSWORD_LENGHT_MAX-1))
+                if((CTL_PASSWORD_LENGHT_MAX-1) <= i)
                     continue;
                 waddch(win, '*');
                 CurPosX++;
                 buf[i++] = (char)key;
             }
-            #ifdef __LINUX
-            else if(KEY_BACKSPACE == key)
-            #elif defined __WINDOWS
-            else if(8 == key)  //Backspace key
-            #endif
+            else if(CTL_KEY_BACKSPACE == key)
             {
-                if(i > 0)
+                if(0 < i)
                 {
                     i--;
                     mvwaddch(win, 3, --CurPosX, ' ');
                 }
             }            
-            else if(13 == key) //Enter key
+            else if(CTL_KEY_ENTER == key)
                 break;
             else 
                 continue;
@@ -748,76 +749,6 @@ G_STATUS CTL_GetPassord(char *pPassword)
     
     return STAT_OK;
 }
-#if 0
-G_STATUS CTL_ConfirmOperation(const char *pStr, int StrLenght)
-{
-    int cols;
-    if(CTL_CONFIRM_WIN_COLS < StrLenght)
-    {
-        cols = StrLenght+4;
-    }
-    else
-    {
-        cols = CTL_CONFIRM_WIN_COLS;
-    }
-
-    
-    WINDOW *win = newwin(CTL_CONFIRM_WIN_LINES, cols, 
-        (LINES-CTL_CONFIRM_WIN_LINES)/2, (COLS-cols)/2);
-    
-    CTL_SET_COLOR(win, CTL_PANEL_CYAN);
-    wborder(win, '*', '*', '*', '*', '*', '*', '*', '*');
-
-    mvwaddstr(win, 2, (cols-StrLenght)/2, pStr);
-
-    int Str1StartX = (cols - sizeof(STR_CONTINUE)+1 - sizeof(STR_GO_BACK)+1)/3;
-    int Str2StartX = cols - Str1StartX - sizeof(STR_CONTINUE)+1;
-    mvwaddstr(win, 4, Str2StartX, STR_CONTINUE);
-    wattron(win, A_REVERSE);
-    mvwaddstr(win, 4, Str1StartX, STR_GO_BACK);
-    wattroff(win, A_REVERSE);
-
-    char flag = 0;
-    int key;
-    keypad(win, true);
-    while(1)
-    {
-        key = wgetch(win);
-        if((KEY_LEFT == key) || (KEY_RIGHT == key))
-        {
-            flag ^= 1;
-        }        
-        else if(13 == key) //Enter key
-            break;
-        else
-            continue;
-
-        if(flag)
-        {
-            mvwaddstr(win, 4, Str1StartX, STR_GO_BACK);
-            wattron(win, A_REVERSE);
-            mvwaddstr(win, 4, Str2StartX, STR_CONTINUE);
-            wattroff(win, A_REVERSE);
-        }
-        else
-        {
-            mvwaddstr(win, 4, Str2StartX, STR_CONTINUE);
-            wattron(win, A_REVERSE);
-            mvwaddstr(win, 4, Str1StartX, STR_GO_BACK);
-            wattroff(win, A_REVERSE);
-        }
-    }
-
-    delwin(win);
-    touchline(stdscr, (LINES-CTL_CONFIRM_WIN_LINES)/2, CTL_CONFIRM_WIN_LINES);
-    refresh();
-
-    if(0 == flag)
-        return STAT_GO_BACK;
-
-    return STAT_OK;
-}
-#endif
 
 /*  
  *  Briefs: Similar with printf
@@ -901,12 +832,12 @@ G_STATUS CTL_MakeChoice(const char *pFormat, ...)
     }
     
     //Display content >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    WINDOW *win = newwin(lines, CTL_WARNING_WIN_COLS, 
-        (LINES-lines)/2, (COLS-CTL_WARNING_WIN_COLS)/2);
+    WINDOW *win = newwin(lines, CTL_MAKE_CHOICE_WIN_COLS, 
+        (LINES-lines)/2, (COLS-CTL_MAKE_CHOICE_WIN_COLS)/2);
     
     CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
-    mvwhline(win, 0, 0, '*', CTL_WARNING_WIN_COLS);
-    mvwhline(win, lines-1, 0, '*', CTL_WARNING_WIN_COLS);
+    mvwhline(win, 0, 0, '*', CTL_MAKE_CHOICE_WIN_COLS);
+    mvwhline(win, lines-1, 0, '*', CTL_MAKE_CHOICE_WIN_COLS);
     mvwaddstr(win, 1, 0, buf);
 
     char *pStr1 = STR_RETRY;
@@ -927,23 +858,17 @@ G_STATUS CTL_MakeChoice(const char *pFormat, ...)
     while(1)
     {
         key = wgetch(win);
-        if((KEY_LEFT == key) || (KEY_RIGHT == key))
+        switch(key)
         {
-            flag ^= 1;
-        }        
-        else if(27 == key) //Esc key
-        {
-            CTL_SafeExit(win);
-            
-            delwin(win);
-            touchline(stdscr, (LINES-lines)/2, lines);
-            refresh();
-            return STAT_RETRY;
+            case CTL_KEY_LEFT:
+            case CTL_KEY_RIGHT:
+                flag ^= 1;
+                break;
+            case CTL_KEY_ENTER:
+                goto while_out;
+            default :
+                continue;
         }
-        else if(13 == key) //Enter key
-            break;
-        else
-            continue;
 
         if(flag)
         {
@@ -961,6 +886,8 @@ G_STATUS CTL_MakeChoice(const char *pFormat, ...)
         }
     }
 
+while_out :
+
     delwin(win);
     touchline(stdscr, (LINES-lines)/2, lines);
     refresh();
@@ -971,19 +898,114 @@ G_STATUS CTL_MakeChoice(const char *pFormat, ...)
     return STAT_RETRY;
 }
 
-G_STATUS CTL_ConfirmOperation(const char *pStr, int StrLenght)
+/*  
+ *  Briefs: Similar with CTL_MakeChoice
+ *  Return: STAT_BACK / STAT_OK
+ *  Note:   Only support UTF-8
+ */
+G_STATUS CTL_ConfirmOperation(const char *pFormat, ...)
 {
+    va_list varg;
+    char buf[1024];
+    
+    va_start(varg, pFormat);
+    vsnprintf(buf, sizeof(buf), pFormat, varg);
+    va_end(varg);
+
+    //Count lines >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    int lines = CountLines(buf, CTL_CONFIRM_WIN_COLS);
+    if(0 == lines)
+    {
+        lines = 1;
+    }
+
+    lines += 3;
+    if(LINES < lines)
+    {
+        CTL_DispWarning(STR_BEYOND_RANGE_OF_DISP);
+        return STAT_BACK;
+    }
+    
+    //Display content >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    WINDOW *win = newwin(lines, CTL_CONFIRM_WIN_COLS, 
+        (LINES-lines)/2, (COLS-CTL_CONFIRM_WIN_COLS)/2);
+    
+    CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
+    mvwhline(win, 0, 0, '*', CTL_CONFIRM_WIN_COLS);
+    mvwhline(win, lines-1, 0, '*', CTL_CONFIRM_WIN_COLS);
+    mvwaddstr(win, 1, 0, buf);
+
+    char *pStr1 = STR_YES;
+    char *pStr2 = STR_NO;
+    int Str1StartX = (CTL_CONFIRM_WIN_COLS - GetWidth(pStr1) - GetWidth(pStr2))/3;
+    int Str2StartX = CTL_CONFIRM_WIN_COLS - Str1StartX - GetWidth(pStr2);
+    int StartPosY = lines - 2;
+    
+    mvwaddstr(win, StartPosY, Str2StartX, pStr2);
+    wattron(win, A_REVERSE);
+    mvwaddstr(win, StartPosY, Str1StartX, pStr1);
+    wattroff(win, A_REVERSE);
+
+    char flag = 0;
+    int key;
+    
+    keypad(win, true);
+    while(1)
+    {
+        key = wgetch(win);
+        switch(key)
+        {
+            case CTL_KEY_LEFT:
+            case CTL_KEY_RIGHT:
+                flag ^= 1;
+                break;
+            case CTL_KEY_ENTER:
+                goto while_out;
+            default :
+                continue;
+        }
+
+        if(flag)
+        {
+            mvwaddstr(win, StartPosY, Str1StartX, pStr1);
+            wattron(win, A_REVERSE);
+            mvwaddstr(win, StartPosY, Str2StartX, pStr2);
+            wattroff(win, A_REVERSE);
+        }
+        else
+        {
+            mvwaddstr(win, StartPosY, Str2StartX, pStr2);
+            wattron(win, A_REVERSE);
+            mvwaddstr(win, StartPosY, Str1StartX, pStr1);
+            wattroff(win, A_REVERSE);
+        }
+    }
+
+while_out :
+
+    delwin(win);
+    touchline(stdscr, (LINES-lines)/2, lines);
+    refresh();
+    
+    if(flag)
+        return STAT_BACK;
+    
     return STAT_OK;
 }
 
+
+
+//Static functions
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 /*  
- *  Briefs: Move string from pTail address to pHead address
+ *  Briefs: Calculate the number of lines of pBuf according to cols
  *  Return: The number of lines in pBuf
  *  Note:   The paramter of cols means the width of window
  */
 static int CountLines(char *pBuf, int cols)
 {
-    if(NULL == pBuf)
+    if((NULL == pBuf) || ('\0' == *pBuf))
         return 0;
     
     int lines = 1; //Must initialize as 1
@@ -1053,8 +1075,10 @@ static int CountLines(char *pBuf, int cols)
 
 /*  
  *  Briefs: Move string from pTail address to pHead address
- *  Return: STAT_OK / STAT_ERR
- *  Note:   None
+ *  Return: STAT_ERR / STAT_OK
+ *  Note:   1. It's only used to operate a string, i.e pHead and pTail arg
+               the address of the same string.
+            2. pTail must be bigger than pHead
  */
 static G_STATUS MoveString(char *pHead, char *pTail)
 {
@@ -1084,7 +1108,7 @@ static inline void FreeFileContent(FileContent_t *pHeadNode)
 {
     FileContent_t *CurNode = pHeadNode->pNext;
     FileContent_t *TmpNode;
-    while(CurNode != NULL)
+    while(NULL != CurNode)
     {
         TmpNode = CurNode->pNext;
         if(NULL != CurNode->pContent)
@@ -1096,7 +1120,7 @@ static inline void FreeFileContent(FileContent_t *pHeadNode)
 
 /*  
  *  Briefs: Find out the first SrcChar and set as TarChar
- *  Return: STAT_OK / STAT_ERR
+ *  Return: STAT_ERR / STAT_OK
  *  Note:   None
  */
 static inline G_STATUS ReplaceChar(char *ptr, char SrcChar, char TarChar)

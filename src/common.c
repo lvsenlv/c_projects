@@ -31,10 +31,13 @@
     #pragma message("Activate __REDIRECTION")
 #endif //__REDIRECTION
 
-FILE *g_pDispFile = NULL;
+FILE *g_LogFile = NULL;
 char g_ErrBuf[BUF_SIZE];
 time_t g_ti;
 struct tm *g_time;
+
+#if 0
+FILE *g_pDispFile = NULL;
 
 void __attribute__((constructor)) BeforeMain(void)
 {
@@ -53,11 +56,16 @@ void __attribute__((constructor)) BeforeMain(void)
         exit(0);
     }
 }
+#endif
 
 void __attribute__((destructor)) AfterMain(void)
 {
-    if(g_pDispFile)
-        fclose(g_pDispFile);
+//    if(g_pDispFile)
+//        fclose(g_pDispFile);
+    if(NULL != g_LogFile)
+    {
+        fclose(g_LogFile);
+    }
 }
 
 #if 0
