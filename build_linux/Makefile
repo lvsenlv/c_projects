@@ -5,9 +5,10 @@ OBJS = common.o str.o control.o main.o encryption.o core_code.o
 
 CC = gcc
 LIBS := -lncursesw -lpthread -L../lib/linux -lextra
-DEF := -D__LINUX -D__64BIT -D__DEBUG
+DEF := -D__LINUX -D__64BIT 
 INC := -I../include -I../lib/extra/include
-CFLAGS := -g -Wall -Wno-unused-function
+#CFLAGS := -Wall -Wno-unused-function -O3
+CFLAGS := -D__DEBUG -g -Wall -Wno-unused-function
 
 $(shell mkdir -p $(OBJ_DIR))
 

@@ -11,43 +11,24 @@
 #include "common.h"
 #include "control.h"
 #include <pthread.h>
-#ifdef __WINDOWS
-#include <windows.h>
-#endif
 
-#define CYT_FILE_NAME_LENGHT                CTL_FILE_NAME_LENGHT
-#define CYT_PASSWORD_LENGHT                 CTL_PASSWORD_LENGHT_MAX
-#define ENCRYPT_FILE_SUFFIX_NAME            ".ept"
-#define FILE_LIST_LOG_NAME                  "file_list.log"
-#ifdef __LINUX
-#define DIR_DELIMITER                       '/'
-#elif defined __WINDOWS
-#define DIR_DELIMITER                       '\\'
-#endif
-
-#define CYT_SMALL_FILE_SIZE                 ((int64_t)(1024*1024*100)) //50Mb
-#define PTHREAD_NUM_MAX                     2
-#define REFRESH_INTERVAL                    200 //Unit: ms
+#define ENCRYPT_FILE_SUFFIX_NAME                ".ept" //Must be .ept in this project
+/*
+    Modify encrypt file suffix name must modify following point:
+    1. Function: ScanEncryptFile() IsEncryptFile()
+*/
 
 #ifdef __LINUX
-#define delay(time)                         usleep(time*1000) //Unit: ms
+#define FILE_LIST_LOG_NAME                      "./file_list.log"
+#define DIR_DELIMITER                           '/'
 #elif defined __WINDOWS
-#define delay(time)                         Sleep(time) //Unit: ms
+#define FILE_LIST_LOG_NAME                      ".\\file_list.log"
+#define DIR_DELIMITER                           '\\'
 #endif
 
-char g_password[CTL_PASSWORD_LENGHT_MAX];
-extern pthread_mutex_t g_LogLock;
-
-#define     DISP_LOG(file, reason) \
-            { \
-                pthread_mutex_lock(&g_LogLock); \
-                g_ti = time(NULL); \
-                g_time = localtime(&g_ti); \
-                fprintf(g_LogFile, "[%4d-%02d-%02d %02d:%02d:%02d]: %s\n[Detail]: %s\n", \
-                    g_time->tm_year+1900, g_time->tm_mon, g_time->tm_mday, \
-                    g_time->tm_hour, g_time->tm_min, g_time->tm_sec, file, reason); \
-                pthread_mutex_unlock(&g_LogLock); \
-            }
+#define CYT_SMALL_FILE_SIZE                     ((int64_t)(1024*1024*100)) //100Mb
+#define PTHREAD_NUM_MAX                         2
+#define REFRESH_INTERVAL                        100 //Unit: ms
 
 typedef enum
 {
@@ -79,13 +60,22 @@ typedef struct FileListStruct
     struct FileListStruct *pNext;
 }FileList_t;
 
+extern char g_password[CTL_PASSWORD_LENGHT_MAX];
+extern pthread_mutex_t g_LogLock;
+
 G_STATUS CTL_EncryptDecrypt(CTL_MENU func);
 
 
 
 //Static inline functions
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 #ifdef __WINDOWS
+/*
+ *  @Briefs: Convert '/' to '\\'
+ *  @Return: None
+ *  @Note:   pFileName can't be NULL
+ */
 static inline void ConvertNameFormat(char *pFileName)
 {
     while(*pFileName != '\0')
@@ -97,6 +87,11 @@ static inline void ConvertNameFormat(char *pFileName)
 }
 #endif
 
+/*
+ *  @Briefs: Check the member of pFileList
+ *  @Return: STAT_ERR / STAT_OK
+ *  @Note:   None
+ */
 static inline G_STATUS CheckFileListArg(__IO FileList_t *pFileList)
 {
 #ifdef __DEBUG

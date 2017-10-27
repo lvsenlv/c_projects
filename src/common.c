@@ -6,6 +6,7 @@
  ************************************************************************/
 
 #include "common.h"
+#include <stdarg.h>
 
 #ifdef __LINUX
     #pragma message("Activate __LINUX")
@@ -31,42 +32,41 @@
     #pragma message("Activate __REDIRECTION")
 #endif //__REDIRECTION
 
+/******************************Modifiable*******************************/
 FILE *g_LogFile = NULL;
 char g_ErrBuf[BUF_SIZE];
 time_t g_ti;
 struct tm *g_time;
 
-#if 0
-FILE *g_pDispFile = NULL;
-
-void __attribute__((constructor)) BeforeMain(void)
-{
-    g_pDispFile = fopen(LOG_FILE_NAME, "w+");
-    if(NULL == g_pDispFile)
-    {
-        fprintf(stderr, "Error: Fail to open log file\n");
-        exit(0);
-    }
-    fclose(g_pDispFile);
-
-    g_pDispFile = fopen(LOG_FILE_NAME, "a+");
-    if(NULL == g_pDispFile)
-    {
-        fprintf(stderr, "Error: Fail to open log file\n");
-        exit(0);
-    }
-}
-#endif
-
 void __attribute__((destructor)) AfterMain(void)
 {
-//    if(g_pDispFile)
-//        fclose(g_pDispFile);
     if(NULL != g_LogFile)
     {
         fclose(g_LogFile);
     }
 }
+
+G_STATUS SafeExecute(char *pFormat, ...)
+{
+    va_list varg;
+    char buf[256];
+    
+    va_start(varg, pFormat);
+    vsnprintf(buf, sizeof(buf), pFormat, varg);
+    va_end(varg);
+    
+    if('\0' == *buf)
+        return STAT_ERR;
+
+    FILE *fp = popen(buf, "r");
+    if(NULL == fp)
+        return STAT_ERR;
+
+    pclose(fp);
+    return STAT_OK;
+}
+
+/**********************************************************************/
 
 #if 0
 #if (defined __LINUX ) || (defined __WINDOWS)

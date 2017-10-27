@@ -20,7 +20,11 @@ pthread_mutex_t g_FileLock = PTHREAD_MUTEX_INITIALIZER;
 //Pthread
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-//Note: g_pCurFilelist must be initialized before invoked following function
+/*
+ *  @Briefs: It's a thread for encrypting or decrypting
+ *  @Return: Aways NULL
+ *  @Note:   g_pCurFilelist must be initialized before invoked following function
+ */
 void *Pthread_EncryptDecrypt(void *arg)
 {
     PthreadArg_t *pArg_t = (PthreadArg_t *)arg;
@@ -29,7 +33,7 @@ void *Pthread_EncryptDecrypt(void *arg)
 #ifdef __DEBUG
     if(STAT_OK != CheckPthreadArg(pArg_t))
     {
-        DISP_LOG(STR_NULL, STR_INVALID_PARAMTER);
+        DISP_LOG("%s\n", STR_INVALID_PARAMTER);
         pArg_t->ProcessStatus = PROCESS_STATUS_FATAL_ERR;
         return NULL;
     }
@@ -67,7 +71,8 @@ void *Pthread_EncryptDecrypt(void *arg)
             delay(PTHREAD_WAIT_INTERVAL);
         }
         
-        status = (*pArg_t->pFunc)(pArg_t->pCurFileList->pFileName, pArg_t->pCurFileList->FileSize, 
+        status = (*pArg_t->pFunc)(pArg_t->pCurFileList->pFileName, 
+            pArg_t->pCurFileList->FileNameLenght , pArg_t->pCurFileList->FileSize, 
             pArg_t->pRatioFactor);
         
         //File lock >>>
@@ -105,34 +110,51 @@ void *Pthread_EncryptDecrypt(void *arg)
 
 
 
-//Core codes of encryption algorithm
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
+
+/*
+ *  @Briefs: Core codes of encryption algorithm
+ *  @Return: STAT_ERR / STAT_FATAL_ERR / STAT_OK
+ *  @Note:   
+ */
+G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRatioFactor)
 {
     FILE *fp = NULL;
     fp = fopen(pFileName, "rb");
     if(NULL == fp)
     {
-        DISP_LOG(pFileName, STR_FAIL_TO_OPEN_FILE);
+        DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_OPEN_FILE);
         return STAT_ERR;
     }
     fseek(fp, 0, SEEK_SET);
 
-    char NewFileName[CYT_FILE_NAME_LENGHT];
-    snprintf(NewFileName, sizeof(NewFileName), "%s%s", pFileName, ENCRYPT_FILE_SUFFIX_NAME);
-    FILE *NewFp = NULL;
-    NewFp = fopen(NewFileName, "wb+");
-    if(NULL == NewFp)
+    char *pNewFileName = (char *)malloc(FileNameLenght+sizeof(ENCRYPT_FILE_SUFFIX_NAME));
+    if(NULL == pNewFileName)
     {
         fclose(fp);
-        DISP_LOG(NewFileName, STR_FAIL_TO_CREATE_OPEN_FILE);
+        DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
+        return STAT_FATAL_ERR;
+    }
+    
+    snprintf(pNewFileName, FileNameLenght+sizeof(ENCRYPT_FILE_SUFFIX_NAME), 
+        "%s%s", pFileName, ENCRYPT_FILE_SUFFIX_NAME);
+    FILE *NewFp = NULL;
+    NewFp = fopen(pNewFileName, "wb+");
+    if(NULL == NewFp)
+    {
+        free(pNewFileName);
+        fclose(fp);
+        DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_CREATE_OPEN_FILE);
         return STAT_ERR;
     }
 
     if(0 == FileSize)
     {
+        free(pNewFileName);
         fclose(fp);
         fclose(NewFp);
+        fp = NULL;
+        NewFp = NULL;
         goto GOTO_DELETE_FILE;
     }
 
@@ -140,9 +162,10 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     pData = (uint8_t *)malloc(sizeof(uint8_t) * CYT_SMALL_FILE_SIZE);
     if(NULL == pData)
     {
+        free(pNewFileName);
         fclose(fp);
         fclose(NewFp);
-        DISP_LOG(pFileName, STR_ERR_FAIL_TO_MALLOC);
+        DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
         return STAT_FATAL_ERR;
     }
         
@@ -159,11 +182,12 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         PasswordLenght++;
     }
     if(0 == PasswordLenght)
-    {        
+    {
+        free(pNewFileName);
         free(pData);
         fclose(fp);
         fclose(NewFp);
-        DISP_LOG(pFileName, STR_PASSWORD_NULL);
+        DISP_LOG("%s: %s\n", pFileName, STR_PASSWORD_NULL);
         return STAT_ERR;
     }
     EncyptFactor %= 8;
@@ -182,10 +206,11 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     pBackupData = (uint8_t *)malloc(PasswordLenght * sizeof(uint8_t));
     if(NULL == pBackupData)
     {
+        free(pNewFileName);
         free(pData);
         fclose(fp);
         fclose(NewFp);
-        DISP_LOG(pFileName, STR_ERR_FAIL_TO_MALLOC);
+        DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
         return STAT_FATAL_ERR;
     }
 
@@ -198,11 +223,12 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         size = fread(pData, sizeof(uint8_t), CYT_SMALL_FILE_SIZE, fp);
         if(CYT_SMALL_FILE_SIZE != size)
         {
+            free(pNewFileName);
             free(pData);
             free(pBackupData);
             fclose(fp);
             fclose(NewFp);
-            DISP_LOG(pFileName, STR_FAIL_TO_READ_FILE);
+            DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
             return STAT_ERR;
         }
 
@@ -262,12 +288,13 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         //Write encyption data to new file
         size = fwrite(pData, sizeof(uint8_t), CYT_SMALL_FILE_SIZE, NewFp);
         if(CYT_SMALL_FILE_SIZE != size)
-        {        
+        {
+            free(pNewFileName);
             free(pData);
             free(pBackupData);
             fclose(fp);
             fclose(NewFp);
-            DISP_LOG(NewFileName, STR_FAIL_TO_WRITE_FILE);
+            DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
             return STAT_ERR;
         }
     }
@@ -280,11 +307,12 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     size = fread(pData, sizeof(uint8_t), RestDataSize, fp);
     if(size != RestDataSize)
     {
+        free(pNewFileName);
         free(pData);
         free(pBackupData);
         fclose(fp);
         fclose(NewFp);
-        DISP_LOG(pFileName, STR_FAIL_TO_READ_FILE);
+        DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
         return STAT_ERR;
     }
     
@@ -354,12 +382,13 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     //Write encyption data to new file
     size = fwrite(pData, sizeof(uint8_t), RestDataSize, NewFp);
     if(size != RestDataSize)
-    {        
+    {
+        free(pNewFileName);
         free(pData);
         free(pBackupData);
         fclose(fp);
         fclose(NewFp);
-        DISP_LOG(NewFileName, STR_FAIL_TO_WRITE_FILE);
+        DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
         return STAT_ERR;
     }
 
@@ -372,53 +401,62 @@ G_STATUS encrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
 
 GOTO_DELETE_FILE:
 
-#ifdef __LINUX
-    snprintf(NewFileName, sizeof(NewFileName), "rm -rf %s >/dev/null 2>&1", pFileName);
-#elif defined __WINDOWS
-    ConvertNameFormat(pFileName);
-    snprintf(NewFileName, sizeof(NewFileName), "del /a /f /q %s >nul 2>nul", pFileName);
-#endif
-    fp = popen(NewFileName, "r");
-    if(NULL == fp)
+    if(0 != unlink(pFileName))
     {
-        DISP_LOG(pFileName, STR_FAIL_TO_DELETE_OLD_FILE);
+        DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_DELETE_OLD_FILE);
         return STAT_ERR;
     }
 
-    pclose(fp);    
     return STAT_OK;    
 }
 
 /*
-    Note: the pFileName can't be "." or ".." or "..." or ".ept" or "..ept" or "...ept".
-        And the pFileName must contain symbol '.'
-*/
-G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
+ *  @Briefs: Core codes of encryption algorithm
+ *  @Return: STAT_ERR / STAT_FATAL_ERR / STAT_OK
+ *  @Note:   1. The pFileName can't be :
+                "."                             -> after DeleteEncryptSuffix is '\0'
+                ".."                            -> after DeleteEncryptSuffix is "."
+                "..."                           -> after DeleteEncryptSuffix is ".."
+                "ENCRYPT_FILE_SUFFIX_NAME"      -> after DeleteEncryptSuffix is '\0'
+                ".ENCRYPT_FILE_SUFFIX_NAME"     -> after DeleteEncryptSuffix is "."
+                "..ENCRYPT_FILE_SUFFIX_NAME"    -> after DeleteEncryptSuffix is ".."
+             2. The pFileName must contain symbol '.'
+ */
+G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRatioFactor)
 {
     FILE *fp = NULL;
     fp = fopen(pFileName, "rb");
     if(NULL == fp)
     {
-        DISP_LOG(pFileName, STR_FAIL_TO_OPEN_FILE);
+        DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_OPEN_FILE);
         return STAT_ERR;
     }
     fseek(fp, 0, SEEK_SET);
 
-    char NewFileName[CYT_FILE_NAME_LENGHT];
-    snprintf(NewFileName, sizeof(NewFileName), "%s", pFileName);
-    DeleteEncyptSuffix(NewFileName);
-    
-    FILE *NewFp = NULL;
-    NewFp = fopen(NewFileName, "wb+");
-    if(NULL == NewFp)
+    char *pNewFileName = (char *)malloc(FileNameLenght);
+    if(NULL == pNewFileName)
     {
         fclose(fp);
-        DISP_LOG(NewFileName, STR_FAIL_TO_CREATE_OPEN_FILE);
+        DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
+        return STAT_FATAL_ERR;
+    }
+    
+    snprintf(pNewFileName, FileNameLenght, "%s", pFileName);
+    DeleteEncyptSuffix(pNewFileName);
+    
+    FILE *NewFp = NULL;
+    NewFp = fopen(pNewFileName, "wb+");
+    if(NULL == NewFp)
+    {
+        free(pNewFileName);
+        fclose(fp);
+        DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_CREATE_OPEN_FILE);
         return STAT_ERR;
     }
 
     if(0 == FileSize)
     {
+        free(pNewFileName);
         fclose(fp);
         fclose(NewFp);
         return STAT_OK;
@@ -428,9 +466,10 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     pData = (uint8_t *)malloc(sizeof(uint8_t) * CYT_SMALL_FILE_SIZE);
     if(NULL == pData)
     {
+        free(pNewFileName);
         fclose(fp);
         fclose(NewFp);
-        DISP_LOG(pFileName, STR_ERR_FAIL_TO_MALLOC);
+        DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
         return STAT_FATAL_ERR;
     }
         
@@ -447,11 +486,12 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         PasswordLenght++;
     }
     if(0 == PasswordLenght)
-    {        
+    {
+        free(pNewFileName);
         free(pData);
         fclose(fp);
         fclose(NewFp);
-        DISP_LOG(pFileName, STR_PASSWORD_NULL);
+        DISP_LOG("%s: %s\n", pFileName, STR_PASSWORD_NULL);
         return STAT_ERR;
     }
     EncyptFactor %= 8;
@@ -470,10 +510,11 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     pBackupData = (uint8_t *)malloc(PasswordLenght * sizeof(uint8_t));
     if(NULL == pBackupData)
     {
+        free(pNewFileName);
         free(pData);
         fclose(fp);
         fclose(NewFp);
-        DISP_LOG(pFileName, STR_ERR_FAIL_TO_MALLOC);
+        DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
         return STAT_FATAL_ERR;
     }
 
@@ -486,11 +527,12 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         size = fread(pData, sizeof(uint8_t), CYT_SMALL_FILE_SIZE, fp);
         if(size != CYT_SMALL_FILE_SIZE)
         {
+            free(pNewFileName);
             free(pData);
             free(pBackupData);
             fclose(fp);
             fclose(NewFp);
-            DISP_LOG(pFileName, STR_FAIL_TO_READ_FILE);
+            DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
             return STAT_ERR;
         }
 
@@ -550,12 +592,13 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
         //Write encyption data to new file
         size = fwrite(pData, sizeof(uint8_t), CYT_SMALL_FILE_SIZE, NewFp);
         if(CYT_SMALL_FILE_SIZE != size)
-        {        
+        {
+            free(pNewFileName);
             free(pData);
             free(pBackupData);
             fclose(fp);
             fclose(NewFp);
-            DISP_LOG(NewFileName, STR_FAIL_TO_WRITE_FILE);
+            DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
             return STAT_ERR;
         }
     }
@@ -568,11 +611,12 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     size = fread(pData, sizeof(uint8_t), RestDataSize, fp);
     if(size != RestDataSize)
     {
+        free(pNewFileName);
         free(pData);
         free(pBackupData);
         fclose(fp);
         fclose(NewFp);
-        DISP_LOG(pFileName, STR_FAIL_TO_READ_FILE);
+        DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
         return STAT_ERR;
     }
     
@@ -643,15 +687,17 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
     //Write encyption data to new file
     size = fwrite(pData, sizeof(uint8_t), RestDataSize, NewFp);
     if(size != RestDataSize)
-    {        
+    {
+        free(pNewFileName);
         free(pData);
         free(pBackupData);
         fclose(fp);
         fclose(NewFp);
-        DISP_LOG(NewFileName, STR_FAIL_TO_WRITE_FILE);
+        DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
         return STAT_ERR;
     }
 
+    free(pNewFileName);
     free(pData);
     free(pBackupData);
     fclose(fp);
@@ -662,7 +708,14 @@ G_STATUS decrypt(char *pFileName, int64_t FileSize, int *pRatioFactor)
 
 
 
+//Static function
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+/*
+ *  @Briefs: Check the member of pArg_t
+ *  @Return: STAT_ERR / STAT_OK
+ *  @Note:   None
+ */
 static G_STATUS CheckPthreadArg(PthreadArg_t *pArg_t)
 {
 #ifdef __DEBUG
@@ -690,6 +743,12 @@ static G_STATUS CheckPthreadArg(PthreadArg_t *pArg_t)
 
 //Static inline functions
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+/*
+ *  @Briefs: Delete the last suffix in pFileName
+ *  @Return: None
+ *  @Note:   None
+ */
 static inline void DeleteEncyptSuffix(char *pFileName)
 {
     int len = strlen(pFileName);

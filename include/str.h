@@ -46,7 +46,7 @@
 #define STR_SUCCESS                            ((0 == g_LanguageFlag) ? STR_EN_SUCCESS                      : STR_CH_SUCCESS                       )
 #define STR_SUCCESS_COUNT                      ((0 == g_LanguageFlag) ? STR_EN_SUCCESS_COUNT                : STR_CH_SUCCESS_COUNT                 )
 #define STR_TASK                               ((0 == g_LanguageFlag) ? STR_EN_TASK                         : STR_CH_TASK                          )
-#define STR_TOTAL                              ((0 == g_LanguageFlag) ? STR_EN_TOTAL                        : STR_CH_TOTAL                         )
+#define STR_TOTAL_FILE                         ((0 == g_LanguageFlag) ? STR_EN_TOTAL_FILE                   : STR_CH_TOTAL_FILE                    )
 #define STR_VIEW_LOG                           ((0 == g_LanguageFlag) ? STR_EN_VIEW_LOG                     : STR_CH_VIEW_LOG                      )
 #define STR_YES                                ((0 == g_LanguageFlag) ? STR_EN_YES                          : STR_CH_YES                           )
                                                                                                                                                   
@@ -92,7 +92,7 @@
 #ifdef __LINUX
 #define STR_EN_INPUT_FILE_NAME_EG               "E.g, /root/document/..."
 #elif defined __WINDOWS
-#define STR_EN_INPUT_FILE_NAME_EG               "E.g, C:\User\Administrator\..."
+#define STR_EN_INPUT_FILE_NAME_EG               "E.g, C:\\User\\Administrator\\..."
 #endif 
 #define STR_EN_INPUT_PASSWORD                   "Password: "
 #define STR_EN_INPUT_PASSWORD_CONFIRM           "Confirm password: "
@@ -114,7 +114,7 @@
 #define STR_EN_SUCCESS                          "[ success ]"
 #define STR_EN_SUCCESS_COUNT                    "Success: "
 #define STR_EN_TASK                             "Task"
-#define STR_EN_TOTAL                            "In total"
+#define STR_EN_TOTAL_FILE                       "Total files"
 #define STR_EN_VIEW_LOG                         "[ view log ]"
 #define STR_EN_YES                              "[ yes ]"
 
@@ -162,7 +162,7 @@
 #ifdef __LINUX
 #define STR_CH_INPUT_FILE_NAME_EG               "例如, /root/document/..."
 #elif defined __WINDOWS
-#define STR_CH_INPUT_FILE_NAME_EG               "例如, C:\User\Administrator\..."
+#define STR_CH_INPUT_FILE_NAME_EG               "例如, C:\\User\\Administrator\\..."
 #endif 
 #define STR_CH_INPUT_PASSWORD                   "输入密码："
 #define STR_CH_INPUT_PASSWORD_CONFIRM           "确认密码："
@@ -184,7 +184,7 @@
 #define STR_CH_SUCCESS                          "[ 成功 ]"
 #define STR_CH_SUCCESS_COUNT                    "成功："
 #define STR_CH_TASK                             "线程"
-#define STR_CH_TOTAL                            "总计"
+#define STR_CH_TOTAL_FILE                       "文件总数"
 #define STR_CH_VIEW_LOG                         "[ 日志 ]"
 #define STR_CH_YES                              "[ 是 ]"
     
@@ -198,7 +198,7 @@
 #define STR_CH_FAIL_TO_OPEN_FILE                "无法打开文件"
 #define STR_CH_FAIL_TO_OPEN_LOG_FILE            "无法打开日志文件"
 #define STR_CH_FAIL_TO_READ_FILE                "无法读取文件，请确保文件可读"
-#define STR_CH_FAIL_TO_SCAN_DIRECTORY           "无法扫描目录"
+#define STR_CH_FAIL_TO_SCAN_DIRECTORY           "无法扫描目录，请确保目录中有指定文件"
 #define STR_CH_FAIL_TO_WRITE_FILE               "无法写入文件，请确保文件可写"
     
 #define STR_CH_ERR_FAIL_TO_MALLOC               "错误：运行内存空间"

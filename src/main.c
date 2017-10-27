@@ -13,7 +13,6 @@ int main(void)
 {
     LoginAdministrator();
 
-    G_STATUS status;
     CTL_MENU func = CTL_MENU_MAX;
 
     CTL_InitConsole();

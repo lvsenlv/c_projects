@@ -6,14 +6,13 @@
  ************************************************************************/
 
 #include "control.h"
-#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
+//#include <stdarg.h> //It has been included in curses.h
 #ifdef __LINUX
 #include <locale.h>
 #include <signal.h>
 #endif
-#include <sys/stat.h>
 
 static int CountLines(char *pBuf, int cols);
 static G_STATUS MoveString(char *pHead, char *pTail);
@@ -126,7 +125,7 @@ void CTL_ChooseLanguage(void)
                 flag ^= 1;
                 break;
             case CTL_KEY_ENTER:
-                goto while_out;
+                goto WHILE_OUT;
             default :
                 continue;
         }
@@ -147,7 +146,7 @@ void CTL_ChooseLanguage(void)
         }
     }
 
-while_out :
+WHILE_OUT :
     
     g_LanguageFlag = (flag) ? LAN_CH : LAN_EN;
 
@@ -209,7 +208,7 @@ void CTL_ShowMenu(CTL_MENU *pFunc)
                 CTL_ForceExit();
                 break;
             case CTL_KEY_ENTER:
-                goto while_out;
+                goto WHILE_OUT;
             default :
                 continue;
         }
@@ -228,7 +227,7 @@ void CTL_ShowMenu(CTL_MENU *pFunc)
         wattroff(win, A_REVERSE);
     }
 
-while_out :
+WHILE_OUT :
 
     *pFunc = CurPosY-1;
     delwin(win);
@@ -271,13 +270,13 @@ void CTL_ShowInstruction(void)
         switch(key)
         {
             case CTL_KEY_ENTER:
-                goto while_out;
+                goto WHILE_OUT;
             default :
                 continue;
         }
     }
     
-while_out :    
+WHILE_OUT :    
 
     delwin(win);
     touchwin(stdscr);
@@ -300,17 +299,9 @@ G_STATUS CTL_ShowFile(const char *pFileName)
         return STAT_OK;
     }
 
-#ifdef __LINUX
-    struct stat FileInfo;
-#elif defined __WINDOWS
-    struct _stati64 FileInfo;
-#endif
+    stat_t FileInfo;
 
-#ifdef __LINUX
-    if(0 != lstat(pFileName, &FileInfo))
-#elif defined __WINDOWS
-    if(0 != _stati64(pFileName, &FileInfo))
-#endif
+    if(0 != GetFileInfo(pFileName, &FileInfo))
     {
         CTL_DispWarning("%s: %s\n", STR_FAIL_TO_GET_FILE_INFO, pFileName);
         return STAT_OK;
@@ -553,13 +544,13 @@ G_STATUS CTL_ShowFile(const char *pFileName)
                 mvwprintw(WinLabel, 0, LabelWidth, "[%d/%d] ", PageCount, CurPage+1);
                 break;
             case CTL_KEY_ENTER:
-                goto while_out;
+                goto WHILE_OUT;
             default :
                 continue;
         }
     }
 
-while_out :
+WHILE_OUT :
 
     FreeFileContent(&HeadNode);
     delwin(WinLabel);
@@ -572,7 +563,7 @@ while_out :
 
 /*  
  *  Briefs: Get file name and set to pFileName
- *  Return: STAT_BACK / STAT_OK
+ *  Return: STAT_ERR / STAT_OK
  *  Note:   The size of pFileName must be CTL_FILE_NAME_LENGHT or bigger
  */
 G_STATUS CTL_GetFileName(char *pFileName)
@@ -598,13 +589,13 @@ G_STATUS CTL_GetFileName(char *pFileName)
         if(0 == access(pFileName, F_OK))
             break;
 
-        if(STAT_BACK == CTL_MakeChoice(STR_FILE_NOT_EXIST))
+        if(STAT_OK != CTL_MakeChoice(STR_FILE_NOT_EXIST))
         {
             delwin(win);
             touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, 
                 CTL_GET_FILE_NAME_WIN_LINES);
             refresh();
-            return STAT_BACK;
+            return STAT_ERR;
         }
         
         wclear(win);
@@ -620,7 +611,7 @@ G_STATUS CTL_GetFileName(char *pFileName)
 
 /*  
  *  Briefs: Get password and set to pPassword
- *  Return: STAT_BACK / STAT_OK
+ *  Return: STAT_ERR / STAT_OK
  *  Note:   The size of pPassword must be CTL_PASSWORD_LENGHT_MAX or bigger
  */
 G_STATUS CTL_GetPassord(char *pPassword)
@@ -629,7 +620,6 @@ G_STATUS CTL_GetPassord(char *pPassword)
         (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, (COLS-CTL_GET_PASSWORD_WIN_COLS)/2);
     CTL_SET_COLOR(win, CTL_PANEL_CYAN);
 
-    G_STATUS status;
     char buf[CTL_PASSWORD_LENGHT_MAX];
     int key, i;
     int CurPosX;
@@ -678,14 +668,13 @@ G_STATUS CTL_GetPassord(char *pPassword)
 
         if(CTL_PASSWORD_LENGHT_MIN > i)
         {
-            status = CTL_MakeChoice(STR_PASSWORD_TOO_SHORT);
-            if(STAT_BACK == status)
+            if(STAT_OK != CTL_MakeChoice(STR_PASSWORD_TOO_SHORT))
             {
                 delwin(win);
                 touchline(stdscr, (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, 
                     CTL_GET_PASSWORD_WIN_LINES);
                 refresh();
-                return STAT_BACK;
+                return STAT_ERR;
             }
 
             wclear(win);
@@ -728,14 +717,13 @@ G_STATUS CTL_GetPassord(char *pPassword)
         if(strcmp(pPassword, buf) == 0)
             break;
 
-        status = CTL_MakeChoice(STR_PASSWORD_NOT_MATCH);
-        if(STAT_BACK == status)
+        if(STAT_OK != CTL_MakeChoice(STR_PASSWORD_NOT_MATCH))
         {
             delwin(win);
             touchline(stdscr, (LINES-CTL_GET_PASSWORD_WIN_LINES)/2, 
                 CTL_GET_PASSWORD_WIN_LINES);
             refresh();
-            return STAT_BACK;
+            return STAT_ERR;
         }
 
         wclear(win);
@@ -805,7 +793,7 @@ G_STATUS CTL_DispWarning(const char *pFormat, ...)
 
 /*  
  *  Briefs: Similar with CTL_DispWarning
- *  Return: STAT_BACK / STAT_RETRY
+ *  Return: STAT_ERR / STAT_OK, OK means retry, ERR means go back
  *  Note:   Only support UTF-8
  */
 G_STATUS CTL_MakeChoice(const char *pFormat, ...)
@@ -828,7 +816,7 @@ G_STATUS CTL_MakeChoice(const char *pFormat, ...)
     if(LINES < lines)
     {
         CTL_DispWarning(STR_BEYOND_RANGE_OF_DISP);
-        return STAT_RETRY;
+        return STAT_ERR;
     }
     
     //Display content >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -865,7 +853,7 @@ G_STATUS CTL_MakeChoice(const char *pFormat, ...)
                 flag ^= 1;
                 break;
             case CTL_KEY_ENTER:
-                goto while_out;
+                goto WHILE_OUT;
             default :
                 continue;
         }
@@ -886,21 +874,21 @@ G_STATUS CTL_MakeChoice(const char *pFormat, ...)
         }
     }
 
-while_out :
+WHILE_OUT :
 
     delwin(win);
     touchline(stdscr, (LINES-lines)/2, lines);
     refresh();
     
     if(flag)
-        return STAT_BACK;
+        return STAT_ERR;
     
-    return STAT_RETRY;
+    return STAT_OK;
 }
 
 /*  
  *  Briefs: Similar with CTL_MakeChoice
- *  Return: STAT_BACK / STAT_OK
+ *  Return: STAT_ERR / STAT_OK, OK means yes, ERR means no
  *  Note:   Only support UTF-8
  */
 G_STATUS CTL_ConfirmOperation(const char *pFormat, ...)
@@ -923,7 +911,7 @@ G_STATUS CTL_ConfirmOperation(const char *pFormat, ...)
     if(LINES < lines)
     {
         CTL_DispWarning(STR_BEYOND_RANGE_OF_DISP);
-        return STAT_BACK;
+        return STAT_ERR;
     }
     
     //Display content >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -960,7 +948,7 @@ G_STATUS CTL_ConfirmOperation(const char *pFormat, ...)
                 flag ^= 1;
                 break;
             case CTL_KEY_ENTER:
-                goto while_out;
+                goto WHILE_OUT;
             default :
                 continue;
         }
@@ -981,14 +969,14 @@ G_STATUS CTL_ConfirmOperation(const char *pFormat, ...)
         }
     }
 
-while_out :
+WHILE_OUT :
 
     delwin(win);
     touchline(stdscr, (LINES-lines)/2, lines);
     refresh();
     
     if(flag)
-        return STAT_BACK;
+        return STAT_ERR;
     
     return STAT_OK;
 }

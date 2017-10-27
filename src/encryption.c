@@ -5,14 +5,9 @@
 	> Created Time: August 3rd,2017 Thursday 08:37:45
  ************************************************************************/
 
-#ifdef __LINUX
-#define _FILE_OFFSET_BITS 64 //Make sure st_size is 64bits instead of 32bits
-#endif
-
 #include "encryption.h"
 #include "core_code.h"
 #include <string.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
 
@@ -25,7 +20,7 @@ static FileList_t *ScanEncryptFile(char *pFolderName);
 static inline void DeleteTailSymbol(char *pFileName, int FileNameLenght);
 static inline void InitFileListNode(FileList_t *pFileList);
 static inline void FreeFileList(FileList_t *pHeadNode);
-static inline int IsEncryptFile(const char *pFileName, int FileNameLenght);
+static inline G_STATUS IsEncryptFile(const char *pFileName, int FileNameLenght);
 
 char g_password[CTL_PASSWORD_LENGHT_MAX];
 pthread_mutex_t g_LogLock = PTHREAD_MUTEX_INITIALIZER;
@@ -35,31 +30,25 @@ static int g_SuccessFailCountTable[2] = {0, 0};
 
 /*
  *  @Briefs: Get file name and password, invoke EncryptDecrypt at the end
- *  @Return: STAT_BACK
+ *  @Return: Always STAT_OK
  *  @Note:   None
  */
 G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
 {
-#ifdef __DEBUG    
+#ifdef __DEBUG
     if((CTL_MENU_ENCRYPT != func) && (CTL_MENU_DECRYPT != func))
     {
         CTL_DispWarning(STR_INVALID_FUNC);
-        return STAT_BACK;
+        return STAT_OK;
     }
 #endif
     
-#ifdef __LINUX
-    struct stat FileInfo;
-#elif defined __WINDOWS
-    struct _stati64 FileInfo;
-#endif
+    stat_t FileInfo;
     char FileName[CTL_FILE_NAME_LENGHT];
     int FileNameLenght;
-    G_STATUS status;
     
-    status = CTL_GetFileName(FileName);
-    if(STAT_OK != status)
-        return status;
+    if(STAT_OK != CTL_GetFileName(FileName))
+        return STAT_OK;
 
 #ifdef __WINDOWS
     ConvertNameFormat(FileName);
@@ -67,27 +56,21 @@ G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
     FileNameLenght = strlen(FileName);
     DeleteTailSymbol(FileName, FileNameLenght);
 
-#ifdef __LINUX
-    if(0 != lstat(FileName, &FileInfo))
-#elif defined __WINDOWS
-    if(0 != _stati64(FileName, &FileInfo))
-#endif
+    if(0 != GetFileInfo(FileName, &FileInfo))
     {
         CTL_DispWarning("%s: %s\n", STR_FAIL_TO_GET_FILE_FOLDER_INFO, FileName);
-        return STAT_BACK;
+        return STAT_OK;
     }
     
-    status = CTL_GetPassord(g_password);
-    if(STAT_OK != status)
-        return status;
+    if(STAT_OK != CTL_GetPassord(g_password))
+        return STAT_OK;
 
     PROCESS_STATUS ProcessStatus = PROCESS_STATUS_ERR;
 
     if(S_IFREG & FileInfo.st_mode)
     {
-        status = BeforeEncryptDecrypt();
-        if(STAT_OK != status)
-            return STAT_BACK;
+        if(STAT_OK != BeforeEncryptDecrypt())
+            return STAT_OK;
     
         FileList_t HeadNode, FileList;
         HeadNode.pFileName = NULL;
@@ -111,24 +94,21 @@ G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
         if(NULL == pFileList)
         {
             CTL_DispWarning("%s: %s", STR_FAIL_TO_SCAN_DIRECTORY, FileName);
-            return STAT_BACK;
+            return STAT_OK;
         }
         
-        status = BeforeEncryptDecrypt();
-        if(STAT_OK != status)
+        if(STAT_OK != BeforeEncryptDecrypt())
         {
             FreeFileList(pFileList);
-            return STAT_BACK;
+            return STAT_OK;
         }
 
-        status = CTL_ConfirmOperation("%s%s\n%s: %d, %s\n", 
+        if(STAT_OK != CTL_ConfirmOperation("%s%s\n%s: %d, %s\n", 
             (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING, FileName, 
-            STR_TOTAL, pFileList->FileSize, STR_IF_CONTINUE);
-        
-        if(STAT_OK != status)
+            STR_TOTAL_FILE, pFileList->FileSize, STR_IF_CONTINUE))
         {
             FreeFileList(pFileList);
-            return status;
+            return STAT_OK;
         }
         
         ProcessStatus = EncryptDecrypt(pFileList, func);
@@ -136,9 +116,9 @@ G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
         FreeFileList(pFileList);
     }
 
-    status = AfterEncryptDecrypt(ProcessStatus);
+    AfterEncryptDecrypt(ProcessStatus);
 
-    return status;
+    return STAT_OK;
 }
 
 
@@ -165,7 +145,7 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
 #ifdef __DEBUG
     if(NULL == pFileList)
     {
-        DISP_ERR(STR_INVALID_PARAMTER);
+        DISP_ERR_DEBUG(STR_INVALID_PARAMTER);
         return PROCESS_STATUS_ELSE_ERR;
     }
 #endif
@@ -173,7 +153,7 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
     FILE *fp = fopen(FILE_LIST_LOG_NAME, "wb");
     if(NULL == fp)
     {
-        DISP_ERR(STR_FAIL_TO_OPEN_LOG_FILE);
+        DISP_ERR("%s: %s\n", STR_FAIL_TO_OPEN_LOG_FILE, FILE_LIST_LOG_NAME);
         return PROCESS_STATUS_ELSE_ERR;
     }
 
@@ -369,7 +349,12 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
     return PROCESS_STATUS_SUCCESS;
 }
 
-//Create pthreads according to pFileList->FileSize(HeadNode)
+/*
+ *  @Briefs: Create task to encrypt or decrypt according to pFileList->FileSize(HeadNode)
+ *  @Return: PROCESS_STATUS_ELSE_ERR, PROCESS_STATUS_ERR, 
+ *           PROCESS_STATUS_FATAL_ERR, PROCESS_STATUS_SUCCESS
+ *  @Note:   pFileList must be the HeadNode
+ */
 static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
 {
 #ifdef PTHREAD_NUM_MAX
@@ -383,7 +368,7 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
 #ifdef __DEBUG
     if(NULL == pFileList)
     {
-        DISP_ERR(STR_INVALID_PARAMTER);
+        DISP_ERR_DEBUG(STR_INVALID_PARAMTER);
         return PROCESS_STATUS_ELSE_ERR;
     }
 #endif
@@ -394,7 +379,7 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
     FILE *fp = fopen(FILE_LIST_LOG_NAME, "wb");
     if(NULL == fp)
     {
-        DISP_ERR(STR_FAIL_TO_OPEN_LOG_FILE);
+        DISP_ERR("%s: %s\n", STR_FAIL_TO_OPEN_LOG_FILE, FILE_LIST_LOG_NAME);
         return PROCESS_STATUS_ELSE_ERR;
     }
 
@@ -591,6 +576,12 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
 
 //File list related
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+/*
+ *  @Briefs: Search files with all format in pFolderName
+ *  @Return: Fail or directory is empty return NULL, else return FileList_t pointer
+ *  @Note:   None
+ */
 static FileList_t *ScanDirectory(char *pFolderName)
 {
     DIR *pDir;
@@ -612,11 +603,7 @@ static FileList_t *ScanDirectory(char *pFolderName)
     int FolderNameLenght = strlen(pFolderName);
     int FileNameLenght;
     char *pFileName;
-#ifdef __LINUX
-    struct stat FileInfo;
-#elif defined __WINDOWS
-    struct _stati64 FileInfo;
-#endif
+    stat_t FileInfo;
 
     while(1)
     {
@@ -645,11 +632,7 @@ static FileList_t *ScanDirectory(char *pFolderName)
         snprintf(pFileName, FileNameLenght, "%s%c%s", pFolderName, 
             DIR_DELIMITER, pEntry->d_name);
         
-#ifdef __LINUX
-        if(0 != lstat(pFileName, &FileInfo))
-#elif defined __WINDOWS
-        if(0 != _stati64(pFileName, &FileInfo))
-#endif
+        if(0 != GetFileInfo(pFileName, &FileInfo))
         {
             free(pFileName);
             continue;
@@ -678,7 +661,9 @@ static FileList_t *ScanDirectory(char *pFolderName)
             }
             
             if(NULL != pNewFileList->pFileName)
+            {
                 free(pNewFileList->pFileName);
+            }
             free(pNewFileList);
         }
 #ifdef __LINUX
@@ -723,6 +708,11 @@ static FileList_t *ScanDirectory(char *pFolderName)
     return pHeadNode;
 }
 
+/*
+ *  @Briefs: Search files with .ept format in pFolderName
+ *  @Return: Fail or directory is empty return NULL, else return FileList_t pointer
+ *  @Note:   Only search *.ept file
+ */
 static FileList_t *ScanEncryptFile(char *pFolderName)
 {
     DIR *pDir;
@@ -744,11 +734,7 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
     int FolderNameLenght = strlen(pFolderName);
     int FileNameLenght;
     char *pFileName;
-#ifdef __LINUX
-    struct stat FileInfo;
-#elif defined __WINDOWS
-    struct _stati64 FileInfo;
-#endif
+    stat_t FileInfo;
 
     while(1)
     {
@@ -794,11 +780,7 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
         snprintf(pFileName, FileNameLenght, "%s%c%s", pFolderName, 
             DIR_DELIMITER, pEntry->d_name);
         
-#ifdef __LINUX
-        if(0 != lstat(pFileName, &FileInfo))
-#elif defined __WINDOWS
-        if(0 != _stati64(pFileName, &FileInfo))
-#endif
+        if(0 != GetFileInfo(pFileName, &FileInfo))
         {
             free(pFileName);
             continue;
@@ -827,7 +809,9 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
             }
             
             if(NULL != pNewFileList->pFileName)
+            {
                 free(pNewFileList->pFileName);
+            }
             free(pNewFileList);
         }
 #ifdef __LINUX
@@ -836,7 +820,7 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
         else if(FileInfo.st_mode & S_IFREG)
 #endif
         {
-            if(0 != IsEncryptFile(pEntry->d_name, FileNameLenght-FolderNameLenght-2))
+            if(STAT_OK != IsEncryptFile(pEntry->d_name, FileNameLenght-FolderNameLenght-2))
             {
                 free(pFileName);
                 continue;
@@ -878,6 +862,11 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
     return pHeadNode;
 }
 
+/*
+ *  @Briefs: Do something before encrypt or decrypt
+ *  @Return: STAT_ERR / STAT_OK
+ *  @Note:   None
+ */
 static G_STATUS BeforeEncryptDecrypt(void)
 {
     if(NULL != g_LogFile)
@@ -903,19 +892,21 @@ static G_STATUS BeforeEncryptDecrypt(void)
     return STAT_OK;
 }
 
+/*
+ *  @Briefs: Do something after encrypt or decrypt
+ *  @Return: Always STAT_OK
+ *  @Note:   None
+ */
 static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
 {
     if(PROCESS_STATUS_ELSE_ERR == ProcessStatus)
     {
+        unlink(LOG_FILE_NAME);
+        unlink(FILE_LIST_LOG_NAME);
         CTL_DispWarning(g_ErrBuf);
-        return STAT_ERR;
+        return STAT_OK;
     }
 
-//    if(PROCESS_STATUS_FATAL_ERR == ProcessStatus)
-//    {
-//        return STAT_FATAL_ERR;
-//    }
-    
     WINDOW *win = newwin(CTL_RESULT_WIN_LINES, CTL_RESULT_WIN_COLS, 
             (LINES-CTL_RESULT_WIN_LINES)/2, (COLS-CTL_RESULT_WIN_COLS)/2);
     int key;
@@ -925,9 +916,12 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     
     if(PROCESS_STATUS_SUCCESS == ProcessStatus)
     {
+        unlink(LOG_FILE_NAME);
+        unlink(FILE_LIST_LOG_NAME);
+        
         CTL_SET_COLOR(win, CTL_PANEL_GREEN);
         wattron(win, A_BOLD);
-        snprintf(buf, sizeof(buf), "%s [ %s: %d ]", STR_SUCCESS, STR_TOTAL, 
+        snprintf(buf, sizeof(buf), "%s [ %s: %d ]", STR_SUCCESS, STR_TOTAL_FILE, 
             g_SuccessFailCountTable[0]);
         mvwaddstr(win, 2, (CTL_RESULT_WIN_COLS-GetWidth(buf))/2, buf);
         wattroff(win, A_BOLD);
@@ -1012,7 +1006,7 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     refresh();
 
     if(flag)
-        return STAT_BACK;
+        return STAT_OK;
 
     fclose(g_LogFile);
     g_LogFile = NULL;
@@ -1025,6 +1019,12 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
 
 //Static inline functions
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+/*
+ *  @Briefs: Delete the '\\' or '/' in the tail of pFileName
+ *  @Return: None
+ *  @Note:   pFileName can't be NULL and FileNameLenght must be the lenght of pFileName
+ */
 static inline void DeleteTailSymbol(char *pFileName, int FileNameLenght)
 {
     if(('/' == pFileName[FileNameLenght-1]) || (92 == pFileName[FileNameLenght-1])) //'\' ASCII is 92
@@ -1033,6 +1033,11 @@ static inline void DeleteTailSymbol(char *pFileName, int FileNameLenght)
     }
 }
 
+/*
+ *  @Briefs: Initialize the member of pFileList
+ *  @Return: None
+ *  @Note:   pFileList can't be NULL
+ */
 static inline void InitFileListNode(FileList_t *pFileList)
 {
     pFileList->pFileName = NULL;
@@ -1041,6 +1046,11 @@ static inline void InitFileListNode(FileList_t *pFileList)
     pFileList->pNext = NULL;
 }
 
+/*
+ *  @Briefs: Free FileList_t
+ *  @Return: None
+ *  @Note:   pHeadNode must be the head node of link list
+ */
 static inline void FreeFileList(FileList_t *pHeadNode)
 {
     FileList_t *CurNode = pHeadNode;
@@ -1055,11 +1065,16 @@ static inline void FreeFileList(FileList_t *pHeadNode)
     }
 }
 
-static inline int IsEncryptFile(const char *pFileName, int FileNameLenght)
+/*
+ *  @Briefs: Check for .ept format
+ *  @Return: STAT_ERR / STAT_OK
+ *  @Note:   pFileName can't be NULL and FileNameLenght must be the lenght of pFileName
+ */
+static inline G_STATUS IsEncryptFile(const char *pFileName, int FileNameLenght)
 {
     if(('t' == pFileName[FileNameLenght-1]) && ('p' == pFileName[FileNameLenght-2]) && 
        ('e' == pFileName[FileNameLenght-3]) && ('.' == pFileName[FileNameLenght-4]))
-       return 0;
+       return STAT_OK;
 
-    return -1;
+    return STAT_ERR;
 }
