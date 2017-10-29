@@ -20,7 +20,9 @@ static FileList_t *ScanEncryptFile(char *pFolderName);
 static inline void DeleteTailSymbol(char *pFileName, int FileNameLenght);
 static inline void InitFileListNode(FileList_t *pFileList);
 static inline void FreeFileList(FileList_t *pHeadNode);
-static inline G_STATUS IsEncryptFile(const char *pFileName, int FileNameLenght);
+static inline G_STATUS IsEncryptFormat(const char *pFileName, int FileNameLenght);
+static inline G_STATUS CheckEncryptResult(char *pFileName, int FileNameLenght);
+static inline G_STATUS CheckDecryptResult(char *pFileName, int FileNameLenght);
 
 char g_password[CTL_PASSWORD_LENGHT_MAX];
 pthread_mutex_t g_LogLock = PTHREAD_MUTEX_INITIALIZER;
@@ -93,19 +95,20 @@ G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
             
         if(NULL == pFileList)
         {
-            CTL_DispWarning("%s: %s", STR_FAIL_TO_SCAN_DIRECTORY, FileName);
+            CTL_DispWarning("%s: %s\n%s\n", STR_FAIL_TO_SCAN_DIRECTORY, FileName, 
+                (CTL_MENU_ENCRYPT == func) ? STR_PRO_REASON_NO_ENCRYPT_FILE : STR_PRO_REASON_NO_DECRYPT_FILE);
             return STAT_OK;
         }
         
-        if(STAT_OK != BeforeEncryptDecrypt())
+        if(STAT_OK != CTL_ConfirmOperation("%s%s\n%s: %d, %s\n", 
+            (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING, FileName, 
+            STR_TOTAL_FILE, pFileList->FileSize, STR_IF_CONTINUE))
         {
             FreeFileList(pFileList);
             return STAT_OK;
         }
-
-        if(STAT_OK != CTL_ConfirmOperation("%s%s\n%s: %d, %s\n", 
-            (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING, FileName, 
-            STR_TOTAL_FILE, pFileList->FileSize, STR_IF_CONTINUE))
+        
+        if(STAT_OK != BeforeEncryptDecrypt())
         {
             FreeFileList(pFileList);
             return STAT_OK;
@@ -620,7 +623,12 @@ static FileList_t *ScanDirectory(char *pFolderName)
                 continue;
         }
 
-        FileNameLenght = FolderNameLenght + strlen(pEntry->d_name) + 2; //contains '/' or '\' and '\0'
+        FileNameLenght = FolderNameLenght + strlen(pEntry->d_name) + 2 + sizeof(ENCRYPT_FILE_SUFFIX_NAME);
+        /*
+            + 2 : Contains '/' or '\' and '\0'
+            + sizeof(ENCRYPT_FILE_SUFFIX_NAME) : For CheckEncryptResult()
+        */
+        
         pFileName = (char *)malloc(FileNameLenght);
         if(NULL == pFileName)
         {
@@ -631,7 +639,7 @@ static FileList_t *ScanDirectory(char *pFolderName)
 
         snprintf(pFileName, FileNameLenght, "%s%c%s", pFolderName, 
             DIR_DELIMITER, pEntry->d_name);
-        
+
         if(0 != GetFileInfo(pFileName, &FileInfo))
         {
             free(pFileName);
@@ -672,6 +680,12 @@ static FileList_t *ScanDirectory(char *pFolderName)
         else if(FileInfo.st_mode & S_IFREG)
 #endif
         {
+            if(STAT_OK != CheckEncryptResult(pFileName, FileNameLenght))
+            {
+                free(pFileName);
+                continue;
+            }
+            
             pNewFileList = (FileList_t *)malloc(sizeof(FileList_t));
             if(NULL == pNewFileList)
             {
@@ -682,7 +696,7 @@ static FileList_t *ScanDirectory(char *pFolderName)
             }
             
             pNewFileList->pFileName = pFileName;
-            pNewFileList->FileNameLenght = FileNameLenght;
+            pNewFileList->FileNameLenght = FileNameLenght - sizeof(ENCRYPT_FILE_SUFFIX_NAME);
             pNewFileList->FileSize = FileInfo.st_size;
             pNewFileList->pNext = NULL;
             
@@ -820,7 +834,13 @@ static FileList_t *ScanEncryptFile(char *pFolderName)
         else if(FileInfo.st_mode & S_IFREG)
 #endif
         {
-            if(STAT_OK != IsEncryptFile(pEntry->d_name, FileNameLenght-FolderNameLenght-2))
+            if(STAT_OK != IsEncryptFormat(pFileName, FileNameLenght))
+            {
+                free(pFileName);
+                continue;
+            }
+            
+            if(STAT_OK != CheckDecryptResult(pFileName, FileNameLenght))
             {
                 free(pFileName);
                 continue;
@@ -888,6 +908,9 @@ static G_STATUS BeforeEncryptDecrypt(void)
         CTL_DispWarning(STR_FAIL_TO_OPEN_LOG_FILE);
         return STAT_ERR;
     }
+
+    g_SuccessFailCountTable[0] = 0;
+    g_SuccessFailCountTable[1] = 0;
     
     return STAT_OK;
 }
@@ -1068,13 +1091,61 @@ static inline void FreeFileList(FileList_t *pHeadNode)
 /*
  *  @Briefs: Check for .ept format
  *  @Return: STAT_ERR / STAT_OK
- *  @Note:   pFileName can't be NULL and FileNameLenght must be the lenght of pFileName
+ *  @Note:   The FileNameLenght must the lenght of pFileName(count in '\0')
  */
-static inline G_STATUS IsEncryptFile(const char *pFileName, int FileNameLenght)
+static inline G_STATUS IsEncryptFormat(const char *pFileName, int FileNameLenght)
 {
-    if(('t' == pFileName[FileNameLenght-1]) && ('p' == pFileName[FileNameLenght-2]) && 
-       ('e' == pFileName[FileNameLenght-3]) && ('.' == pFileName[FileNameLenght-4]))
+    if(('t' == pFileName[FileNameLenght-2]) && ('p' == pFileName[FileNameLenght-3]) && 
+       ('e' == pFileName[FileNameLenght-4]) && ('.' == pFileName[FileNameLenght-5]))
        return STAT_OK;
 
     return STAT_ERR;
+}
+
+/*
+ *  @Briefs: Remove the encrypt suffix and check if it does exist or not
+ *  @Return: STAT_ERR / STAT_OK, STAT_ERR means it does exist
+ *  @Note:   1. The Lenght of pFileName must be enough, the lenght must be equal to
+                lenght of pFileName(count in '\0') + sizeof(ENCRYPT_FILE_SUFFIX_NAME)
+ */
+static inline G_STATUS CheckEncryptResult(char *pFileName, int FileNameLenght)
+{
+    G_STATUS status;
+    char *ptr = pFileName + FileNameLenght-1 - sizeof(ENCRYPT_FILE_SUFFIX_NAME);
+    
+    if('\0' != *ptr)
+        return STAT_ERR;
+    
+    *ptr++ = '.';
+    *ptr++ = 'e';
+    *ptr++ = 'p';
+    *ptr++ = 't';
+    *ptr   = '\0';
+    
+    status = (0 == access(pFileName, F_OK)) ? STAT_ERR : STAT_OK;
+    *(ptr-sizeof(ENCRYPT_FILE_SUFFIX_NAME)+1) = '\0'; 
+    /*
+        <=> *(ptr-4) = '\0'; 
+        //Varible ptr has been increased 4 before
+    */
+    
+
+    return status;
+}
+
+/*
+ *  @Briefs: Remove the encrypt suffix and check if it does exist or not
+ *  @Return: STAT_ERR / STAT_OK, STAT_ERR means it does exist
+ *  @Note:   The FileNameLenght must count in '\0'
+ */
+static inline G_STATUS CheckDecryptResult(char *pFileName, int FileNameLenght)
+{
+    G_STATUS status;
+    char backup = pFileName[FileNameLenght - sizeof(ENCRYPT_FILE_SUFFIX_NAME)]; //For .ept format, this position is character '.'
+    
+    pFileName[FileNameLenght - sizeof(ENCRYPT_FILE_SUFFIX_NAME)] = '\0';
+    status = (0 == access(pFileName, F_OK)) ? STAT_ERR : STAT_OK;
+    pFileName[FileNameLenght - sizeof(ENCRYPT_FILE_SUFFIX_NAME)] = backup;
+
+    return status;
 }

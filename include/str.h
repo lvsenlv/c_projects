@@ -40,6 +40,8 @@
 #define STR_PASSWORD_NULL                      ((0 == g_LanguageFlag) ? STR_EN_PASSWORD_NULL                : STR_CH_PASSWORD_NULL                 )
 #define STR_PASSWORD_TOO_SHORT                 ((0 == g_LanguageFlag) ? STR_EN_PASSWORD_TOO_SHORT           : STR_CH_PASSWORD_TOO_SHORT            )
 #define STR_PRESS_ENTER_TO_GO_BACK             ((0 == g_LanguageFlag) ? STR_EN_PRESS_ENTER_TO_GO_BACK       : STR_CH_PRESS_ENTER_TO_GO_BACK        )
+#define STR_PRO_REASON_NO_ENCRYPT_FILE         ((0 == g_LanguageFlag) ? STR_EN_PRO_REASON_NO_ENCRYPT_FILE   : STR_CH_PRO_REASON_NO_ENCRYPT_FILE    )
+#define STR_PRO_REASON_NO_DECRYPT_FILE         ((0 == g_LanguageFlag) ? STR_EN_PRO_REASON_NO_DECRYPT_FILE   : STR_CH_PRO_REASON_NO_DECRYPT_FILE    )
 #define STR_RATE                               ((0 == g_LanguageFlag) ? STR_EN_RATE                         : STR_CH_RATE                          )
 #define STR_RETRY                              ((0 == g_LanguageFlag) ? STR_EN_RETRY                        : STR_CH_RETRY                         )
 #define STR_SHOW_FILE_LABEL                    ((0 == g_LanguageFlag) ? STR_EN_SHOW_FILE_LABEL              : STR_CH_SHOW_FILE_LABEL               )
@@ -108,6 +110,8 @@
 #define STR_EN_PASSWORD_NULL                    "Length of key could not be null"
 #define STR_EN_PASSWORD_TOO_SHORT               "Password too short, at least 8 bits"
 #define STR_EN_PRESS_ENTER_TO_GO_BACK           "[ press Enter to go back ]"
+#define STR_EN_PRO_REASON_NO_DECRYPT_FILE       "Protable cause: absent encrytable file in directory"
+#define STR_EN_PRO_REASON_NO_ENCRYPT_FILE       "Protable cause: absent decrytable file in directory"
 #define STR_EN_RATE                             "Rate: "
 #define STR_EN_RETRY                            "[ retry ]"
 #define STR_EN_SHOW_FILE_LABEL                  "Pgdn: next  |  Pgup: last  |  Enter: go back  |  "
@@ -178,6 +182,8 @@
 #define STR_CH_PASSWORD_NULL                    "密码不能为空"
 #define STR_CH_PASSWORD_TOO_SHORT               "密码太短，至少需要8位"
 #define STR_CH_PRESS_ENTER_TO_GO_BACK           "[ 按 Enter 键返回 ]"
+#define STR_CH_PRO_REASON_NO_DECRYPT_FILE       "可能原因: 目录中无可解密文件"
+#define STR_CH_PRO_REASON_NO_ENCRYPT_FILE       "可能原因: 目录中无可加密文件"
 #define STR_CH_RATE                             "进度："
 #define STR_CH_RETRY                            "[ 重试 ]"
 #define STR_CH_SHOW_FILE_LABEL                  "Pgdn: 下一页  |  Pgup: 上一页  |  Enter: 返回  |  "
@@ -198,7 +204,7 @@
 #define STR_CH_FAIL_TO_OPEN_FILE                "无法打开文件"
 #define STR_CH_FAIL_TO_OPEN_LOG_FILE            "无法打开日志文件"
 #define STR_CH_FAIL_TO_READ_FILE                "无法读取文件，请确保文件可读"
-#define STR_CH_FAIL_TO_SCAN_DIRECTORY           "无法扫描目录，请确保目录中有指定文件"
+#define STR_CH_FAIL_TO_SCAN_DIRECTORY           "无法扫描目录"
 #define STR_CH_FAIL_TO_WRITE_FILE               "无法写入文件，请确保文件可写"
     
 #define STR_CH_ERR_FAIL_TO_MALLOC               "错误：运行内存空间"

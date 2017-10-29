@@ -15,7 +15,11 @@
 #define ENCRYPT_FILE_SUFFIX_NAME                ".ept" //Must be .ept in this project
 /*
     Modify encrypt file suffix name must modify following point:
-    1. Function: ScanEncryptFile() IsEncryptFile()
+    1. Function: 
+                    ScanEncryptFile()
+                    IsEncryptFormat()
+                    CheckDecryptResult()
+                    CheckDecryptResult()
 */
 
 #ifdef __LINUX
@@ -55,7 +59,7 @@ typedef enum
 typedef struct FileListStruct
 {
     char *pFileName;
-    int FileNameLenght;
+    int FileNameLenght; //Count in '\0'
     int64_t FileSize;
     struct FileListStruct *pNext;
 }FileList_t;

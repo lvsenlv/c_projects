@@ -1,0 +1,13 @@
+1.  fix the bug while encrypting:
+    when encrypt file_name, if exist file_name.ept, 
+    do not encrypt file_name
+
+2.  fix the buf while decrypting:
+    when decrypt file_name.ept, if exist file_name, 
+    do not decrypt file_name.ept
+
+3.  fix the bug when execute encrypting or decrypting
+    for many times while running the project in one time
+
+4.  modify the str:
+    when return value is null while invoking Scan* related functions
