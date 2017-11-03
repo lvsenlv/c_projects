@@ -753,7 +753,7 @@ G_STATUS CTL_DispWarning(const char *pFormat, ...)
     va_end(varg);
 
     //Count lines >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    int lines = CountLines(buf, CTL_WARNING_WIN_COLS);
+    int lines = CountLines((char *)buf, CTL_WARNING_WIN_COLS);
 
     if(0 == lines)
     {
@@ -806,7 +806,7 @@ G_STATUS CTL_MakeChoice(const char *pFormat, ...)
     va_end(varg);
 
     //Count lines >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    int lines = CountLines(buf, CTL_MAKE_CHOICE_WIN_COLS);
+    int lines = CountLines((char *)buf, CTL_MAKE_CHOICE_WIN_COLS);
     if(0 == lines)
     {
         lines = 1;
@@ -901,7 +901,7 @@ G_STATUS CTL_ConfirmOperation(const char *pFormat, ...)
     va_end(varg);
 
     //Count lines >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    int lines = CountLines(buf, CTL_CONFIRM_WIN_COLS);
+    int lines = CountLines((char *)buf, CTL_CONFIRM_WIN_COLS);
     if(0 == lines)
     {
         lines = 1;

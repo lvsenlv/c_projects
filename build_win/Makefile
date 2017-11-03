@@ -10,7 +10,7 @@ LIB_DIR     = ../lib/win
 LIB_REL_DIR = ../win
 endif
 
-OBJS = common.o control.o encryption.o core_code.o main.o str.o
+OBJS = common.o control.o encryption.o core_code.o main.o str.o extra.o decoder.o
 
 CC        = gcc
 DEF       = -D__WINDOWS \
@@ -21,18 +21,14 @@ DEF       = -D__WINDOWS \
 			-D__CLEANUP_C \
 			-DHAVE_PTW32_CONFIG_H
 INCS      = -I../include \
-			-I../lib/extra/include \
 			-I../lib/pthreads/include \
 			-I../lib/pdcurses/include
 CFLAGS    = -Wall -O3
-LIBS      = -L$(LIB_DIR) -lextra -lpthread -lcurses
+LIBS      = -L$(LIB_DIR) -lpthread -lcurses
 LIBS_DEPS =
 
 ifeq ($(DLL), Y)
 	DEF += -DPDC_DLL_BUILD
-	ifeq ($(wildcard $(LIB_DIR)/libextra.dll),)
-		LIBS_DEPS += libextra.dll
-	endif
 	ifeq ($(wildcard $(LIB_DIR)/libcurses.dll),)
 		LIBS_DEPS += libcurses.dll
 	endif
@@ -40,9 +36,6 @@ ifeq ($(DLL), Y)
 		LIBS_DEPS += libpthread.dll
 	endif
 else
-	ifeq ($(wildcard $(LIB_DIR)/libextra.a),)
-		LIBS_DEPS += libextra.a
-	endif
 	ifeq ($(wildcard $(LIB_DIR)/libcurses.a),)
 		LIBS_DEPS += libcurses.a
 	endif
@@ -54,9 +47,6 @@ endif
 all : before $(TARGET)
 
 before : $(LIBS_DEPS)
-
-libextra.a libextra.dll :
-	$(MAKE) DLL="$(DLL)" TAR_DIR="$(LIB_REL_DIR)" -C ../lib/extra
 
 libcurses.a libcurses.dll :
 	$(MAKE) DLL="$(DLL)" TAR_DIR="$(LIB_REL_DIR)" -C ../lib/pdcurses

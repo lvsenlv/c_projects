@@ -83,10 +83,19 @@ extern struct tm *g_time;
 #define     LOG_FILE_NAME                       ".\\log"
 #endif
 
-enum {
+typedef enum {
     false = 0,
     true = !false,
-};
+}_bool_; //Name as _bool_ to differ bool and _bool defined in curses.h on WINDOWS platform
+
+#ifndef _bool
+#define _bool                                   _bool_
+#endif
+
+#ifndef bool
+#define bool                                    _bool_
+#endif
+
 
 typedef enum {
     STAT_OK = 0,
