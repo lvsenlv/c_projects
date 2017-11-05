@@ -8,6 +8,8 @@
 #ifndef __STR_H
 #define __STR_H
 
+#include "decoder.h"
+
 #define STR_BACK                               ((0 == g_LanguageFlag) ? STR_EN_BACK                         : STR_CH_BACK                          )
 #define STR_BEYOND_RANGE_OF_DISP               ((0 == g_LanguageFlag) ? STR_EN_BEYOND_RANGE_OF_DISP         : STR_CH_BEYOND_RANGE_OF_DISP          )
 #define STR_CONSOLE_END_LINE                   ((0 == g_LanguageFlag) ? STR_EN_CONSOLE_END_LINE             : STR_CH_CONSOLE_END_LINE              )

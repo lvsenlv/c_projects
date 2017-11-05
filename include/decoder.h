@@ -34,8 +34,9 @@ Unicode symbol range  | UTF-8 encoded mode
             6 bytes             |   0xFC <=   first byte   < 0xFF
 -----------------------------------------------------------------*/
 
-_bool_ UTF8_VerifyStr(const char *ptr);
+BOOL UTF8_VerifyStr(const char *ptr);
 int UTF8_GetLength(const char *ptr);
+int UTF8_GetSymbolNum(const char *ptr);
 
 #ifdef __WINDOWS
 wchar_t *ANSIToUnicode(const char *ptr);
@@ -48,15 +49,24 @@ char *UTF8ToANSI(const char *ptr);
 
 
 
-
-
 //Static inline functions
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-static inline _bool_ UTF8_VerifyChar(const uint8_t ch)
+
+/*
+ *  @Briefs: Check if the character is UTF-8 format
+ *  @Return: TRUE / FALSE
+ *  @Note:   None
+ */
+static inline BOOL UTF8_VerifyChar(const uint8_t ch)
 {
-    return (((0x80 <= ch) && (0xC0 > ch)) || 0xFE < ch) ? false : true;
+    return (((0x80 <= ch) && (0xC0 > ch)) || 0xFE < ch) ? FALSE : TRUE;
 }
 
+/*
+ *  @Briefs: Calculate how many bytes does the UTF-8 symbol occupy
+ *  @Return: The number of bytes of UTF-8 character
+ *  @Note:   Return value 0 means that it is not the UTF-8 format
+ */
 static inline int UTF8_GetByteNum(const uint8_t ch)
 {
     return (0xF0 <= ch) ?

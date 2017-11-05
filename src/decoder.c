@@ -31,10 +31,18 @@ Unicode symbol range  | UTF-8 encoded mode
             6 bytes             |   0xFC <=   first byte   < 0xFF
 -----------------------------------------------------------------*/
 
-_bool_ UTF8_VerifyStr(const char *ptr)
+
+
+/*
+ *  @Briefs: Check if the string is UTF-8 format
+ *  @Return: TRUE / FALSE
+ *  @Note:   None
+ */
+
+BOOL UTF8_VerifyStr(const char *ptr)
 {
     if(NULL == ptr)
-        return false;
+        return FALSE;
         
     int ByteNum = 0;
  
@@ -44,12 +52,12 @@ _bool_ UTF8_VerifyStr(const char *ptr)
         {
             ByteNum = UTF8_GetByteNum(*ptr);
             if(0 == ByteNum)
-                return false;
+                return FALSE;
         }
         else //Occupy multi bytes
         {
             if(0x80 != (*ptr & 0xC0)) //If disobey the rule: 10xxxxxx
-                return false;
+                return FALSE;
         }
         
         ByteNum--;
@@ -57,11 +65,16 @@ _bool_ UTF8_VerifyStr(const char *ptr)
     }
  
     if(ByteNum > 0)
-        return false;
+        return FALSE;
  
-    return true;
+    return TRUE;
 }
 
+/*
+ *  @Briefs: Calculate the number of UTF-8 symbol including the symbol in ASCII
+ *  @Return: The number of UTF-8 symbol including the symbol in ASCII
+ *  @Note:   None
+ */
 int UTF8_GetLength(const char *ptr)
 {
     if(NULL == ptr)
@@ -83,9 +96,45 @@ int UTF8_GetLength(const char *ptr)
     return lenght;
 }
 
+/*
+ *  @Briefs: Calculate the number of UTF-8 symbol except the symbol in ASCII
+ *  @Return: The number of UTF-8 symbol except the symbol in ASCII
+ *  @Note:   None
+ */
+int UTF8_GetSymbolNum(const char *ptr)
+{
+    if(NULL == ptr)
+        return 0;
+
+    int ByteNum;
+    int SymbolNum = 0;
+    
+    while('\0' != *ptr)
+    {
+        ByteNum = UTF8_GetByteNum(*ptr);
+        
+        if(1 < ByteNum)
+        {
+            SymbolNum++;
+        }
+        else if(0 == ByteNum) //Is not the UTF-8 character
+            return 0;
+            
+        ptr += ByteNum;
+    }
+    
+    return SymbolNum;
+}
+
+
 #ifdef __WINDOWS
 #include <windows.h>
 
+/*
+ *  @Briefs: Convert ANSI format to Unicode format
+ *  @Return: The pointer pointing to the wide character string
+ *  @Note:   Release memory manually
+ */
 wchar_t *ANSIToUnicode(const char *ptr)
 {
     int lenght;
@@ -99,6 +148,11 @@ wchar_t *ANSIToUnicode(const char *ptr)
     return pwRes; 
 }
 
+/*
+ *  @Briefs: Convert UTF-8 format to Unicode format
+ *  @Return: The pointer pointing to the wide character string
+ *  @Note:   Release memory manually
+ */
 wchar_t *UTF8ToUnicode(const char* ptr)
 {
     int lenght;
@@ -112,6 +166,11 @@ wchar_t *UTF8ToUnicode(const char* ptr)
     return pwRes;
 }
 
+/*
+ *  @Briefs: Convert Unicode format to ANSI format
+ *  @Return: The pointer pointing to the string
+ *  @Note:   Release memory manually
+ */
 char *UnicodeToANSI(const wchar_t *ptr)
 {
     int lenght;
@@ -125,6 +184,11 @@ char *UnicodeToANSI(const wchar_t *ptr)
     return pRes;
 }
 
+/*
+ *  @Briefs: Convert Unicode format to UTF-8 format
+ *  @Return: The pointer pointing to the string
+ *  @Note:   Release memory manually
+ */
 char *UnicodeToUTF8(const wchar_t *ptr)
 {
     int lenght;
@@ -138,6 +202,11 @@ char *UnicodeToUTF8(const wchar_t *ptr)
     return pRes;
 }
 
+/*
+ *  @Briefs: Convert ANSI format to UTF-8 format
+ *  @Return: The pointer pointing to the string
+ *  @Note:   Release memory manually
+ */
 char *ANSIToUTF8(const char *ptr)
 {
     int lenght;
@@ -158,6 +227,11 @@ char *ANSIToUTF8(const char *ptr)
     return pRes;
 }
 
+/*
+ *  @Briefs: Convert UTF-8 format to ANSI format
+ *  @Return: The pointer pointing to the string
+ *  @Note:   Release memory manually
+ */
 char *UTF8ToANSI(const char *ptr)
 {
     int lenght;

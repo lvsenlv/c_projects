@@ -16,7 +16,7 @@
 #include <stdlib.h>
 
 /******************************Modifiable*******************************/
-#define     BUF_SIZE                        64
+#define     BUF_SIZE                            64
 
 //#include <stdint.h>
 //typedef     char                                int8_t;
@@ -84,18 +84,9 @@ extern struct tm *g_time;
 #endif
 
 typedef enum {
-    false = 0,
-    true = !false,
-}_bool_; //Name as _bool_ to differ bool and _bool defined in curses.h on WINDOWS platform
-
-#ifndef _bool
-#define _bool                                   _bool_
-#endif
-
-#ifndef bool
-#define bool                                    _bool_
-#endif
-
+    FALSE = 0,
+    TRUE = !FALSE,
+}BOOL; //Name as _bool_ to differ bool and _bool defined in curses.h on WINDOWS platform
 
 typedef enum {
     STAT_OK = 0,
