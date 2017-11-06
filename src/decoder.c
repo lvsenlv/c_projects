@@ -39,7 +39,7 @@ Unicode symbol range  | UTF-8 encoded mode
  *  @Note:   None
  */
 
-BOOL UTF8_VerifyStr(const char *ptr)
+BOOL UTF8_VerifyStrFormat(const char *ptr)
 {
     if(NULL == ptr)
         return FALSE;
@@ -50,7 +50,7 @@ BOOL UTF8_VerifyStr(const char *ptr)
     {
         if(ByteNum == 0) //Get the occupying space according to the first byte characteristic
         {
-            ByteNum = UTF8_GetByteNum(*ptr);
+            ByteNum = UTF8_GetSymbolByteNum(*ptr);
             if(0 == ByteNum)
                 return FALSE;
         }
@@ -80,20 +80,20 @@ int UTF8_GetLength(const char *ptr)
     if(NULL == ptr)
         return 0;
 
-    int lenght = 0;
+    int length = 0;
     int ByteNum = 0;
  
     while('\0' != *ptr)
     {
-        ByteNum = UTF8_GetByteNum(*ptr);
+        ByteNum = UTF8_GetSymbolByteNum(*ptr);
         if (0 == ByteNum)
             return 0;
             
-        lenght++;
+        length++;
         ptr += ByteNum;
     }
  
-    return lenght;
+    return length;
 }
 
 /*
@@ -101,7 +101,7 @@ int UTF8_GetLength(const char *ptr)
  *  @Return: The number of UTF-8 symbol except the symbol in ASCII
  *  @Note:   None
  */
-int UTF8_GetSymbolNum(const char *ptr)
+int UTF8_GetSpecialSymbolNum(const char *ptr)
 {
     if(NULL == ptr)
         return 0;
@@ -111,7 +111,7 @@ int UTF8_GetSymbolNum(const char *ptr)
     
     while('\0' != *ptr)
     {
-        ByteNum = UTF8_GetByteNum(*ptr);
+        ByteNum = UTF8_GetSymbolByteNum(*ptr);
         
         if(1 < ByteNum)
         {
@@ -137,13 +137,13 @@ int UTF8_GetSymbolNum(const char *ptr)
  */
 wchar_t *ANSIToUnicode(const char *ptr)
 {
-    int lenght;
+    int length;
     wchar_t *pwRes;
     
-    lenght = MultiByteToWideChar(CP_ACP, 0, ptr, -1, NULL,0);
-    pwRes = (wchar_t *)malloc(lenght * sizeof(wchar_t)); 
-    memset(pwRes, 0, lenght*sizeof(wchar_t)); 
-    MultiByteToWideChar(CP_ACP, 0, ptr, -1, (LPWSTR)pwRes, lenght);
+    length = MultiByteToWideChar(CP_ACP, 0, ptr, -1, NULL,0);
+    pwRes = (wchar_t *)malloc(length * sizeof(wchar_t)); 
+    memset(pwRes, 0, length*sizeof(wchar_t)); 
+    MultiByteToWideChar(CP_ACP, 0, ptr, -1, (LPWSTR)pwRes, length);
     
     return pwRes; 
 }
@@ -155,13 +155,13 @@ wchar_t *ANSIToUnicode(const char *ptr)
  */
 wchar_t *UTF8ToUnicode(const char* ptr)
 {
-    int lenght;
+    int length;
     wchar_t * pwRes;
     
-    lenght = MultiByteToWideChar(CP_UTF8, 0, ptr, -1, NULL, 0); 
-    pwRes = (wchar_t *)malloc(lenght * sizeof(wchar_t)); 
-    memset(pwRes,0, lenght*sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, ptr, -1, (LPWSTR)pwRes, lenght);
+    length = MultiByteToWideChar(CP_UTF8, 0, ptr, -1, NULL, 0); 
+    pwRes = (wchar_t *)malloc(length * sizeof(wchar_t)); 
+    memset(pwRes,0, length*sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, ptr, -1, (LPWSTR)pwRes, length);
     
     return pwRes;
 }
@@ -173,13 +173,13 @@ wchar_t *UTF8ToUnicode(const char* ptr)
  */
 char *UnicodeToANSI(const wchar_t *ptr)
 {
-    int lenght;
+    int length;
     char *pRes;
     
-    lenght = WideCharToMultiByte(CP_ACP, 0, ptr, -1, NULL, 0, NULL, NULL);
-    pRes =(char *)malloc(lenght * sizeof(char));
-    memset(pRes, 0, lenght*sizeof(char));
-    WideCharToMultiByte(CP_ACP, 0, ptr, -1, pRes, lenght, NULL, NULL);
+    length = WideCharToMultiByte(CP_ACP, 0, ptr, -1, NULL, 0, NULL, NULL);
+    pRes =(char *)malloc(length * sizeof(char));
+    memset(pRes, 0, length*sizeof(char));
+    WideCharToMultiByte(CP_ACP, 0, ptr, -1, pRes, length, NULL, NULL);
     
     return pRes;
 }
@@ -191,13 +191,13 @@ char *UnicodeToANSI(const wchar_t *ptr)
  */
 char *UnicodeToUTF8(const wchar_t *ptr)
 {
-    int lenght;
+    int length;
     char *pRes;
     
-    lenght = WideCharToMultiByte(CP_UTF8, 0, ptr, -1, NULL, 0, NULL, NULL);
-    pRes =(char *)malloc(lenght * sizeof(char));
-    memset(pRes, 0, lenght*sizeof(char));
-    WideCharToMultiByte(CP_UTF8, 0, ptr, -1, pRes, lenght, NULL, NULL);
+    length = WideCharToMultiByte(CP_UTF8, 0, ptr, -1, NULL, 0, NULL, NULL);
+    pRes =(char *)malloc(length * sizeof(char));
+    memset(pRes, 0, length*sizeof(char));
+    WideCharToMultiByte(CP_UTF8, 0, ptr, -1, pRes, length, NULL, NULL);
     
     return pRes;
 }
@@ -209,19 +209,19 @@ char *UnicodeToUTF8(const wchar_t *ptr)
  */
 char *ANSIToUTF8(const char *ptr)
 {
-    int lenght;
+    int length;
     wchar_t *pwRes;
     char *pRes;
     
-    lenght = MultiByteToWideChar(CP_ACP, 0, ptr,-1, NULL, 0);
-    pwRes = (wchar_t *)malloc(lenght*sizeof(wchar_t));
-    memset(pwRes, 0, lenght*sizeof(wchar_t));
-    MultiByteToWideChar(CP_ACP, 0, ptr, -1, (LPWSTR)pwRes, lenght);
+    length = MultiByteToWideChar(CP_ACP, 0, ptr,-1, NULL, 0);
+    pwRes = (wchar_t *)malloc(length*sizeof(wchar_t));
+    memset(pwRes, 0, length*sizeof(wchar_t));
+    MultiByteToWideChar(CP_ACP, 0, ptr, -1, (LPWSTR)pwRes, length);
     
-    lenght = WideCharToMultiByte( CP_UTF8, 0, pwRes, -1, NULL, 0, NULL, NULL);
-    pRes = (char *)malloc(lenght*sizeof(char));
-    memset(pRes, 0, lenght*sizeof(char));
-    WideCharToMultiByte(CP_UTF8, 0, pwRes, -1, pRes, lenght, NULL, NULL);
+    length = WideCharToMultiByte( CP_UTF8, 0, pwRes, -1, NULL, 0, NULL, NULL);
+    pRes = (char *)malloc(length*sizeof(char));
+    memset(pRes, 0, length*sizeof(char));
+    WideCharToMultiByte(CP_UTF8, 0, pwRes, -1, pRes, length, NULL, NULL);
     
     free(pwRes);
     return pRes;
@@ -234,19 +234,19 @@ char *ANSIToUTF8(const char *ptr)
  */
 char *UTF8ToANSI(const char *ptr)
 {
-    int lenght;
+    int length;
     wchar_t *pwRes;
     char *pRes;
     
-    lenght = MultiByteToWideChar(CP_UTF8, 0, ptr,-1, NULL, 0);
-    pwRes = (wchar_t *)malloc(lenght*sizeof(wchar_t));
-    memset(pwRes, 0, lenght*sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, ptr, -1, (LPWSTR)pwRes, lenght);
+    length = MultiByteToWideChar(CP_UTF8, 0, ptr,-1, NULL, 0);
+    pwRes = (wchar_t *)malloc(length*sizeof(wchar_t));
+    memset(pwRes, 0, length*sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, ptr, -1, (LPWSTR)pwRes, length);
     
-    lenght = WideCharToMultiByte(CP_ACP, 0, pwRes, -1, NULL, 0, NULL, NULL);
-    pRes = (char *)malloc(lenght*sizeof(char));
-    memset(pRes, 0, lenght*sizeof(char));
-    WideCharToMultiByte(CP_ACP, 0, pwRes, -1, pRes, lenght, NULL, NULL);
+    length = WideCharToMultiByte(CP_ACP, 0, pwRes, -1, NULL, 0, NULL, NULL);
+    pRes = (char *)malloc(length*sizeof(char));
+    memset(pRes, 0, length*sizeof(char));
+    WideCharToMultiByte(CP_ACP, 0, pwRes, -1, pRes, length, NULL, NULL);
     
     free(pwRes);
     return pRes;

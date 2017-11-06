@@ -72,7 +72,7 @@ void *Pthread_EncryptDecrypt(void *arg)
         }
         
         status = (*pArg_t->pFunc)(pArg_t->pCurFileList->pFileName, 
-            pArg_t->pCurFileList->FileNameLenght , pArg_t->pCurFileList->FileSize, 
+            pArg_t->pCurFileList->FileNameLength , pArg_t->pCurFileList->FileSize, 
             pArg_t->pRatioFactor);
         
         //File lock >>>
@@ -117,7 +117,7 @@ void *Pthread_EncryptDecrypt(void *arg)
  *  @Return: STAT_ERR / STAT_FATAL_ERR / STAT_OK
  *  @Note:   
  */
-G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRatioFactor)
+G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRatioFactor)
 {
     FILE *fp = NULL;
     fp = fopen(pFileName, "rb");
@@ -128,7 +128,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
     }
     fseek(fp, 0, SEEK_SET);
 
-    char *pNewFileName = (char *)malloc(FileNameLenght+sizeof(ENCRYPT_FILE_SUFFIX_NAME));
+    char *pNewFileName = (char *)malloc(FileNameLength+sizeof(ENCRYPT_FILE_SUFFIX_NAME));
     if(NULL == pNewFileName)
     {
         fclose(fp);
@@ -136,7 +136,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
         return STAT_FATAL_ERR;
     }
     
-    snprintf(pNewFileName, FileNameLenght+sizeof(ENCRYPT_FILE_SUFFIX_NAME), 
+    snprintf(pNewFileName, FileNameLength+sizeof(ENCRYPT_FILE_SUFFIX_NAME), 
         "%s%s", pFileName, ENCRYPT_FILE_SUFFIX_NAME);
     FILE *NewFp = NULL;
     NewFp = fopen(pNewFileName, "wb+");
@@ -171,7 +171,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
         
     int64_t size = 0;
     int EncyptFactor = 0;
-    int PasswordLenght = 0;
+    int PasswordLength = 0;
     const char *pPassword = g_password;
 
     //Get encrypt factor
@@ -179,9 +179,9 @@ G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
     {
         EncyptFactor += (uint32_t)*pPassword;
         pPassword++;
-        PasswordLenght++;
+        PasswordLength++;
     }
-    if(0 == PasswordLenght)
+    if(0 == PasswordLength)
     {
         free(pNewFileName);
         free(pData);
@@ -201,9 +201,9 @@ G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
     int i = 0, index = 0;
     int CycleIndex = (int)(FileSize / CYT_SMALL_FILE_SIZE);
 
-    int RestDataCount = CYT_SMALL_FILE_SIZE - PasswordLenght;
+    int RestDataCount = CYT_SMALL_FILE_SIZE - PasswordLength;
     uint8_t *pBackupData = NULL;
-    pBackupData = (uint8_t *)malloc(PasswordLenght * sizeof(uint8_t));
+    pBackupData = (uint8_t *)malloc(PasswordLength * sizeof(uint8_t));
     if(NULL == pBackupData)
     {
         free(pNewFileName);
@@ -250,7 +250,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
         //Proccess 2
         pTmp = pBackupData;
         pTmp2 = pData + CYT_SMALL_FILE_SIZE - 1;
-        for(i = 0; i < PasswordLenght; i++)
+        for(i = 0; i < PasswordLength; i++)
         {
             *pTmp++ = *pTmp2--;
         }
@@ -264,7 +264,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
 
         pTmp = pData;
         pTmp2 = pBackupData;
-        for(i = 0; i < PasswordLenght; i++)
+        for(i = 0; i < PasswordLength; i++)
         {
             *pTmp++ = *pTmp2++;
         }
@@ -274,7 +274,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
         //Proccess 3
         pPassword = g_password;
         pTmp = pData + CYT_SMALL_FILE_SIZE - 1;
-        for(i = 0; i < PasswordLenght; i++)
+        for(i = 0; i < PasswordLength; i++)
         {
             TmpData = *pTmp;
             *pTmp = pData[(uint32_t)(*pPassword)];
@@ -328,7 +328,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
     }
 
     //Proccess 2
-    if(RestDataSize <= PasswordLenght)
+    if(RestDataSize <= PasswordLength)
     {
         pTmp = pData;
         pPassword = g_password;
@@ -343,12 +343,12 @@ G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
     {
         pTmp = pBackupData;
         pTmp2 = pData + RestDataSize - 1;
-        for(i = 0; i < PasswordLenght; i++)
+        for(i = 0; i < PasswordLength; i++)
         {
             *pTmp++ = *pTmp2--;
         }
 
-        RestDataCount = RestDataSize - PasswordLenght;
+        RestDataCount = RestDataSize - PasswordLength;
         pTmp = pData + RestDataSize - 1;
         pTmp2 = pData + RestDataCount - 1;
         for(i = 0; i < RestDataCount; i++)
@@ -358,7 +358,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
 
         pTmp = pData;
         pTmp2 = pBackupData;
-        for(i = 0; i < PasswordLenght; i++)
+        for(i = 0; i < PasswordLength; i++)
         {
             *pTmp++ = *pTmp2++;
         }
@@ -369,7 +369,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
     {
         pPassword = g_password;
         pTmp = pData + RestDataSize - 1;
-        for(i = 0; i < PasswordLenght; i++)
+        for(i = 0; i < PasswordLength; i++)
         {
             TmpData = *pTmp;
             *pTmp = pData[(uint32_t)(*pPassword)];
@@ -422,7 +422,7 @@ GOTO_DELETE_FILE:
                 "..ENCRYPT_FILE_SUFFIX_NAME"    -> after DeleteEncryptSuffix is ".."
              2. The pFileName must contain symbol '.'
  */
-G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRatioFactor)
+G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRatioFactor)
 {
     FILE *fp = NULL;
     fp = fopen(pFileName, "rb");
@@ -433,7 +433,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
     }
     fseek(fp, 0, SEEK_SET);
 
-    char *pNewFileName = (char *)malloc(FileNameLenght);
+    char *pNewFileName = (char *)malloc(FileNameLength);
     if(NULL == pNewFileName)
     {
         fclose(fp);
@@ -441,7 +441,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
         return STAT_FATAL_ERR;
     }
     
-    snprintf(pNewFileName, FileNameLenght, "%s", pFileName);
+    snprintf(pNewFileName, FileNameLength, "%s", pFileName);
     DeleteEncyptSuffix(pNewFileName);
     
     FILE *NewFp = NULL;
@@ -475,7 +475,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
         
     int64_t size = 0;
     int EncyptFactor = 0;
-    int PasswordLenght = 0;
+    int PasswordLength = 0;
     const char *pPassword = g_password;
 
     //Get decrypt factor
@@ -483,9 +483,9 @@ G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
     {
         EncyptFactor += (int)*pPassword;
         pPassword++;
-        PasswordLenght++;
+        PasswordLength++;
     }
-    if(0 == PasswordLenght)
+    if(0 == PasswordLength)
     {
         free(pNewFileName);
         free(pData);
@@ -505,9 +505,9 @@ G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
     int i = 0, index = 0;
     int CycleIndex = (int)(FileSize / CYT_SMALL_FILE_SIZE);
 
-    int RestDataCount = CYT_SMALL_FILE_SIZE - PasswordLenght;
+    int RestDataCount = CYT_SMALL_FILE_SIZE - PasswordLength;
     uint8_t *pBackupData = NULL;
-    pBackupData = (uint8_t *)malloc(PasswordLenght * sizeof(uint8_t));
+    pBackupData = (uint8_t *)malloc(PasswordLength * sizeof(uint8_t));
     if(NULL == pBackupData)
     {
         free(pNewFileName);
@@ -539,9 +539,9 @@ G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
         *pRatioFactor += 10;
         
         //Proccess 3
-        pPassword = g_password + PasswordLenght - 1;
-        pTmp = pData + CYT_SMALL_FILE_SIZE - PasswordLenght;
-        for(i = 0; i < PasswordLenght; i++)
+        pPassword = g_password + PasswordLength - 1;
+        pTmp = pData + CYT_SMALL_FILE_SIZE - PasswordLength;
+        for(i = 0; i < PasswordLength; i++)
         {
             TmpData = *pTmp;
             *pTmp = pData[(uint32_t)(*pPassword)];
@@ -555,13 +555,13 @@ G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
         //Proccess 2
         pTmp = pBackupData;
         pTmp2 = pData;
-        for(i = 0; i < PasswordLenght; i++)
+        for(i = 0; i < PasswordLength; i++)
         {
             *pTmp++ = *pTmp2++;
         }
 
         pTmp = pData;
-        pTmp2 = pData + PasswordLenght;
+        pTmp2 = pData + PasswordLength;
         for(i = 0; i < RestDataCount; i++)
         {
             *pTmp++ = *pTmp2++;
@@ -569,7 +569,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
 
         pTmp = pData + CYT_SMALL_FILE_SIZE - 1;
         pTmp2 = pBackupData;
-        for(i = 0; i < PasswordLenght; i++)
+        for(i = 0; i < PasswordLength; i++)
         {
             *pTmp-- = *pTmp2++;
         }
@@ -623,9 +623,9 @@ G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
     //Proccess 3
     if(256 < RestDataSize)
     {
-        pPassword = g_password + PasswordLenght - 1;
-        pTmp = pData + RestDataSize - PasswordLenght;
-        for(i = 0; i < PasswordLenght; i++)
+        pPassword = g_password + PasswordLength - 1;
+        pTmp = pData + RestDataSize - PasswordLength;
+        for(i = 0; i < PasswordLength; i++)
         {
             TmpData = *pTmp;
             *pTmp = pData[(uint32_t)(*pPassword)];
@@ -636,7 +636,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
     }       
 
     //Proccess 2
-    if(RestDataSize <= PasswordLenght)
+    if(RestDataSize <= PasswordLength)
     {
         pTmp = pData;
         pPassword = g_password;
@@ -651,14 +651,14 @@ G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
     {
         pTmp = pBackupData;
         pTmp2 = pData;
-        for(i = 0; i < PasswordLenght; i++)
+        for(i = 0; i < PasswordLength; i++)
         {
             *pTmp++ = *pTmp2++;
         }
 
-        RestDataCount = RestDataSize - PasswordLenght;
+        RestDataCount = RestDataSize - PasswordLength;
         pTmp = pData;
-        pTmp2 = pData + PasswordLenght;
+        pTmp2 = pData + PasswordLength;
         for(i = 0; i < RestDataCount; i++)
         {
             *pTmp++ = *pTmp2++;
@@ -666,7 +666,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRa
 
         pTmp = pData + RestDataSize - 1;
         pTmp2 = pBackupData;
-        for(i = 0; i < PasswordLenght; i++)
+        for(i = 0; i < PasswordLength; i++)
         {
             *pTmp-- = *pTmp2++;
         }

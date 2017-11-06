@@ -52,8 +52,8 @@ typedef struct PthreadArgStruct
 extern __IO FileList_t *g_pCurFilelist;
 
 void *Pthread_EncryptDecrypt(void *arg);
-G_STATUS encrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRatioFactor);
-G_STATUS decrypt(char *pFileName, int FileNameLenght, int64_t FileSize, int *pRatioFactor);
+G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRatioFactor);
+G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRatioFactor);
 
 
 

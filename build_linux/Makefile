@@ -6,7 +6,7 @@ OBJS = common.o str.o control.o main.o encryption.o core_code.o extra.o decoder.
 CC = gcc
 LIBS := -lncursesw -lpthread -L../lib/linux
 DEF := -D__LINUX -D__64BIT 
-INC := -I../include -I../lib/extra/include
+INC := -I../include 
 #CFLAGS := -Wall -Wno-unused-function -O3
 CFLAGS := -D__DEBUG -g -Wall -Wno-unused-function
 

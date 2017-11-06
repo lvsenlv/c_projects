@@ -59,7 +59,7 @@ typedef enum
 typedef struct FileListStruct
 {
     char *pFileName;
-    int FileNameLenght; //Count in '\0'
+    int FileNameLength; //Count in '\0'
     int64_t FileSize;
     struct FileListStruct *pNext;
 }FileList_t;
@@ -103,7 +103,7 @@ static inline G_STATUS CheckFileListArg(__IO FileList_t *pFileList)
         return STAT_ERR;
 #endif
 
-    if((NULL == pFileList->pFileName) || (0 == pFileList->FileNameLenght))
+    if((NULL == pFileList->pFileName) || (0 == pFileList->FileNameLength))
         return STAT_ERR;
 
     return STAT_OK;

@@ -226,24 +226,6 @@ extern char *ChInstruction[];
 
 
 //Inline function >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-/*
-    It's only compliant for UTF-8 format
-    Return the number of char in string
-    Note: the charater not in ASCII table is considerd as one char
-*/
-static inline int CountChar(const char *ptr)
-{
-    int count = 0;
-
-    while('\0' != *ptr)
-    {
-        count++;
-        //Char in ASCII table is 1 byte, else most characters of UTF-8 is 3 bytes
-        ptr += (*ptr >> 7) ? 3 : 1;
-    }
-
-    return count;
-}
 
 /*
     It's only compliant for UTF-8 format
