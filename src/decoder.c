@@ -39,7 +39,7 @@ Unicode symbol range  | UTF-8 encoded mode
  *  @Note:   None
  */
 
-BOOL UTF8_VerifyStrFormat(const char *ptr)
+_BOOL_ UTF8_VerifyStrFormat(const char *ptr)
 {
     if(NULL == ptr)
         return FALSE;
@@ -80,8 +80,8 @@ int UTF8_GetLength(const char *ptr)
     if(NULL == ptr)
         return 0;
 
-    int length = 0;
     int ByteNum = 0;
+    int length = 0;
  
     while('\0' != *ptr)
     {
@@ -95,6 +95,33 @@ int UTF8_GetLength(const char *ptr)
  
     return length;
 }
+
+/*
+ *  @Briefs: Calculate the width, symbol in ASCII is 1 width unit and else is 2 width unit
+ *  @Return: The width of content that the ptr ponits to
+ *  @Note:   None
+ */
+int UTF8_GetWidth(const char *ptr)
+{
+    if(NULL == ptr)
+        return 0;
+
+    int ByteNum = 0;
+    int width = 0;
+ 
+    while('\0' != *ptr)
+    {
+        ByteNum = UTF8_GetSymbolByteNum(*ptr);
+        if (0 == ByteNum)
+            return 0;
+            
+        width += (1 == ByteNum) ? 1 : 2;
+        ptr += ByteNum;
+    }
+ 
+    return width;
+}
+
 
 /*
  *  @Briefs: Calculate the number of UTF-8 symbol except the symbol in ASCII
@@ -205,21 +232,38 @@ char *UnicodeToUTF8(const wchar_t *ptr)
 /*
  *  @Briefs: Convert ANSI format to UTF-8 format
  *  @Return: The pointer pointing to the string
- *  @Note:   Release memory manually
+ *  @Note:   1. Release memory manually
+ *           2. If pLength isn't NULL, pLength is equal to the length of ptr(counting in '\0')
  */
-char *ANSIToUTF8(const char *ptr)
+char *ANSIToUTF8(const char *ptr, int *pLength)
 {
+    if(NULL == ptr)
+        return NULL;
+    
     int length;
     wchar_t *pwRes;
     char *pRes;
     
-    length = MultiByteToWideChar(CP_ACP, 0, ptr,-1, NULL, 0);
+    length = MultiByteToWideChar(CP_ACP, 0, ptr, -1, NULL, 0);
     pwRes = (wchar_t *)malloc(length*sizeof(wchar_t));
+    if(NULL == pwRes)
+        return NULL;
+    
     memset(pwRes, 0, length*sizeof(wchar_t));
     MultiByteToWideChar(CP_ACP, 0, ptr, -1, (LPWSTR)pwRes, length);
     
     length = WideCharToMultiByte( CP_UTF8, 0, pwRes, -1, NULL, 0, NULL, NULL);
     pRes = (char *)malloc(length*sizeof(char));
+    if(NULL == pRes)
+    {
+        free(pwRes);
+        return NULL;
+    }
+
+    if(NULL != pLength)
+    {
+        *pLength = length;
+    }
     memset(pRes, 0, length*sizeof(char));
     WideCharToMultiByte(CP_UTF8, 0, pwRes, -1, pRes, length, NULL, NULL);
     
@@ -230,21 +274,38 @@ char *ANSIToUTF8(const char *ptr)
 /*
  *  @Briefs: Convert UTF-8 format to ANSI format
  *  @Return: The pointer pointing to the string
- *  @Note:   Release memory manually
+ *  @Note:   1. Release memory manually
+ *           2. If pLength isn't NULL, pLength is equal to the length of ptr(counting in '\0')
  */
-char *UTF8ToANSI(const char *ptr)
+char *UTF8ToANSI(const char *ptr, int *pLength)
 {
+    if(NULL == ptr)
+        return NULL;
+
     int length;
     wchar_t *pwRes;
     char *pRes;
     
-    length = MultiByteToWideChar(CP_UTF8, 0, ptr,-1, NULL, 0);
+    length = MultiByteToWideChar(CP_UTF8, 0, ptr, -1, NULL, 0);
     pwRes = (wchar_t *)malloc(length*sizeof(wchar_t));
+    if(NULL == pwRes)
+        return NULL;
+        
     memset(pwRes, 0, length*sizeof(wchar_t));
     MultiByteToWideChar(CP_UTF8, 0, ptr, -1, (LPWSTR)pwRes, length);
     
     length = WideCharToMultiByte(CP_ACP, 0, pwRes, -1, NULL, 0, NULL, NULL);
     pRes = (char *)malloc(length*sizeof(char));
+    if(NULL == pRes)
+    {
+        free(pwRes);
+        return NULL;
+    }
+    
+    if(NULL != pLength)
+    {
+        *pLength = length;
+    }
     memset(pRes, 0, length*sizeof(char));
     WideCharToMultiByte(CP_ACP, 0, pwRes, -1, pRes, length, NULL, NULL);
     

@@ -218,6 +218,8 @@
 #define LAN_EN                                  0
 #define LAN_CH                                  (!LAN_EN)
 
+#define GetWidth(s)                             UTF8_GetWidth(s)
+
 extern char *g_EnMenu[];
 extern char *g_ChMenu[];
 extern char g_LanguageFlag;
@@ -227,6 +229,7 @@ extern char *ChInstruction[];
 
 //Inline function >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+#if 0
 /*
     It's only compliant for UTF-8 format
     Return the width of string
@@ -253,6 +256,7 @@ static inline int GetWidth(const char *ptr)
 
     return count;
 }
+#endif
 
 
 void InitStr(void);

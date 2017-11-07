@@ -34,8 +34,9 @@ Unicode symbol range  | UTF-8 encoded mode
             6 bytes             |   0xFC <=   first byte   < 0xFF
 -----------------------------------------------------------------*/
 
-BOOL UTF8_VerifyStrFormat(const char *ptr);
+_BOOL_ UTF8_VerifyStrFormat(const char *ptr);
 int UTF8_GetLength(const char *ptr);
+int UTF8_GetWidth(const char *ptr);
 int UTF8_GetSpecialSymbolNum(const char *ptr);
 
 #ifdef __WINDOWS
@@ -43,8 +44,8 @@ wchar_t *ANSIToUnicode(const char *ptr);
 wchar_t *UTF8ToUnicode(const char* ptr);
 char *UnicodeToANSI(const wchar_t *ptr);
 char *UnicodeToUTF8(const wchar_t *ptr);
-char *ANSIToUTF8(const char *ptr);
-char *UTF8ToANSI(const char *ptr);
+char *ANSIToUTF8(const char *ptr, int *pLength);
+char *UTF8ToANSI(const char *ptr, int *pLength);
 #endif
 
 
@@ -57,7 +58,7 @@ char *UTF8ToANSI(const char *ptr);
  *  @Return: TRUE / FALSE
  *  @Note:   None
  */
-static inline BOOL UTF8_VerifyCharFormat(const uint8_t ch)
+static inline _BOOL_ UTF8_VerifyCharFormat(const uint8_t ch)
 {
     return (((0x80 <= ch) && (0xC0 > ch)) || 0xFE < ch) ? FALSE : TRUE;
 }

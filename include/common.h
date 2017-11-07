@@ -42,7 +42,7 @@ typedef     unsigned long long                  uint64_t;
 
 #ifdef __LINUX
 #define     EXECUTE_DELETE                      "rm -rf %s >/dev/null 2>&1"
-#define     GetFileInfo(name, info)             stat(name, info)
+#define     GetFileInfo(name, info)             lstat(name, info)
 typedef struct stat                             stat_t;
 
 #elif defined __WINDOWS
@@ -81,12 +81,14 @@ extern struct tm *g_time;
 #define     LOG_FILE_NAME                       "./log"
 #elif defined __WINDOWS
 #define     LOG_FILE_NAME                       ".\\log"
+#define     true                                TRUE
+#define     false                               FALSE
 #endif
 
 typedef enum {
     FALSE = 0,
     TRUE = !FALSE,
-}BOOL; //Name as _bool_ to differ bool and _bool defined in curses.h on WINDOWS platform
+}_BOOL_; //Name as _bool_ to differ bool and _bool defined in curses.h on WINDOWS platform
 
 typedef enum {
     STAT_OK = 0,
