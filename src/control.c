@@ -6,7 +6,6 @@
  ************************************************************************/
 
 #include "control.h"
-#include <string.h>
 #include <unistd.h>
 //#include <stdarg.h> //It has been included in curses.h
 #ifdef __LINUX

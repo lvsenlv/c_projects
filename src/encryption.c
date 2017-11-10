@@ -7,7 +7,6 @@
 
 #include "encryption.h"
 #include "core_code.h"
-#include <string.h>
 #include <unistd.h>
 #include <dirent.h>
 
@@ -297,7 +296,7 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
                             break;
                         default:
                             RatioFactor[i] = 0;
-                            denominator[i] = (int)(PthreadArg[i].pCurFileList->FileSize / CYT_SMALL_FILE_SIZE);
+                            denominator[i] = (int)(PthreadArg[i].pCurFileList->FileSize / BASE_FILE_SIZE);
                             if(0 == denominator[i])
                                 denominator[i] = 100;
                             wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
@@ -525,7 +524,7 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
                             break;
                         default:
                             RatioFactor[i] = 0;
-                            denominator[i] = (int)(PthreadArg[i].pCurFileList->FileSize / CYT_SMALL_FILE_SIZE);
+                            denominator[i] = (int)(PthreadArg[i].pCurFileList->FileSize / BASE_FILE_SIZE);
                             if(0 == denominator[i])
                                 denominator[i] = 100;
                             //mvwhline(ScheduleWin[i], 0, (COLS*4/5 + sizeof(STR_RATE)-1), ' ', 4);

@@ -30,8 +30,7 @@
 #define DIR_DELIMITER                           '\\'
 #endif
 
-#define CYT_SMALL_FILE_SIZE                     ((int64_t)(1024*1024*100)) //100Mb
-#define PTHREAD_NUM_MAX                         2
+#define PTHREAD_NUM_MAX                         4
 #define REFRESH_INTERVAL                        100 //Unit: ms
 
 typedef enum

@@ -6,7 +6,6 @@
  ************************************************************************/
 
 #include "core_code.h"
-#include <string.h>
 #include <unistd.h>
 
 static G_STATUS CheckPthreadArg(PthreadArg_t *pArg_t);
@@ -159,7 +158,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     }
 
     uint8_t *pData = NULL;
-    pData = (uint8_t *)malloc(sizeof(uint8_t) * CYT_SMALL_FILE_SIZE);
+    pData = (uint8_t *)malloc(sizeof(uint8_t) * BASE_FILE_SIZE);
     if(NULL == pData)
     {
         free(pNewFileName);
@@ -199,9 +198,9 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     uint8_t *pTmp = NULL, *pTmp2 = NULL;
     uint8_t TmpData = 0;
     int i = 0, index = 0;
-    int CycleIndex = (int)(FileSize / CYT_SMALL_FILE_SIZE);
+    int CycleIndex = (int)(FileSize / BASE_FILE_SIZE);
 
-    int RestDataCount = CYT_SMALL_FILE_SIZE - PasswordLength;
+    int RestDataCount = BASE_FILE_SIZE - PasswordLength;
     uint8_t *pBackupData = NULL;
     pBackupData = (uint8_t *)malloc(PasswordLength * sizeof(uint8_t));
     if(NULL == pBackupData)
@@ -219,9 +218,9 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         *pRatioFactor = index*100;
         
         //Read data from original file
-        memset(pData, 0, sizeof(uint8_t)*CYT_SMALL_FILE_SIZE);
-        size = fread(pData, sizeof(uint8_t), CYT_SMALL_FILE_SIZE, fp);
-        if(CYT_SMALL_FILE_SIZE != size)
+        memset(pData, 0, sizeof(uint8_t)*BASE_FILE_SIZE);
+        size = fread(pData, sizeof(uint8_t), BASE_FILE_SIZE, fp);
+        if(BASE_FILE_SIZE != size)
         {
             free(pNewFileName);
             free(pData);
@@ -236,7 +235,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         
         //Proccess 1
         pTmp = pData;
-        for(i = 0; i < CYT_SMALL_FILE_SIZE; i++)
+        for(i = 0; i < BASE_FILE_SIZE; i++)
         {
             TmpData = 0;
             TmpData = *pTmp & SubFactor1;
@@ -249,13 +248,13 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
 
         //Proccess 2
         pTmp = pBackupData;
-        pTmp2 = pData + CYT_SMALL_FILE_SIZE - 1;
+        pTmp2 = pData + BASE_FILE_SIZE - 1;
         for(i = 0; i < PasswordLength; i++)
         {
             *pTmp++ = *pTmp2--;
         }
         
-        pTmp = pData + CYT_SMALL_FILE_SIZE - 1;
+        pTmp = pData + BASE_FILE_SIZE - 1;
         pTmp2 = pData + RestDataCount - 1;
         for(i = 0; i < RestDataCount; i++)
         {
@@ -273,7 +272,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
 
         //Proccess 3
         pPassword = g_password;
-        pTmp = pData + CYT_SMALL_FILE_SIZE - 1;
+        pTmp = pData + BASE_FILE_SIZE - 1;
         for(i = 0; i < PasswordLength; i++)
         {
             TmpData = *pTmp;
@@ -286,8 +285,8 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         *pRatioFactor += 10;
 
         //Write encyption data to new file
-        size = fwrite(pData, sizeof(uint8_t), CYT_SMALL_FILE_SIZE, NewFp);
-        if(CYT_SMALL_FILE_SIZE != size)
+        size = fwrite(pData, sizeof(uint8_t), BASE_FILE_SIZE, NewFp);
+        if(BASE_FILE_SIZE != size)
         {
             free(pNewFileName);
             free(pData);
@@ -300,10 +299,10 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     }
 
     //Encrypt rest data
-    int RestDataSize = (int)(FileSize % CYT_SMALL_FILE_SIZE);
+    int RestDataSize = (int)(FileSize % BASE_FILE_SIZE);
     
     //Read data from original file
-    memset(pData, 0, sizeof(uint8_t)*CYT_SMALL_FILE_SIZE);
+    memset(pData, 0, sizeof(uint8_t)*BASE_FILE_SIZE);
     size = fread(pData, sizeof(uint8_t), RestDataSize, fp);
     if(size != RestDataSize)
     {
@@ -463,7 +462,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     }
 
     uint8_t *pData = NULL;
-    pData = (uint8_t *)malloc(sizeof(uint8_t) * CYT_SMALL_FILE_SIZE);
+    pData = (uint8_t *)malloc(sizeof(uint8_t) * BASE_FILE_SIZE);
     if(NULL == pData)
     {
         free(pNewFileName);
@@ -503,9 +502,9 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     uint8_t *pTmp = NULL, *pTmp2 = NULL;
     uint8_t TmpData = 0;
     int i = 0, index = 0;
-    int CycleIndex = (int)(FileSize / CYT_SMALL_FILE_SIZE);
+    int CycleIndex = (int)(FileSize / BASE_FILE_SIZE);
 
-    int RestDataCount = CYT_SMALL_FILE_SIZE - PasswordLength;
+    int RestDataCount = BASE_FILE_SIZE - PasswordLength;
     uint8_t *pBackupData = NULL;
     pBackupData = (uint8_t *)malloc(PasswordLength * sizeof(uint8_t));
     if(NULL == pBackupData)
@@ -523,9 +522,9 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         *pRatioFactor = index*100;
         
         //Read data from original file
-        memset(pData, 0, sizeof(uint8_t)*CYT_SMALL_FILE_SIZE);
-        size = fread(pData, sizeof(uint8_t), CYT_SMALL_FILE_SIZE, fp);
-        if(size != CYT_SMALL_FILE_SIZE)
+        memset(pData, 0, sizeof(uint8_t)*BASE_FILE_SIZE);
+        size = fread(pData, sizeof(uint8_t), BASE_FILE_SIZE, fp);
+        if(size != BASE_FILE_SIZE)
         {
             free(pNewFileName);
             free(pData);
@@ -540,7 +539,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         
         //Proccess 3
         pPassword = g_password + PasswordLength - 1;
-        pTmp = pData + CYT_SMALL_FILE_SIZE - PasswordLength;
+        pTmp = pData + BASE_FILE_SIZE - PasswordLength;
         for(i = 0; i < PasswordLength; i++)
         {
             TmpData = *pTmp;
@@ -567,7 +566,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
             *pTmp++ = *pTmp2++;
         }
 
-        pTmp = pData + CYT_SMALL_FILE_SIZE - 1;
+        pTmp = pData + BASE_FILE_SIZE - 1;
         pTmp2 = pBackupData;
         for(i = 0; i < PasswordLength; i++)
         {
@@ -578,7 +577,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
 
         //Proccess 1
         pTmp = pData;
-        for(i = 0; i < CYT_SMALL_FILE_SIZE; i++)
+        for(i = 0; i < BASE_FILE_SIZE; i++)
         {
             TmpData = 0;
             TmpData = *pTmp & SubFactor1;
@@ -590,8 +589,8 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         *pRatioFactor += 50;
 
         //Write encyption data to new file
-        size = fwrite(pData, sizeof(uint8_t), CYT_SMALL_FILE_SIZE, NewFp);
-        if(CYT_SMALL_FILE_SIZE != size)
+        size = fwrite(pData, sizeof(uint8_t), BASE_FILE_SIZE, NewFp);
+        if(BASE_FILE_SIZE != size)
         {
             free(pNewFileName);
             free(pData);
@@ -604,10 +603,10 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     }
 
     //Encrypt rest data
-    int RestDataSize = (int)(FileSize % CYT_SMALL_FILE_SIZE);
+    int RestDataSize = (int)(FileSize % BASE_FILE_SIZE);
     
     //Read data from original file
-    memset(pData, 0, sizeof(uint8_t)*CYT_SMALL_FILE_SIZE);
+    memset(pData, 0, sizeof(uint8_t)*BASE_FILE_SIZE);
     size = fread(pData, sizeof(uint8_t), RestDataSize, fp);
     if(size != RestDataSize)
     {

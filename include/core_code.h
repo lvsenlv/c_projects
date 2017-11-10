@@ -15,6 +15,7 @@
 #include <windows.h>
 #endif
 
+#define BASE_FILE_SIZE                          ((int64_t)(1024*1024*100)) //100Mb
 #define PTHREAD_WAIT_INTERVAL                   1 //Unit: ms, wait for parent process to refresh window
 
 #ifdef __LINUX

@@ -9,6 +9,7 @@
 #define __STR_H
 
 #include "decoder.h"
+#include <string.h>
 
 #define STR_BACK                               ((0 == g_LanguageFlag) ? STR_EN_BACK                         : STR_CH_BACK                          )
 #define STR_BEYOND_RANGE_OF_DISP               ((0 == g_LanguageFlag) ? STR_EN_BEYOND_RANGE_OF_DISP         : STR_CH_BEYOND_RANGE_OF_DISP          )
@@ -218,8 +219,6 @@
 #define LAN_EN                                  0
 #define LAN_CH                                  (!LAN_EN)
 
-#define GetWidth(s)                             UTF8_GetWidth(s)
-
 extern char *g_EnMenu[];
 extern char *g_ChMenu[];
 extern char g_LanguageFlag;
@@ -228,6 +227,15 @@ extern char *ChInstruction[];
 
 
 //Inline function >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+static inline int GetWidth(const char *ptr)
+{
+    int width = UTF8_GetWidth(ptr);
+    if(0 == width)
+        return strlen(ptr);
+
+    return width;
+}
 
 #if 0
 /*
