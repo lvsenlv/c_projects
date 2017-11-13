@@ -113,6 +113,7 @@ G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
             return STAT_OK;
         }
         
+        //ProcessStatus = EncryptDecrypt(pFileList, func);
         ProcessStatus = EncryptDecrypt(pFileList, func);
 
         FreeFileList(pFileList);
@@ -162,33 +163,34 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
     //Create the window >>>
     WINDOW *ScheduleWin[PTHREAD_NUM_MAX];
     WINDOW *win[PTHREAD_NUM_MAX];
-    int i;
-
-    for(i = 0; i < PTHREAD_NUM_MAX; i++)
-    {
-        ScheduleWin[i] = newwin(1, COLS, i*LINES/PTHREAD_NUM_MAX, 0);
-    }
+    int StartPosY = 1;
+    int i, remainder = (LINES-PTHREAD_NUM_MAX)%PTHREAD_NUM_MAX;
     
-    for(i = 0; i < PTHREAD_NUM_MAX-1; i++) //PTHREAD_NUM_MAX-1 : the last win should tackle additionally
+    for(i = 0; i < remainder; i++)
     {
+        ScheduleWin[i] = newwin(1, COLS, StartPosY-1, 0);
+        
         /*
             LINES-PTHREAD_NUM_MAX : schedule wins take cost of PTHREAD_NUM_MAX lines
-            i*LINES/PTHREAD_NUM_MAX + 1 : schedule wins occupy the position i*LINES/PTHREAD_NUM_MAX, 
-                so the win should start from to next line.
+            (LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX + 1 : 
+                if (LINES-PTHREAD_NUM_MAX)%PTHREAD_NUM_MAX isn't equal to 0,
+                the window should occupy one more line
         */
-        win[i] = newwin((LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX, COLS, 
-            i*LINES/PTHREAD_NUM_MAX + 1, 0);
+        win[i] = newwin((LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX + 1, COLS, StartPosY, 0);
+        StartPosY += (LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX + 1 + 1; //The last "1" is schedule win's
     }
 
-    /*
-        It must be under considered the situation that the result of LINES/PTHREAD_NUM_MAX 
-            is decimal fraction.
-        Thus, use "LINES-PTHREAD_NUM_MAX - (LINES-PTHREAD_NUM_MAX)*(PTHREAD_NUM_MAX-1)/PTHREAD_NUM_MAX"
-            instead of "(LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX"
-    */
-    win[PTHREAD_NUM_MAX-1] = newwin(LINES-PTHREAD_NUM_MAX - 
-        (LINES-PTHREAD_NUM_MAX)*(PTHREAD_NUM_MAX-1)/PTHREAD_NUM_MAX, 
-        COLS, LINES*(PTHREAD_NUM_MAX-1)/PTHREAD_NUM_MAX + 1, 0);
+    //Must follow above cycle
+    for(; i < PTHREAD_NUM_MAX; i++) //Can not initialize i here
+    {
+        ScheduleWin[i] = newwin(1, COLS, StartPosY-1, 0);
+    
+        /*
+            LINES-PTHREAD_NUM_MAX : schedule wins take cost of PTHREAD_NUM_MAX lines
+        */
+        win[i] = newwin((LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX, COLS, StartPosY, 0);
+        StartPosY += (LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX + 1; //The last "1" is schedule win's
+    }
     
     for(i = 0; i < PTHREAD_NUM_MAX; i++)
     {
@@ -388,25 +390,34 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
     //Create the window >>>
     WINDOW *ScheduleWin[PTHREAD_NUM_MAX];
     WINDOW *win[PTHREAD_NUM_MAX];
-    int i, CycleIndex;
-
-    CycleIndex = (PTHREAD_NUM_MAX <= pFileList->FileSize) ? 
-        PTHREAD_NUM_MAX : pFileList->FileSize;
-
-    for(i = 0; i < CycleIndex; i++)
-    {
-        ScheduleWin[i] = newwin(1, COLS, i*LINES/CycleIndex, 0);
-    }
+    int StartPosY = 1;
+    int CycleIndex = pFileList->FileSize; //pFileList->FileSize is lower than PTHREAD_NUM_MAX in this situation
+    int i, remainder = (LINES-CycleIndex)%CycleIndex;
     
-    for(i = 0; i < CycleIndex-1; i++) //PTHREAD_NUM_MAX-1 : the last win should tackle additionally
+    for(i = 0; i < remainder; i++)
     {
+        ScheduleWin[i] = newwin(1, COLS, StartPosY-1, 0);
+        
         /*
             LINES-PTHREAD_NUM_MAX : schedule wins take cost of PTHREAD_NUM_MAX lines
-            i*LINES/PTHREAD_NUM_MAX + 1 : schedule wins occupy the position i*LINES/PTHREAD_NUM_MAX, 
-                so the win should start from to next line.
+            (LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX + 1 : 
+                if (LINES-PTHREAD_NUM_MAX)%PTHREAD_NUM_MAX isn't equal to 0,
+                the window should occupy one more line
         */
-        win[i] = newwin((LINES-CycleIndex)/CycleIndex, COLS, 
-            i*LINES/CycleIndex + 1, 0);
+        win[i] = newwin((LINES-CycleIndex)/CycleIndex + 1, COLS, StartPosY, 0);
+        StartPosY += (LINES-CycleIndex)/CycleIndex + 1 + 1; //The last "1" is schedule win's
+    }
+    
+    //Must follow above cycle
+    for(; i < CycleIndex; i++) //Can not initialize i here
+    {
+        ScheduleWin[i] = newwin(1, COLS, StartPosY-1, 0);
+    
+        /*
+            LINES-PTHREAD_NUM_MAX : schedule wins take cost of PTHREAD_NUM_MAX lines
+        */
+        win[i] = newwin((LINES-CycleIndex)/CycleIndex, COLS, StartPosY, 0);
+        StartPosY += (LINES-CycleIndex)/CycleIndex + 1; //The last "1" is schedule win's
     }
 
     /*
