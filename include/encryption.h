@@ -23,15 +23,13 @@
 */
 
 #ifdef __LINUX
-#define FILE_LIST_LOG_NAME                      "./file_list.log"
 #define DIR_DELIMITER                           '/'
 #elif defined __WINDOWS
-#define FILE_LIST_LOG_NAME                      ".\\file_list.log"
 #define DIR_DELIMITER                           '\\'
 #endif
 
 #define PTHREAD_NUM_MAX                         4
-#define REFRESH_INTERVAL                        100 //Unit: ms
+#define REFRESH_INTERVAL                        1 //Unit: ms
 
 typedef enum
 {

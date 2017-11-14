@@ -10,6 +10,7 @@
 
 static G_STATUS CheckPthreadArg(PthreadArg_t *pArg_t);
 static inline void DeleteEncyptSuffix(char *pFileName);
+static inline G_STATUS DeleteFile(const char *pFileName);
 
 __IO FileList_t *g_pCurFilelist = NULL;
 pthread_mutex_t g_FileLock = PTHREAD_MUTEX_INITIALIZER;
@@ -154,7 +155,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         fclose(NewFp);
         fp = NULL;
         NewFp = NULL;
-        goto GOTO_DELETE_FILE;
+        return DeleteFile(pFileName);
     }
 
     uint8_t *pData = NULL;
@@ -164,6 +165,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         free(pNewFileName);
         fclose(fp);
         fclose(NewFp);
+        unlink(pNewFileName);
         DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
         return STAT_FATAL_ERR;
     }
@@ -186,6 +188,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         free(pData);
         fclose(fp);
         fclose(NewFp);
+        unlink(pNewFileName);
         DISP_LOG("%s: %s\n", pFileName, STR_PASSWORD_NULL);
         return STAT_ERR;
     }
@@ -209,6 +212,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         free(pData);
         fclose(fp);
         fclose(NewFp);
+        unlink(pNewFileName);
         DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
         return STAT_FATAL_ERR;
     }
@@ -227,6 +231,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
             free(pBackupData);
             fclose(fp);
             fclose(NewFp);
+            unlink(pNewFileName);
             DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
             return STAT_ERR;
         }
@@ -293,6 +298,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
             free(pBackupData);
             fclose(fp);
             fclose(NewFp);
+            unlink(pNewFileName);
             DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
             return STAT_ERR;
         }
@@ -311,6 +317,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         free(pBackupData);
         fclose(fp);
         fclose(NewFp);
+        unlink(pNewFileName);
         DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
         return STAT_ERR;
     }
@@ -387,6 +394,7 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         free(pBackupData);
         fclose(fp);
         fclose(NewFp);
+        unlink(pNewFileName);
         DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
         return STAT_ERR;
     }
@@ -395,18 +403,10 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     free(pBackupData);
     fclose(fp);
     fclose(NewFp);
-    fp = NULL;
-    NewFp = NULL;
+//    fp = NULL;
+//    NewFp = NULL;
 
-GOTO_DELETE_FILE:
-
-    if(0 != unlink(pFileName))
-    {
-        DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_DELETE_OLD_FILE);
-        return STAT_ERR;
-    }
-
-    return STAT_OK;    
+    return DeleteFile(pFileName);
 }
 
 /*
@@ -458,7 +458,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         free(pNewFileName);
         fclose(fp);
         fclose(NewFp);
-        return STAT_OK;
+        return DeleteFile(pFileName);
     }
 
     uint8_t *pData = NULL;
@@ -468,6 +468,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         free(pNewFileName);
         fclose(fp);
         fclose(NewFp);
+        unlink(pNewFileName);
         DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
         return STAT_FATAL_ERR;
     }
@@ -490,6 +491,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         free(pData);
         fclose(fp);
         fclose(NewFp);
+        unlink(pNewFileName);
         DISP_LOG("%s: %s\n", pFileName, STR_PASSWORD_NULL);
         return STAT_ERR;
     }
@@ -513,6 +515,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         free(pData);
         fclose(fp);
         fclose(NewFp);
+        unlink(pNewFileName);
         DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
         return STAT_FATAL_ERR;
     }
@@ -531,6 +534,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
             free(pBackupData);
             fclose(fp);
             fclose(NewFp);
+            unlink(pNewFileName);
             DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
             return STAT_ERR;
         }
@@ -597,6 +601,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
             free(pBackupData);
             fclose(fp);
             fclose(NewFp);
+            unlink(pNewFileName);
             DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
             return STAT_ERR;
         }
@@ -615,6 +620,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         free(pBackupData);
         fclose(fp);
         fclose(NewFp);
+        unlink(pNewFileName);
         DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
         return STAT_ERR;
     }
@@ -692,6 +698,7 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         free(pBackupData);
         fclose(fp);
         fclose(NewFp);
+        unlink(pNewFileName);
         DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
         return STAT_ERR;
     }
@@ -701,8 +708,8 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     free(pBackupData);
     fclose(fp);
     fclose(NewFp);
-   
-    return STAT_OK;    
+    
+    return DeleteFile(pFileName);
 }
 
 
@@ -761,4 +768,20 @@ static inline void DeleteEncyptSuffix(char *pFileName)
 
     if(0 != len)
         *ptr = '\0';
+}
+
+/*
+ *  @Briefs: Delete the pFileName
+ *  @Return: STAT_ERR / STAT_OK
+ *  @Note:   None
+ */
+static inline G_STATUS DeleteFile(const char *pFileName)
+{
+    if(0 != unlink(pFileName))
+    {
+        DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_DELETE_OLD_FILE);
+        return STAT_ERR;
+    }
+
+    return STAT_OK;
 }

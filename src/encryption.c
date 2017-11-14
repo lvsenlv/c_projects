@@ -153,13 +153,6 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
     }
 #endif
 
-    FILE *fp = fopen(FILE_LIST_LOG_NAME, "wb");
-    if(NULL == fp)
-    {
-        DISP_ERR("%s: %s\n", STR_FAIL_TO_OPEN_LOG_FILE, FILE_LIST_LOG_NAME);
-        return PROCESS_STATUS_ELSE_ERR;
-    }
-
     //Create the window >>>
     WINDOW *ScheduleWin[PTHREAD_NUM_MAX];
     WINDOW *win[PTHREAD_NUM_MAX];
@@ -241,7 +234,6 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
         ret = pthread_create(&PthreadID[i], NULL, Pthread_EncryptDecrypt, &PthreadArg[i]);
 	    if(ret != 0)
 	    {
-	        fclose(fp);
 		    DISP_ERR(STR_FAIL_TO_CREATE_PTHREAD);
             return PROCESS_STATUS_ELSE_ERR;
 	    }
@@ -274,10 +266,6 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
                     switch(PthreadArg[i].RefreshFlag)
                     {
                         case REFRESH_FLAG_SUCCESS:
-                            if(CTL_MENU_DECRYPT == func)
-                            {
-                                fprintf(fp, "%s\n", PthreadArg[i].pCurFileList->pFileName);
-                            }
                             mvwprintw(ScheduleWin[i], 0, (COLS*2/5 + StrSuccessWidth), 
                                 "%d", PthreadArg[i].SuccessCount);
                             mvwprintw(ScheduleWin[i], 0, (COLS*4/5 + StrRateWidth), "100%%");
@@ -322,8 +310,6 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
         delay(REFRESH_INTERVAL);
 	}
 	
-	fclose(fp);
-        
     for(i = 0; i < PTHREAD_NUM_MAX; i++)
     {
         delwin(ScheduleWin[i]);
@@ -380,13 +366,6 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
     if(PTHREAD_NUM_MAX <= pFileList->FileSize)
         return EncryptDecrypt(pFileList, func);
 
-    FILE *fp = fopen(FILE_LIST_LOG_NAME, "wb");
-    if(NULL == fp)
-    {
-        DISP_ERR("%s: %s\n", STR_FAIL_TO_OPEN_LOG_FILE, FILE_LIST_LOG_NAME);
-        return PROCESS_STATUS_ELSE_ERR;
-    }
-
     //Create the window >>>
     WINDOW *ScheduleWin[PTHREAD_NUM_MAX];
     WINDOW *win[PTHREAD_NUM_MAX];
@@ -420,16 +399,6 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
         StartPosY += (LINES-CycleIndex)/CycleIndex + 1; //The last "1" is schedule win's
     }
 
-    /*
-        It must be under considered the situation that the result of LINES/PTHREAD_NUM_MAX 
-            is decimal fraction.
-        Thus, use "LINES-PTHREAD_NUM_MAX - (LINES-PTHREAD_NUM_MAX)*(PTHREAD_NUM_MAX-1)/PTHREAD_NUM_MAX"
-            instead of "(LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX"
-    */
-    win[CycleIndex-1] = newwin(LINES-CycleIndex - 
-        (LINES-CycleIndex)*(CycleIndex-1)/CycleIndex, 
-        COLS, LINES*(CycleIndex-1)/CycleIndex + 1, 0);
-    
     for(i = 0; i < CycleIndex; i++)
     {
         CTL_SET_COLOR(ScheduleWin[i], CTL_PANEL_CYAN);
@@ -479,7 +448,6 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
         ret = pthread_create(&PthreadID[i], NULL, Pthread_EncryptDecrypt, &PthreadArg[i]);
 	    if(ret != 0)
 	    {
-	        fclose(fp);
 		    DISP_ERR(STR_FAIL_TO_CREATE_PTHREAD);
             return PROCESS_STATUS_ELSE_ERR;
 	    }
@@ -512,7 +480,6 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
                     switch(PthreadArg[i].RefreshFlag)
                     {
                         case REFRESH_FLAG_SUCCESS:
-                            fprintf(fp, "%s\n", PthreadArg[i].pCurFileList->pFileName);
                             mvwprintw(ScheduleWin[i], 0, (COLS*2/5 + StrSuccessWidth), 
                                 "%d", PthreadArg[i].SuccessCount);
                             mvwprintw(ScheduleWin[i], 0, (COLS*4/5 + StrRateWidth), "100%%");
@@ -525,8 +492,6 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
                         case REFRESH_FLAG_FAIL:
                             mvwprintw(ScheduleWin[i], 0, (COLS*3/5 + StrFailWidth), 
                                 "%d", PthreadArg[i].FailCount);
-                            //mvwhline(ScheduleWin[i], 0, (COLS*4/5 + sizeof(STR_RATE)-1), ' ', 4);
-                            //mvwprintw(ScheduleWin[i], 0, (COLS*4/5 + sizeof(STR_RATE)-1), "0%%");
                             CTL_SET_COLOR(win[i], CTL_PANEL_RED);
                             wattron(win[i], A_BOLD);
                             wprintw(win[i], " %s\n", STR_FAIL);
@@ -538,7 +503,6 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
                             denominator[i] = (int)(PthreadArg[i].pCurFileList->FileSize / BASE_FILE_SIZE);
                             if(0 == denominator[i])
                                 denominator[i] = 100;
-                            //mvwhline(ScheduleWin[i], 0, (COLS*4/5 + sizeof(STR_RATE)-1), ' ', 4);
                             wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
                             break;
                     }
@@ -560,8 +524,6 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
         delay(REFRESH_INTERVAL);
 	}
 
-    fclose(fp);
-        
     for(i = 0; i < CycleIndex; i++)
     {
         delwin(ScheduleWin[i]);
@@ -571,6 +533,12 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
     touchwin(stdscr);
     refresh();
     
+    for(i = 0; i < PTHREAD_NUM_MAX; i++)
+    {
+        g_SuccessFailCountTable[0] += PthreadArg[i].SuccessCount;
+        g_SuccessFailCountTable[1] += PthreadArg[i].FailCount;
+    }
+
     for(i = 0; i < CycleIndex; i++)
     {
         if(PROCESS_STATUS_SUCCESS != PthreadArg[i].ProcessStatus)
@@ -935,7 +903,6 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     if(PROCESS_STATUS_ELSE_ERR == ProcessStatus)
     {
         unlink(LOG_FILE_NAME);
-        unlink(FILE_LIST_LOG_NAME);
         CTL_DispWarning(g_ErrBuf);
         return STAT_OK;
     }
@@ -950,7 +917,6 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     if(PROCESS_STATUS_SUCCESS == ProcessStatus)
     {
         unlink(LOG_FILE_NAME);
-        unlink(FILE_LIST_LOG_NAME);
         
         CTL_SET_COLOR(win, CTL_PANEL_GREEN);
         wattron(win, A_BOLD);
