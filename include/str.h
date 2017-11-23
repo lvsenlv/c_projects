@@ -38,6 +38,7 @@
 #define STR_MENU                               ((0 == g_LanguageFlag) ? STR_EN_MENU                         : STR_CH_MENU                          )
 #define STR_NO                                 ((0 == g_LanguageFlag) ? STR_EN_NO                           : STR_CH_NO                            )
 #define STR_NOT_A_FILE                         ((0 == g_LanguageFlag) ? STR_EN_NOT_A_FILE                   : STR_CH_NOT_A_FILE                    )
+#define STR_NOT_NOT_SUPPORT_FUNCTION           ((0 == g_LanguageFlag) ? STR_EN_NOT_SUPPORT_FUNCTION         : STR_CH_NOT_SUPPORT_FUNCTION          )
 #define STR_NULL                               ((0 == g_LanguageFlag) ? STR_EN_NULL                         : STR_CH_NULL                          )
 #define STR_PASSWORD_NOT_MATCH                 ((0 == g_LanguageFlag) ? STR_EN_PASSWORD_NOT_MATCH           : STR_CH_PASSWORD_NOT_MATCH            )
 #define STR_PASSWORD_NULL                      ((0 == g_LanguageFlag) ? STR_EN_PASSWORD_NULL                : STR_CH_PASSWORD_NULL                 )
@@ -108,6 +109,7 @@
 #define STR_EN_MENU                             "Menu"
 #define STR_EN_NO                               "[ no ]"
 #define STR_EN_NOT_A_FILE                       "It is not a file"
+#define STR_EN_NOT_SUPPORT_FUNCTION             "Not support this function  temporarily"
 #define STR_EN_NULL                             "NULL"
 #define STR_EN_PASSWORD_NOT_MATCH               "Two password do not match"
 #define STR_EN_PASSWORD_NULL                    "Length of key could not be null"
@@ -180,6 +182,7 @@
 #define STR_CH_MENU                             "菜单"
 #define STR_CH_NO                               "[ 否 ]"
 #define STR_CH_NOT_A_FILE                       "不是一个文件"
+#define STR_CH_NOT_SUPPORT_FUNCTION             "暂时不提供此功能        "
 #define STR_CH_NULL                             "空"
 #define STR_CH_PASSWORD_NOT_MATCH               "两次密码不匹配"
 #define STR_CH_PASSWORD_NULL                    "密码不能为空"

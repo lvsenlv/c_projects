@@ -56,7 +56,7 @@
 #define CTL_DECRYPT_FILE_WIN_COLS               60
 
 #define CTL_RESULT_WIN_COLS                     40
-#define CTL_RESULT_WIN_LINES                    6
+#define CTL_RESULT_WIN_LINES                    4
 
 #define CTL_CONFIRM_WIN_COLS                    40
 #define CTL_CONFIRM_WIN_LINES                   7
@@ -145,5 +145,28 @@ static inline void CTL_SafeExit(WINDOW *win)
     }
     touchwin(win);
 }
+
+#ifdef __WINDOWS
+/*
+ *  @Briefs: Fix bug for incomplete display if the string contains Chinese symbol
+ *  @Return: STAT_ERR / STAT_OK
+ *  @Note:   None
+ */
+static inline G_STATUS CTL_FixBug_IncompleteDisp(WINDOW *win, char *pStr)
+{
+    int SpecSymNum = UTF8_GetSpecialSymbolNum(pStr);
+    if(0 == SpecSymNum)
+        return STAT_ERR;
+
+    int i;
+    for(i = 0; i < SpecSymNum; i++)
+    {
+        waddch(win, ' ');
+    }
+
+    return STAT_OK;
+}
+#endif //#ifdef __WINDOWS
+
 
 #endif

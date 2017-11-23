@@ -98,10 +98,16 @@ G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
                 (CTL_MENU_ENCRYPT == func) ? STR_PRO_REASON_NO_ENCRYPT_FILE : STR_PRO_REASON_NO_DECRYPT_FILE);
             return STAT_OK;
         }
-        
+
+#ifdef __LINUX
         if(STAT_OK != CTL_ConfirmOperation("%s%s\n%s: %d, %s\n", 
             (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING, FileName, 
             STR_TOTAL_FILE, pFileList->FileSize, STR_IF_CONTINUE))
+#elif defined __WINDOWS
+        if(STAT_OK != CTL_ConfirmOperation("%s%s\n%s: %d\n", 
+            (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING, FileName, 
+            STR_TOTAL_FILE, pFileList->FileSize))
+#endif
         {
             FreeFileList(pFileList);
             return STAT_OK;
@@ -244,6 +250,10 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
     int StrSuccessWidth = GetWidth(STR_SUCCESS_COUNT);
     int StrFailWidth = GetWidth(STR_FAIL_COUNT);
     int StrRateWidth = GetWidth(STR_RATE);
+#ifdef __WINDOWS
+    char *pConverFormat;
+    int SpecialSymbolNum;
+#endif
 	
 	while(1)
     {
@@ -289,7 +299,29 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
                             denominator[i] = (int)(PthreadArg[i].pCurFileList->FileSize / BASE_FILE_SIZE);
                             if(0 == denominator[i])
                                 denominator[i] = 100;
+#ifdef __LINUX
                             wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
+#elif defined __WINDOWS
+                            if(TRUE == UTF8_VerifyStrFormat(PthreadArg[i].pCurFileList->pFileName))
+                            {
+                                wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
+                            }
+                            else
+                            {
+                                pConverFormat = ANSIToUTF8(PthreadArg[i].pCurFileList->pFileName, NULL);
+                                wprintw(win[i], "%s", pConverFormat);
+                                SpecialSymbolNum = UTF8_GetSpecialSymbolNum(pConverFormat);
+                                for(; SpecialSymbolNum > 0; SpecialSymbolNum--)
+                                {
+                                    waddch(win[i], ' ');
+                                }
+                                
+                                if(NULL != pConverFormat)
+                                {
+                                    free(pConverFormat);
+                                }
+                            }
+#endif
                             break;
                     }
                     
@@ -458,6 +490,11 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
     int StrSuccessWidth = GetWidth(STR_SUCCESS_COUNT);
     int StrFailWidth = GetWidth(STR_FAIL_COUNT);
     int StrRateWidth = GetWidth(STR_RATE);
+#ifdef __WINDOWS
+    char *pConverFormat;
+    int SpecialSymbolNum;
+#endif
+
 	
 	while(1)
     {
@@ -503,7 +540,29 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
                             denominator[i] = (int)(PthreadArg[i].pCurFileList->FileSize / BASE_FILE_SIZE);
                             if(0 == denominator[i])
                                 denominator[i] = 100;
+#ifdef __LINUX
                             wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
+#elif defined __WINDOWS
+                            if(TRUE == UTF8_VerifyStrFormat(PthreadArg[i].pCurFileList->pFileName))
+                            {
+                                wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
+                            }
+                            else
+                            {
+                                pConverFormat = ANSIToUTF8(PthreadArg[i].pCurFileList->pFileName, NULL);
+                                wprintw(win[i], "%s", pConverFormat);
+                                SpecialSymbolNum = UTF8_GetSpecialSymbolNum(pConverFormat);
+                                for(; SpecialSymbolNum > 0; SpecialSymbolNum--)
+                                {
+                                    waddch(win[i], ' ');
+                                }
+                                
+                                if(NULL != pConverFormat)
+                                {
+                                    free(pConverFormat);
+                                }
+                            }
+#endif
                             break;
                     }
                     
@@ -920,14 +979,16 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
         
         CTL_SET_COLOR(win, CTL_PANEL_GREEN);
         wattron(win, A_BOLD);
-        snprintf(buf, sizeof(buf), "%s [ %s: %d ]", STR_SUCCESS, STR_TOTAL_FILE, 
+        snprintf(buf, sizeof(buf), "%s%s %d", STR_SUCCESS_COUNT, STR_TOTAL_FILE, 
             g_SuccessFailCountTable[0]);
-        mvwaddstr(win, 2, (CTL_RESULT_WIN_COLS-GetWidth(buf))/2, buf);
+        mvwaddstr(win, 1, (CTL_RESULT_WIN_COLS-GetWidth(buf))/2, buf);
+        CTL_RESET_COLOR(win, CTL_PANEL_GREEN);
         wattroff(win, A_BOLD);
-        
+
+        CTL_SET_COLOR(win, CTL_PANEL_CYAN);
         wborder(win, '*', '*', '*', '*', '*', '*', '*', '*');
         wattron(win, A_REVERSE);
-        mvwaddstr(win, 3, (CTL_RESULT_WIN_COLS-GetWidth(STR_GO_BACK))/2, STR_GO_BACK);
+        mvwaddstr(win, 2, (CTL_RESULT_WIN_COLS-GetWidth(STR_GO_BACK))/2, STR_GO_BACK);
         wattroff(win, A_REVERSE);
         wrefresh(win);
         
@@ -952,7 +1013,7 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
         g_SuccessFailCountTable[0], STR_FAIL, g_SuccessFailCountTable[1]);
     CTL_SET_COLOR(win, CTL_PANEL_GREEN);
     wattron(win, A_BOLD);
-    mvwprintw(win, 2, (CTL_RESULT_WIN_COLS-GetWidth(buf))/2, 
+    mvwprintw(win, 1, (CTL_RESULT_WIN_COLS-GetWidth(buf))/2, 
         "%s[ %d ]     ", STR_SUCCESS, g_SuccessFailCountTable[0]);
     CTL_SET_COLOR(win, CTL_PANEL_RED);
     wprintw(win, "%s[ %d ]", STR_FAIL, g_SuccessFailCountTable[1]);
@@ -967,9 +1028,9 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     int Str2StartX = CTL_RESULT_WIN_COLS - Str1StartX - GetWidth(pStr2);
     char flag = 0;
 
-    mvwaddstr(win, 4, Str2StartX, pStr2);
+    mvwaddstr(win, 2, Str2StartX, pStr2);
     wattron(win, A_REVERSE);
-    mvwaddstr(win, 4, Str1StartX, pStr1);
+    mvwaddstr(win, 2, Str1StartX, pStr1);
     wattroff(win, A_REVERSE);
     
     while(1)
@@ -986,16 +1047,16 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
 
         if(flag)
         {
-            mvwaddstr(win, 4, Str1StartX, pStr1);
+            mvwaddstr(win, 2, Str1StartX, pStr1);
             wattron(win, A_REVERSE);
-            mvwaddstr(win, 4, Str2StartX, pStr2);
+            mvwaddstr(win, 2, Str2StartX, pStr2);
             wattroff(win, A_REVERSE);
         }
         else
         {
-            mvwaddstr(win, 4, Str2StartX, pStr2);
+            mvwaddstr(win, 2, Str2StartX, pStr2);
             wattron(win, A_REVERSE);
-            mvwaddstr(win, 4, Str1StartX, pStr1);
+            mvwaddstr(win, 2, Str1StartX, pStr1);
             wattroff(win, A_REVERSE);
         }
     }

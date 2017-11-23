@@ -16,7 +16,9 @@ int main(void)
     CTL_MENU func = CTL_MENU_MAX;
 
     CTL_InitConsole();
+#ifdef __LINUX
     CTL_ChooseLanguage();
+#endif
 
     while(1)
     {

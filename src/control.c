@@ -88,6 +88,7 @@ void CTL_DrawStdConsole(void)
     refresh();
 }
 
+#ifdef __LINUX
 /*
  *  Briefs: Choose language
  *  Return: None
@@ -154,6 +155,18 @@ WHILE_OUT :
         CTL_CHOOSE_LANGUAGE_WIN_LINES);
     refresh();
 }
+#elif defined __WINDOWS
+/*
+ *  Briefs: Choose language
+ *  Return: None
+ *  Note:   None
+ */
+void CTL_ChooseLanguage(void)
+{
+    CTL_DispWarning("%s\n%s", STR_EN_NOT_SUPPORT_FUNCTION, STR_CH_NOT_SUPPORT_FUNCTION);
+}
+#endif
+
 
 /*
  *  Briefs: Show menu
@@ -244,22 +257,24 @@ void CTL_ShowInstruction(void)
     WINDOW *win = newwin(LINES, COLS, 0, 0);
     char **ptr = (g_LanguageFlag == LAN_EN) ? EnInstruction : ChInstruction;
 
-    CTL_SET_COLOR(win, CTL_PANEL_GREEN);
+    CTL_SET_COLOR(win, CTL_PANEL_CYAN);
     wattron(win, A_REVERSE);
     //mvwaddstr(win, 0, (COLS - strlen(*ptr))/2, *ptr++); //MinGW doesn't support
     mvwaddstr(win, 0, (COLS - GetWidth(*ptr))/2, *ptr);
     ptr++;
+    mvwaddstr(win, LINES-1, 0, STR_PRESS_ENTER_TO_GO_BACK);
     wattroff(win, A_REVERSE);
+    CTL_RESET_COLOR(win, CTL_PANEL_CYAN);
 
+    CTL_SET_COLOR(win, CTL_PANEL_GREEN);
+    wattron(win, A_BOLD); //Make green color highlight
     wmove(win, 1, 0);
     while(NULL != *ptr)
     {
         wprintw(win, "%s\n", *ptr++);
     }
-
-    wattron(win, A_REVERSE);
-    mvwaddstr(win, LINES-1, 0, STR_PRESS_ENTER_TO_GO_BACK);
-    wattroff(win, A_REVERSE);
+    CTL_RESET_COLOR(win, CTL_PANEL_GREEN);
+    wattroff(win, A_BOLD); //Cancle green color highlight
 
     int key;
     keypad(win, true);
@@ -632,7 +647,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
 
         i = 0;
         CurPosX = GetWidth(STR_INPUT_PASSWORD);
-        mvwaddstr(win, 3, 0, STR_INPUT_PASSWORD_CONFIRM);
+        mvwaddstr(win, 3, 0, STR_INPUT_PASSWORD_CONFIRM); //Display confirm firstly
         mvwaddstr(win, 2, 0, STR_INPUT_PASSWORD);
         
         //Input password >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
