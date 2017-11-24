@@ -35,7 +35,7 @@
 #define CTL_PASSWORD_LENGHT_MIN                 8
 #define CTL_FILE_NAME_LENGHT                    (CTL_GET_FILE_NAME_WIN_COLS + 32)
 #define CTL_FILE_SIZE_MAX                       (1024*1024*50) //50Mb
-#define CTL_SINGLE_LINE_WIDTH                   (COLS*3 + 1) //3 bytes per special char, end with '\0'
+#define CTL_SINGLE_LINE_WIDTH                   (COLS*6 + 1) //1~6 bytes per special char, end with '\0'
 
 #define CTL_CONSOLE_COLS                        80
 #define CTL_CONSOLE_LINES                       24
@@ -125,6 +125,7 @@ G_STATUS CTL_GetPassord(char *pPassword);
 G_STATUS CTL_DispWarning(const char *pFormat, ...);
 G_STATUS CTL_MakeChoice(const char*format, ...);
 G_STATUS CTL_ConfirmOperation(const char *pFormat, ...);
+char *CTL_DelimitString(const char *ptr, int cols);
 
 
 

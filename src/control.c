@@ -262,9 +262,8 @@ void CTL_ShowInstruction(void)
     //mvwaddstr(win, 0, (COLS - strlen(*ptr))/2, *ptr++); //MinGW doesn't support
     mvwaddstr(win, 0, (COLS - GetWidth(*ptr))/2, *ptr);
     ptr++;
-    mvwaddstr(win, LINES-1, 0, STR_PRESS_ENTER_TO_GO_BACK);
-    wattroff(win, A_REVERSE);
     CTL_RESET_COLOR(win, CTL_PANEL_CYAN);
+    wattroff(win, A_REVERSE);
 
     CTL_SET_COLOR(win, CTL_PANEL_GREEN);
     wattron(win, A_BOLD); //Make green color highlight
@@ -275,6 +274,12 @@ void CTL_ShowInstruction(void)
     }
     CTL_RESET_COLOR(win, CTL_PANEL_GREEN);
     wattroff(win, A_BOLD); //Cancle green color highlight
+
+    CTL_SET_COLOR(win, CTL_PANEL_CYAN);
+    wattron(win, A_REVERSE);
+    mvwaddstr(win, LINES-1, 0, STR_PRESS_ENTER_TO_GO_BACK);
+    CTL_RESET_COLOR(win, CTL_PANEL_CYAN);
+    wattroff(win, A_REVERSE);
 
     int key;
     keypad(win, true);
@@ -297,11 +302,10 @@ WHILE_OUT :
     refresh();
 }
 
-
 /*  
  *  Briefs: Show file
  *  Return: Always STAT_OK
- *  Note:   Only support UTF-8
+ *  Note:   Only support UTF-8 on Linux, support UTF-8 and ANSI on Windows
  */
 G_STATUS CTL_ShowFile(const char *pFileName)
 {
@@ -346,7 +350,8 @@ G_STATUS CTL_ShowFile(const char *pFileName)
         CTL_DispWarning(STR_ERR_FAIL_TO_MALLOC);
         return STAT_OK;
     }
-    
+
+    int i = 0;
     FileContent_t HeadNode;
     HeadNode.pContent = NULL;
     HeadNode.pPrev = NULL;
@@ -354,6 +359,12 @@ G_STATUS CTL_ShowFile(const char *pFileName)
     
     FileContent_t *pTmpNode = &HeadNode;
     FileContent_t *pNewNode;
+
+#ifdef __WINDOWS
+    char *pConvertFormat;
+    int ConvertResLen = 0; //Count in '\0'
+    int SpecialSymbolNum;
+#endif
 
     while(NULL != fgets(buf, CTL_SINGLE_LINE_WIDTH, fp))
     {
@@ -366,9 +377,66 @@ G_STATUS CTL_ShowFile(const char *pFileName)
             CTL_DispWarning(STR_ERR_FAIL_TO_MALLOC);
             return STAT_OK;
         }
-        
+
         ReplaceChar(buf, '\n', '\0');
+#ifdef __LINUX
         pNewNode->ContentWidth = GetWidth(buf);
+#elif defined __WINDOWS
+        ReplaceChar(buf, '\r', '\0');
+
+        if(TRUE == UTF8_VerifyStrFormat(buf))
+        {
+            pNewNode->ContentWidth = GetWidth(buf);
+        }
+        else
+        {
+            pConvertFormat = ANSIToUTF8(buf, &ConvertResLen);
+            if(NULL == pConvertFormat)
+            {
+                free(pNewNode);
+                continue;
+            }
+            
+            pNewNode->ContentWidth = GetWidth(pConvertFormat);
+            free(buf);
+
+            buf = CTL_DelimitString(pConvertFormat);
+            if(NULL == buf)
+            {
+                buf = pConvertFormat;
+            }
+            else
+            {
+                free(pConvertFormat);
+            }
+
+//            SpecialSymbolNum = UTF8_GetSpecialSymbolNum(pConvertFormat);
+//            buf = realloc(buf, ConvertResLen+SpecialSymbolNum);
+//            memcpy(buf, pConvertFormat, ConvertResLen);
+//            free(pConvertFormat);
+//            pConvertFormat = NULL;
+
+//            for(i = 0; i < SpecialSymbolNum; i++)
+//            {
+//                buf[ConvertResLen-1+i] = ' ';
+//            }
+//            buf[ConvertResLen+SpecialSymbolNum-1] = '\0';
+//            
+//            //pNewNode->ContentWidth = GetWidth(buf) - SpecialSymbolNum;
+//            pNewNode->ContentWidth = GetWidth(buf); //A Chinese symbol occupy 3 width unit when attribute is set
+
+//            if(FALSE == IsStandardSymbol(buf[ConvertResLen-2])) //If the last symbol is Chinese
+//            {
+//                if(0 == (pNewNode->ContentWidth-1)%COLS)
+//                {
+//                    
+//                    buf[ConvertResLen+SpecialSymbolNum-2] = '\0';
+//                    pNewNode->ContentWidth--;
+//                }
+//            }
+
+        }
+#endif
         if(0 == pNewNode->ContentWidth)
         {
             pNewNode->ContentWidth = 1;
@@ -419,25 +487,25 @@ G_STATUS CTL_ShowFile(const char *pFileName)
     wrefresh(WinLabel);
 
     WINDOW *win = newwin(LINES-1, COLS, 0, 0);
-    win = newwin(LINES-1, COLS, 0, 0);
     FileContent_t *pCurNode = HeadNode.pNext;
     char BottomFlag = 0;            //1 means it has been in bottom position, i.e can't page down again
     int PageCount = 1;              //PageCount must be initialize as 1
     int CurPage = 0, LogCount = 0;
-    int i, LineCount;
+    int LineCount;
     int key;
     int LabelWidth = GetWidth(STR_SHOW_FILE_LABEL);
 
     if(NULL == pCurNode)
     {
         BottomFlag = 1;
-        CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
+        CTL_SET_COLOR(win, CTL_PANEL_RED);
         mvwaddstr(win, (LINES-1)/2, (COLS-GetWidth(STR_LOG_IS_NULL))/2, STR_LOG_IS_NULL);
         wrefresh(win);
         PageCount = 0;
     }
     else
     {
+        CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
         LineCount = 0;
         while(NULL != pCurNode->pNext)
         {
@@ -455,9 +523,7 @@ G_STATUS CTL_ShowFile(const char *pFileName)
         wmove(win, 0, 0);
         for(i = 0, LineCount = 0; i < (LINES-1); i++)
         {
-            CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
             wprintw(win, (pCurNode->flag) ? "%s" : "%s\n", pCurNode->pContent);
-            CTL_SET_COLOR(win, CTL_PANEL_RED);
             
             if(NULL == pCurNode->pNext) //It means only one page at the first time of display
             {
@@ -488,9 +554,7 @@ G_STATUS CTL_ShowFile(const char *pFileName)
                 wmove(win, 0, 0);
                 for(i = 0, LineCount = 0; i < (LINES-1); i++)
                 {
-                    CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
                     wprintw(win, (pCurNode->flag) ? "%s" : "%s\n", pCurNode->pContent);
-                    CTL_SET_COLOR(win, CTL_PANEL_RED);
     
                     if(NULL == pCurNode->pNext)
                     {
@@ -540,9 +604,7 @@ G_STATUS CTL_ShowFile(const char *pFileName)
                 wmove(win, 0, 0);
                 for(i = 0, LineCount = 0; i < (LINES-1); i++)
                 {
-                    CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
                     wprintw(win, (pCurNode->flag) ? "%s" : "%s\n", pCurNode->pContent);
-                    CTL_SET_COLOR(win, CTL_PANEL_RED);
                 
                     LineCount += pCurNode->ContentLines;
                     pCurNode = pCurNode->pNext;
@@ -993,6 +1055,110 @@ WHILE_OUT :
         return STAT_ERR;
     
     return STAT_OK;
+}
+
+/*  
+ *  Briefs: Fill '\n' in string according paramter cols
+ *  Return: Return new address of string if success and return NULL if fail
+ *  Note:   1. Only support UTF-8
+ *          2. Only use to process the string that is used to display on window
+ *          3. The attribution of string must be set
+ *          4. If string does only consist by ASCII symbol, this function would do nothing
+ */
+char *CTL_DelimitString(const char *ptr, int cols)
+{
+    if(NULL == ptr)
+        return NULL;
+
+    int ByteNum = 0;
+    int width = 0;
+    int InsertSymbolNum = 0;
+    int length = 0; //The length of ptr that counts in '\0'
+    int SpecialSymbolNum = 0;
+    const char *pTmp = ptr;
+    
+    while('\0' != *pTmp)
+    {
+        ByteNum = UTF8_GetSymbolByteNum(*pTmp);
+        if(1 < ByteNum)
+        {
+            width += 3; //A specail symbol occupy 3 width unit
+            SpecialSymbolNum++;
+        }
+        else if(1 == ByteNum)
+        {
+            width += 1;
+        }
+        else
+            return NULL;
+        
+        length += ByteNum;
+        pTmp += ByteNum;
+
+        if((cols <= width) && ('\0' != *pTmp))
+        {
+            InsertSymbolNum++;
+            width = 0;
+        }
+    }
+
+    if(0 == InsertSymbolNum)
+        return NULL;
+
+    char *pTmpNew;
+    char *pNew = (char *)malloc(length + InsertSymbolNum + SpecialSymbolNum + 1); //End with '\0'
+    if(NULL == pNew)
+        return NULL;
+
+    int i = 0;
+    int tmp = 0;
+    
+    SpecialSymbolNum = 0;
+    width = 0;
+    pTmp = ptr;
+    pTmpNew = pNew;
+    ByteNum = UTF8_GetSymbolByteNum(*pTmp);
+    
+    while('\0' != *pTmp)
+    {
+        tmp = UTF8_GetSymbolByteNum(*(pTmp+ByteNum));
+        if(('\0' != *(pTmp+1)) &&  ((width+tmp) > cols))
+        {
+            SpecialSymbolNum = 0;
+            width = 0;
+            for(i = 0; i < SpecialSymbolNum; i++)
+            {
+                *pTmpNew++ = ' ';
+            }
+            *pTmpNew++ = '\n';
+        }
+    
+        for(i = 0; i < ByteNum; i++)
+        {
+            *pTmpNew++ = *pTmp++;
+        }
+        
+        if(1 < ByteNum)
+        {
+            width += 3; //A specail symbol occupy 3 width unit
+            SpecialSymbolNum++;
+        }
+        else if(1 == ByteNum)
+        {
+            width += 1;
+        }
+
+        ByteNum = tmp;
+    }
+    
+    for(i = 0; i < SpecialSymbolNum; i++)
+    {
+        *pTmpNew++ = ' ';
+    }
+    
+    pTmpNew = '\0';
+
+    return pNew;
 }
 
 

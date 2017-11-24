@@ -77,4 +77,14 @@ static inline int UTF8_GetSymbolByteNum(const uint8_t ch)
             ;
 }
 
+/*
+ *  @Briefs: Check if the character is in ASCII table
+ *  @Return: TRUE / FALSE
+ *  @Note:   None
+ */
+static inline _BOOL_ IsStandardSymbol(const uint8_t ch)
+{
+    return ((ch & 0x80) ? FALSE : TRUE);
+}
+
 #endif
