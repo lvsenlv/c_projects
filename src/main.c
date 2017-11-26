@@ -11,41 +11,41 @@
 
 int main(void)
 {
+#ifdef __WINDOWS
+    system("mode con lines=48 cols=120");
+#endif
+
+    LoginAdministrator();
+
+    CTL_MENU func = CTL_MENU_MAX;
+
     CTL_InitConsole();
-    CTL_ShowFile("test.txt");
+#ifdef __LINUX
+    CTL_ChooseLanguage();
+#endif
+
+    while(1)
+    {
+        CTL_DrawStdConsole();
+        CTL_ShowMenu(&func);
+        
+        CTL_HIDE_CONSOLE_END_LINE(); //Shield the end line of standard screen 
+        switch(func)
+        {
+            case CTL_MENU_SHOW_INSTRUCTION:
+                CTL_ShowInstruction();
+                break;
+            case CTL_MENU_CHANGE_LANGUAGE:
+                CTL_ChooseLanguage();
+                break;
+            case CTL_MENU_ENCRYPT:
+            case CTL_MENU_DECRYPT:
+                CTL_EncryptDecrypt(func);
+            default :
+                break;
+        }
+        CTL_SHOW_CONSOLE_END_LINE();
+    }
+ 
     CTL_ForceExit();
-
-//    LoginAdministrator();
-
-//    CTL_MENU func = CTL_MENU_MAX;
-
-//    CTL_InitConsole();
-//#ifdef __LINUX
-//    CTL_ChooseLanguage();
-//#endif
-
-//    while(1)
-//    {
-//        CTL_DrawStdConsole();
-//        CTL_ShowMenu(&func);
-//        
-//        CTL_HIDE_CONSOLE_END_LINE(); //Shield the end line of standard screen 
-//        switch(func)
-//        {
-//            case CTL_MENU_SHOW_INSTRUCTION:
-//                CTL_ShowInstruction();
-//                break;
-//            case CTL_MENU_CHANGE_LANGUAGE:
-//                CTL_ChooseLanguage();
-//                break;
-//            case CTL_MENU_ENCRYPT:
-//            case CTL_MENU_DECRYPT:
-//                CTL_EncryptDecrypt(func);
-//            default :
-//                break;
-//        }
-//        CTL_SHOW_CONSOLE_END_LINE();
-//    }
-    
-//    CTL_ForceExit();
 } 

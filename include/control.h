@@ -125,7 +125,6 @@ G_STATUS CTL_GetPassord(char *pPassword);
 G_STATUS CTL_DispWarning(const char *pFormat, ...);
 G_STATUS CTL_MakeChoice(const char*format, ...);
 G_STATUS CTL_ConfirmOperation(const char *pFormat, ...);
-char *CTL_DelimitString(const char *ptr, int cols);
 
 
 

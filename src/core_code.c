@@ -399,11 +399,18 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
 
     free(pData);
     free(pBackupData);
-    free(pNewFileName); 
     fclose(fp);
     fclose(NewFp);
 
-    return RemoveFile(pFileName);
+    if(STAT_OK != RemoveFile(pFileName))
+    {
+        unlink(pNewFileName);
+        free(pNewFileName);  //Must free after unlink
+        return STAT_ERR;
+    }
+
+    free(pNewFileName);  //Must free after unlink
+    return STAT_OK;
 }
 
 /*
@@ -702,11 +709,18 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
 
     free(pData);
     free(pBackupData);
-    free(pNewFileName);
     fclose(fp);
     fclose(NewFp);
     
-    return RemoveFile(pFileName);
+    if(STAT_OK != RemoveFile(pFileName))
+    {
+        unlink(pNewFileName);
+        free(pNewFileName);  //Must free after unlink
+        return STAT_ERR;
+    }
+
+    free(pNewFileName);  //Must free after unlink
+    return STAT_OK;
 }
 
 

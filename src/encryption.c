@@ -11,7 +11,7 @@
 #include <dirent.h>
 
 static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func);
-static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func);
+static PROCESS_STATUS EncryptDecrypt_plus(FileList_t *pFileList, CTL_MENU func);
 static G_STATUS BeforeEncryptDecrypt(void);
 static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus);
 static FileList_t *ScanDirectory(char *pFolderName);
@@ -83,7 +83,7 @@ G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
         FileList.FileSize = FileInfo.st_size;
         FileList.pNext = NULL;
 
-        ProcessStatus = EncryptDecrypt_Plus(&HeadNode, func);
+        ProcessStatus = EncryptDecrypt(&HeadNode, func);
     }
     else if(S_IFDIR & FileInfo.st_mode)
     {
@@ -99,6 +99,7 @@ G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
             return STAT_OK;
         }
 
+//Fix bug #2.1
 #ifdef __LINUX
         if(STAT_OK != CTL_ConfirmOperation("%s%s\n%s: %d, %s\n", 
             (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING, FileName, 
@@ -136,248 +137,12 @@ G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 /*
- *  @Briefs: Create task to encrypt or decrypt
- *  @Return: PROCESS_STATUS_ELSE_ERR, PROCESS_STATUS_ERR, 
- *           PROCESS_STATUS_FATAL_ERR, PROCESS_STATUS_SUCCESS
- *  @Note:   pFileList must be the HeadNode
- */
-static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
-{
-#ifdef PTHREAD_NUM_MAX
-#if (PTHREAD_NUM_MAX < 2)
-    #error STR_EN_ERR_PTHREAD_NUM_TOO_SMALL
-#elif (PTHREAD_NUM_MAX > 8)
-    #error STR_EN_ERR_PTHREAD_NUM_TOO_BIG
-#endif
-#endif
-
-#ifdef __DEBUG
-    if(NULL == pFileList)
-    {
-        DISP_ERR_DEBUG(STR_INVALID_PARAMTER);
-        return PROCESS_STATUS_ELSE_ERR;
-    }
-#endif
-
-    //Create the window >>>
-    WINDOW *ScheduleWin[PTHREAD_NUM_MAX];
-    WINDOW *win[PTHREAD_NUM_MAX];
-    int StartPosY = 1;
-    int i, remainder = (LINES-PTHREAD_NUM_MAX)%PTHREAD_NUM_MAX;
-    
-    for(i = 0; i < remainder; i++)
-    {
-        ScheduleWin[i] = newwin(1, COLS, StartPosY-1, 0);
-        
-        /*
-            LINES-PTHREAD_NUM_MAX : schedule wins take cost of PTHREAD_NUM_MAX lines
-            (LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX + 1 : 
-                if (LINES-PTHREAD_NUM_MAX)%PTHREAD_NUM_MAX isn't equal to 0,
-                the window should occupy one more line
-        */
-        win[i] = newwin((LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX + 1, COLS, StartPosY, 0);
-        StartPosY += (LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX + 1 + 1; //The last "1" is schedule win's
-    }
-
-    //Must follow above cycle
-    for(; i < PTHREAD_NUM_MAX; i++) //Can not initialize i here
-    {
-        ScheduleWin[i] = newwin(1, COLS, StartPosY-1, 0);
-    
-        /*
-            LINES-PTHREAD_NUM_MAX : schedule wins take cost of PTHREAD_NUM_MAX lines
-        */
-        win[i] = newwin((LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX, COLS, StartPosY, 0);
-        StartPosY += (LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX + 1; //The last "1" is schedule win's
-    }
-    
-    for(i = 0; i < PTHREAD_NUM_MAX; i++)
-    {
-        CTL_SET_COLOR(ScheduleWin[i], CTL_PANEL_CYAN);
-        CTL_SET_COLOR(win[i], CTL_PANEL_YELLOW);
-        
-        wmove(win[i], 0, 0);
-        scrollok(win[i], true);
-        
-        wattron(ScheduleWin[i], A_REVERSE);
-        mvwhline(ScheduleWin[i], 0, 0, ' ', COLS);
-
-        mvwprintw(ScheduleWin[i], 0, 0, "%s%d->%s", STR_TASK, i+1, 
-            (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING);
-        mvwprintw(ScheduleWin[i], 0, COLS*2/5, "%s0", STR_SUCCESS_COUNT);
-        mvwprintw(ScheduleWin[i], 0, COLS*3/5, "%s0", STR_FAIL_COUNT);
-        mvwprintw(ScheduleWin[i], 0, COLS*4/5, "%s0%%", STR_RATE);
-    
-        wrefresh(ScheduleWin[i]);
-        wrefresh(win[i]);
-    }
-
-    g_pCurFilelist = pFileList->pNext; //First FileList is head node
-    
-    int RatioFactor[PTHREAD_NUM_MAX];
-    int denominator[PTHREAD_NUM_MAX];
-    PthreadArg_t PthreadArg[PTHREAD_NUM_MAX];
-    pthread_t PthreadID[PTHREAD_NUM_MAX];
-    int ret = 0;
-    
-    for(i = 0; i < PTHREAD_NUM_MAX; i++)
-    {
-        RatioFactor[i] = 0;
-        denominator[i] = 100;
-        InitPthreadArg(&PthreadArg[i]);
-        
-        PthreadArg[i].pFunc = (CTL_MENU_ENCRYPT == func) ? encrypt : decrypt;
-        PthreadArg[i].pRatioFactor = &RatioFactor[i];
-        PthreadArg[i].pCurFileList = g_pCurFilelist;
-        PthreadArg[i].ProcessStatus = PROCESS_STATUS_BUSY;
-        PthreadArg[i].SuccessCount = 0;
-        PthreadArg[i].FailCount = 0;
-        PthreadArg[i].RefreshFlag = REFRESH_FLAG_FALSE;
-    }
-     
-    for(i = 0; i < PTHREAD_NUM_MAX; i++)
-    {   
-        ret = pthread_create(&PthreadID[i], NULL, Pthread_EncryptDecrypt, &PthreadArg[i]);
-	    if(ret != 0)
-	    {
-		    DISP_ERR(STR_FAIL_TO_CREATE_PTHREAD);
-            return PROCESS_STATUS_ELSE_ERR;
-	    }
-    }
-    
-    char ExitFlag = 0;
-    char flag = 0; //Set 1 if it has been refreshed <=> if(REFRESH_FLAG_TRUE <= PthreadArg[i].RefreshFlag)
-    int StrSuccessWidth = GetWidth(STR_SUCCESS_COUNT);
-    int StrFailWidth = GetWidth(STR_FAIL_COUNT);
-    int StrRateWidth = GetWidth(STR_RATE);
-#ifdef __WINDOWS
-    char *pConverFormat;
-    int SpecialSymbolNum;
-#endif
-	
-	while(1)
-    {
-        if(ExitFlag)
-            break;
-        
-        ExitFlag = 1;
-        
-        for(i = 0; i < PTHREAD_NUM_MAX; i++)
-        {
-            if(PROCESS_STATUS_BUSY == PthreadArg[i].ProcessStatus)
-            {
-                ExitFlag = 0;
-                mvwprintw(ScheduleWin[i], 0, (COLS*4/5 + StrRateWidth), 
-                    "%d%%  ", RatioFactor[i]/denominator[i]);
-                
-                if(REFRESH_FLAG_TRUE <= PthreadArg[i].RefreshFlag)
-                {
-                    flag = 1;
-                    switch(PthreadArg[i].RefreshFlag)
-                    {
-                        case REFRESH_FLAG_SUCCESS:
-                            mvwprintw(ScheduleWin[i], 0, (COLS*2/5 + StrSuccessWidth), 
-                                "%d", PthreadArg[i].SuccessCount);
-                            mvwprintw(ScheduleWin[i], 0, (COLS*4/5 + StrRateWidth), "100%%");
-                            CTL_SET_COLOR(win[i], CTL_PANEL_GREEN);
-                            wattron(win[i], A_BOLD);
-                            wprintw(win[i], " %s\n", STR_SUCCESS);
-                            wattroff(win[i], A_BOLD);
-                            CTL_SET_COLOR(win[i], CTL_PANEL_YELLOW);
-                            break;
-                        case REFRESH_FLAG_FAIL:
-                            mvwprintw(ScheduleWin[i], 0, (COLS*3/5 + StrFailWidth), 
-                                "%d", PthreadArg[i].FailCount);
-                            CTL_SET_COLOR(win[i], CTL_PANEL_RED);
-                            wattron(win[i], A_BOLD);
-                            wprintw(win[i], " %s\n", STR_FAIL);
-                            wattroff(win[i], A_BOLD);
-                            CTL_SET_COLOR(win[i], CTL_PANEL_YELLOW);
-                            break;
-                        default:
-                            RatioFactor[i] = 0;
-                            denominator[i] = (int)(PthreadArg[i].pCurFileList->FileSize / BASE_FILE_SIZE);
-                            if(0 == denominator[i])
-                                denominator[i] = 100;
-#ifdef __LINUX
-                            wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
-#elif defined __WINDOWS
-                            if(TRUE == UTF8_VerifyStrFormat(PthreadArg[i].pCurFileList->pFileName))
-                            {
-                                wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
-                            }
-                            else
-                            {
-                                pConverFormat = ANSIToUTF8(PthreadArg[i].pCurFileList->pFileName, NULL);
-                                wprintw(win[i], "%s", pConverFormat);
-                                SpecialSymbolNum = UTF8_GetSpecialSymbolNum(pConverFormat);
-                                for(; SpecialSymbolNum > 0; SpecialSymbolNum--)
-                                {
-                                    waddch(win[i], ' ');
-                                }
-                                
-                                if(NULL != pConverFormat)
-                                {
-                                    free(pConverFormat);
-                                }
-                            }
-#endif
-                            break;
-                    }
-                    
-                    wrefresh(win[i]);
-                    PthreadArg[i].RefreshFlag = REFRESH_FLAG_FALSE; //Clear refresh flag, continue en/decrypting
-                }
-            
-                wrefresh(ScheduleWin[i]);
-            }
-        }
-
-        if(flag)
-        {
-            flag = 0;
-            continue;
-        }
-        
-        delay(REFRESH_INTERVAL);
-	}
-	
-    for(i = 0; i < PTHREAD_NUM_MAX; i++)
-    {
-        delwin(ScheduleWin[i]);
-        delwin(win[i]);
-    }
-    
-    touchwin(stdscr);
-    refresh();
-
-    for(i = 0; i < PTHREAD_NUM_MAX; i++)
-    {
-        g_SuccessFailCountTable[0] += PthreadArg[i].SuccessCount;
-        g_SuccessFailCountTable[1] += PthreadArg[i].FailCount;
-    }
-    
-    for(i = 0; i < PTHREAD_NUM_MAX; i++)
-    {
-        if(PROCESS_STATUS_SUCCESS != PthreadArg[i].ProcessStatus)
-        {
-            if(PROCESS_STATUS_FATAL_ERR == PthreadArg[i].ProcessStatus)
-                return PROCESS_STATUS_FATAL_ERR;
-                
-            return PROCESS_STATUS_ERR;
-        }
-    }
-        
-    return PROCESS_STATUS_SUCCESS;
-}
-
-/*
  *  @Briefs: Create task to encrypt or decrypt according to pFileList->FileSize(HeadNode)
  *  @Return: PROCESS_STATUS_ELSE_ERR, PROCESS_STATUS_ERR, 
  *           PROCESS_STATUS_FATAL_ERR, PROCESS_STATUS_SUCCESS
  *  @Note:   pFileList must be the HeadNode
  */
-static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
+static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
 {
 #ifdef PTHREAD_NUM_MAX
 #if (PTHREAD_NUM_MAX < 2)
@@ -396,7 +161,7 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
 #endif
 
     if(PTHREAD_NUM_MAX <= pFileList->FileSize)
-        return EncryptDecrypt(pFileList, func);
+        return EncryptDecrypt_plus(pFileList, func);
 
     //Create the window >>>
     WINDOW *ScheduleWin[PTHREAD_NUM_MAX];
@@ -434,7 +199,10 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
     for(i = 0; i < CycleIndex; i++)
     {
         CTL_SET_COLOR(ScheduleWin[i], CTL_PANEL_CYAN);
+//Fix bug #2.1
+#ifdef __WINDOWS
         CTL_SET_COLOR(win[i], CTL_PANEL_YELLOW);
+#endif
         
         wmove(win[i], 0, 0);
         scrollok(win[i], true);
@@ -490,11 +258,10 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
     int StrSuccessWidth = GetWidth(STR_SUCCESS_COUNT);
     int StrFailWidth = GetWidth(STR_FAIL_COUNT);
     int StrRateWidth = GetWidth(STR_RATE);
+//Fix bug #2.1
 #ifdef __WINDOWS
     char *pConverFormat;
-    int SpecialSymbolNum;
 #endif
-
 	
 	while(1)
     {
@@ -524,7 +291,13 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
                             wattron(win[i], A_BOLD);
                             wprintw(win[i], " %s\n", STR_SUCCESS);
                             wattroff(win[i], A_BOLD);
+//Fix bug #2.1
+#ifdef __LINUX
                             CTL_SET_COLOR(win[i], CTL_PANEL_YELLOW);
+#elif defined __WINDOWS
+                            CTL_RESET_COLOR(win[i], CTL_PANEL_GREEN);
+#endif
+
                             break;
                         case REFRESH_FLAG_FAIL:
                             mvwprintw(ScheduleWin[i], 0, (COLS*3/5 + StrFailWidth), 
@@ -533,13 +306,20 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
                             wattron(win[i], A_BOLD);
                             wprintw(win[i], " %s\n", STR_FAIL);
                             wattroff(win[i], A_BOLD);
+//Fix bug #2.1
+#ifdef __LINUX
                             CTL_SET_COLOR(win[i], CTL_PANEL_YELLOW);
+#elif defined __WINDOWS
+                            CTL_RESET_COLOR(win[i], CTL_PANEL_RED);
+#endif
+
                             break;
                         default:
                             RatioFactor[i] = 0;
                             denominator[i] = (int)(PthreadArg[i].pCurFileList->FileSize / BASE_FILE_SIZE);
                             if(0 == denominator[i])
                                 denominator[i] = 100;
+//Fix bug #2.1
 #ifdef __LINUX
                             wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
 #elif defined __WINDOWS
@@ -550,13 +330,7 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
                             else
                             {
                                 pConverFormat = ANSIToUTF8(PthreadArg[i].pCurFileList->pFileName, NULL);
-                                wprintw(win[i], "%s", pConverFormat);
-                                SpecialSymbolNum = UTF8_GetSpecialSymbolNum(pConverFormat);
-                                for(; SpecialSymbolNum > 0; SpecialSymbolNum--)
-                                {
-                                    waddch(win[i], ' ');
-                                }
-                                
+                                wprintw(win[i], "%s\n", pConverFormat);
                                 if(NULL != pConverFormat)
                                 {
                                     free(pConverFormat);
@@ -599,6 +373,249 @@ static PROCESS_STATUS EncryptDecrypt_Plus(FileList_t *pFileList, CTL_MENU func)
     }
 
     for(i = 0; i < CycleIndex; i++)
+    {
+        if(PROCESS_STATUS_SUCCESS != PthreadArg[i].ProcessStatus)
+        {
+            if(PROCESS_STATUS_FATAL_ERR == PthreadArg[i].ProcessStatus)
+                return PROCESS_STATUS_FATAL_ERR;
+                
+            return PROCESS_STATUS_ERR;
+        }
+    }
+        
+    return PROCESS_STATUS_SUCCESS;
+}
+
+/*
+ *  @Briefs: Create task to encrypt or decrypt according to macro PTHREAD_NUM_MAX
+ *  @Return: PROCESS_STATUS_ELSE_ERR, PROCESS_STATUS_ERR, 
+ *           PROCESS_STATUS_FATAL_ERR, PROCESS_STATUS_SUCCESS
+ *  @Note:   pFileList must be the HeadNode
+ */
+static PROCESS_STATUS EncryptDecrypt_plus(FileList_t *pFileList, CTL_MENU func)
+{
+#ifdef PTHREAD_NUM_MAX
+#if (PTHREAD_NUM_MAX < 2)
+    #error STR_EN_ERR_PTHREAD_NUM_TOO_SMALL
+#elif (PTHREAD_NUM_MAX > 8)
+    #error STR_EN_ERR_PTHREAD_NUM_TOO_BIG
+#endif
+#endif
+
+#ifdef __DEBUG
+    if(NULL == pFileList)
+    {
+        DISP_ERR_DEBUG(STR_INVALID_PARAMTER);
+        return PROCESS_STATUS_ELSE_ERR;
+    }
+#endif
+
+    //Create the window >>>
+    WINDOW *ScheduleWin[PTHREAD_NUM_MAX];
+    WINDOW *win[PTHREAD_NUM_MAX];
+    int StartPosY = 1;
+    int i, remainder = (LINES-PTHREAD_NUM_MAX)%PTHREAD_NUM_MAX;
+    
+    for(i = 0; i < remainder; i++)
+    {
+        ScheduleWin[i] = newwin(1, COLS, StartPosY-1, 0);
+        
+        /*
+            LINES-PTHREAD_NUM_MAX : schedule wins take cost of PTHREAD_NUM_MAX lines
+            (LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX + 1 : 
+                if (LINES-PTHREAD_NUM_MAX)%PTHREAD_NUM_MAX isn't equal to 0,
+                the window should occupy one more line
+        */
+        win[i] = newwin((LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX + 1, COLS, StartPosY, 0);
+        StartPosY += (LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX + 1 + 1; //The last "1" is schedule win's
+    }
+
+    //Must follow above cycle
+    for(; i < PTHREAD_NUM_MAX; i++) //Can not initialize i here
+    {
+        ScheduleWin[i] = newwin(1, COLS, StartPosY-1, 0);
+    
+        /*
+            LINES-PTHREAD_NUM_MAX : schedule wins take cost of PTHREAD_NUM_MAX lines
+        */
+        win[i] = newwin((LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX, COLS, StartPosY, 0);
+        StartPosY += (LINES-PTHREAD_NUM_MAX)/PTHREAD_NUM_MAX + 1; //The last "1" is schedule win's
+    }
+    
+    for(i = 0; i < PTHREAD_NUM_MAX; i++)
+    {
+        CTL_SET_COLOR(ScheduleWin[i], CTL_PANEL_CYAN);
+//Fix bug #2.1
+#ifdef __LINUX
+        CTL_SET_COLOR(win[i], CTL_PANEL_YELLOW);
+#endif
+        wmove(win[i], 0, 0);
+        scrollok(win[i], true);
+        
+        wattron(ScheduleWin[i], A_REVERSE);
+        mvwhline(ScheduleWin[i], 0, 0, ' ', COLS);
+
+        mvwprintw(ScheduleWin[i], 0, 0, "%s%d->%s", STR_TASK, i+1, 
+            (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING);
+        mvwprintw(ScheduleWin[i], 0, COLS*2/5, "%s0", STR_SUCCESS_COUNT);
+        mvwprintw(ScheduleWin[i], 0, COLS*3/5, "%s0", STR_FAIL_COUNT);
+        mvwprintw(ScheduleWin[i], 0, COLS*4/5, "%s0%%", STR_RATE);
+    
+        wrefresh(ScheduleWin[i]);
+        wrefresh(win[i]);
+    }
+
+    g_pCurFilelist = pFileList->pNext; //First FileList is head node
+    
+    int RatioFactor[PTHREAD_NUM_MAX];
+    int denominator[PTHREAD_NUM_MAX];
+    PthreadArg_t PthreadArg[PTHREAD_NUM_MAX];
+    pthread_t PthreadID[PTHREAD_NUM_MAX];
+    int ret = 0;
+    
+    for(i = 0; i < PTHREAD_NUM_MAX; i++)
+    {
+        RatioFactor[i] = 0;
+        denominator[i] = 100;
+        InitPthreadArg(&PthreadArg[i]);
+        
+        PthreadArg[i].pFunc = (CTL_MENU_ENCRYPT == func) ? encrypt : decrypt;
+        PthreadArg[i].pRatioFactor = &RatioFactor[i];
+        PthreadArg[i].pCurFileList = g_pCurFilelist;
+        PthreadArg[i].ProcessStatus = PROCESS_STATUS_BUSY;
+        PthreadArg[i].SuccessCount = 0;
+        PthreadArg[i].FailCount = 0;
+        PthreadArg[i].RefreshFlag = REFRESH_FLAG_FALSE;
+    }
+     
+    for(i = 0; i < PTHREAD_NUM_MAX; i++)
+    {   
+        ret = pthread_create(&PthreadID[i], NULL, Pthread_EncryptDecrypt, &PthreadArg[i]);
+	    if(ret != 0)
+	    {
+		    DISP_ERR(STR_FAIL_TO_CREATE_PTHREAD);
+            return PROCESS_STATUS_ELSE_ERR;
+	    }
+    }
+    
+    char ExitFlag = 0;
+    char flag = 0; //Set 1 if it has been refreshed <=> if(REFRESH_FLAG_TRUE <= PthreadArg[i].RefreshFlag)
+    int StrSuccessWidth = GetWidth(STR_SUCCESS_COUNT);
+    int StrFailWidth = GetWidth(STR_FAIL_COUNT);
+    int StrRateWidth = GetWidth(STR_RATE);
+//Fix bug #2.1
+#ifdef __WINDOWS
+    char *pConverFormat;
+#endif
+	
+	while(1)
+    {
+        if(ExitFlag)
+            break;
+        
+        ExitFlag = 1;
+        
+        for(i = 0; i < PTHREAD_NUM_MAX; i++)
+        {
+            if(PROCESS_STATUS_BUSY == PthreadArg[i].ProcessStatus)
+            {
+                ExitFlag = 0;
+                mvwprintw(ScheduleWin[i], 0, (COLS*4/5 + StrRateWidth), 
+                    "%d%%  ", RatioFactor[i]/denominator[i]);
+                
+                if(REFRESH_FLAG_TRUE <= PthreadArg[i].RefreshFlag)
+                {
+                    flag = 1;
+                    switch(PthreadArg[i].RefreshFlag)
+                    {
+                        case REFRESH_FLAG_SUCCESS:
+                            mvwprintw(ScheduleWin[i], 0, (COLS*2/5 + StrSuccessWidth), 
+                                "%d", PthreadArg[i].SuccessCount);
+                            mvwprintw(ScheduleWin[i], 0, (COLS*4/5 + StrRateWidth), "100%%");
+                            CTL_SET_COLOR(win[i], CTL_PANEL_GREEN);
+                            wattron(win[i], A_BOLD);
+                            wprintw(win[i], " %s\n", STR_SUCCESS);
+                            wattroff(win[i], A_BOLD);
+//Fix bug #2.1
+#ifdef __LINUX
+                            CTL_SET_COLOR(win[i], CTL_PANEL_YELLOW);
+#elif defined __WINDOWS
+                            CTL_RESET_COLOR(win[i], CTL_PANEL_GREEN);
+#endif
+                            break;
+                        case REFRESH_FLAG_FAIL:
+                            mvwprintw(ScheduleWin[i], 0, (COLS*3/5 + StrFailWidth), 
+                                "%d", PthreadArg[i].FailCount);
+                            CTL_SET_COLOR(win[i], CTL_PANEL_RED);
+                            wattron(win[i], A_BOLD);
+                            wprintw(win[i], " %s\n", STR_FAIL);
+                            wattroff(win[i], A_BOLD);
+//Fix bug #2.1
+#ifdef __LINUX
+                            CTL_SET_COLOR(win[i], CTL_PANEL_YELLOW);
+#elif defined __WINDOWS
+                            CTL_RESET_COLOR(win[i], CTL_PANEL_RED);
+#endif
+                            break;
+                        default:
+                            RatioFactor[i] = 0;
+                            denominator[i] = (int)(PthreadArg[i].pCurFileList->FileSize / BASE_FILE_SIZE);
+                            if(0 == denominator[i])
+                                denominator[i] = 100;
+//Fix bug #2.1
+#ifdef __LINUX
+                            wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
+#elif defined __WINDOWS
+                            if(TRUE == UTF8_VerifyStrFormat(PthreadArg[i].pCurFileList->pFileName))
+                            {
+                                wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
+                            }
+                            else
+                            {
+                                pConverFormat = ANSIToUTF8(PthreadArg[i].pCurFileList->pFileName, NULL);
+                                wprintw(win[i], "%s\n", pConverFormat);
+                                if(NULL != pConverFormat)
+                                {
+                                    free(pConverFormat);
+                                }
+                            }
+#endif
+                            break;
+                    }
+                    
+                    wrefresh(win[i]);
+                    PthreadArg[i].RefreshFlag = REFRESH_FLAG_FALSE; //Clear refresh flag, continue en/decrypting
+                }
+            
+                wrefresh(ScheduleWin[i]);
+            }
+        }
+
+        if(flag)
+        {
+            flag = 0;
+            continue;
+        }
+        
+        delay(REFRESH_INTERVAL);
+	}
+	
+    for(i = 0; i < PTHREAD_NUM_MAX; i++)
+    {
+        delwin(ScheduleWin[i]);
+        delwin(win[i]);
+    }
+    
+    touchwin(stdscr);
+    refresh();
+
+    for(i = 0; i < PTHREAD_NUM_MAX; i++)
+    {
+        g_SuccessFailCountTable[0] += PthreadArg[i].SuccessCount;
+        g_SuccessFailCountTable[1] += PthreadArg[i].FailCount;
+    }
+    
+    for(i = 0; i < PTHREAD_NUM_MAX; i++)
     {
         if(PROCESS_STATUS_SUCCESS != PthreadArg[i].ProcessStatus)
         {

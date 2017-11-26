@@ -360,10 +360,9 @@ G_STATUS CTL_ShowFile(const char *pFileName)
     FileContent_t *pTmpNode = &HeadNode;
     FileContent_t *pNewNode;
 
+//Fix buf #2.1
 #ifdef __WINDOWS
     char *pConvertFormat;
-    int ConvertResLen = 0; //Count in '\0'
-    int SpecialSymbolNum;
 #endif
 
     while(NULL != fgets(buf, CTL_SINGLE_LINE_WIDTH, fp))
@@ -379,63 +378,27 @@ G_STATUS CTL_ShowFile(const char *pFileName)
         }
 
         ReplaceChar(buf, '\n', '\0');
+
+//Fix buf #2.1
 #ifdef __LINUX
         pNewNode->ContentWidth = GetWidth(buf);
 #elif defined __WINDOWS
         ReplaceChar(buf, '\r', '\0');
-
-        if(TRUE == UTF8_VerifyStrFormat(buf))
+        
+        if(TRUE != UTF8_VerifyStrFormat(buf))
         {
-            pNewNode->ContentWidth = GetWidth(buf);
-        }
-        else
-        {
-            pConvertFormat = ANSIToUTF8(buf, &ConvertResLen);
+            pConvertFormat = ANSIToUTF8(buf, NULL);
             if(NULL == pConvertFormat)
             {
                 free(pNewNode);
                 continue;
             }
-            
-            pNewNode->ContentWidth = GetWidth(pConvertFormat);
+
             free(buf);
-
-            buf = CTL_DelimitString(pConvertFormat);
-            if(NULL == buf)
-            {
-                buf = pConvertFormat;
-            }
-            else
-            {
-                free(pConvertFormat);
-            }
-
-//            SpecialSymbolNum = UTF8_GetSpecialSymbolNum(pConvertFormat);
-//            buf = realloc(buf, ConvertResLen+SpecialSymbolNum);
-//            memcpy(buf, pConvertFormat, ConvertResLen);
-//            free(pConvertFormat);
-//            pConvertFormat = NULL;
-
-//            for(i = 0; i < SpecialSymbolNum; i++)
-//            {
-//                buf[ConvertResLen-1+i] = ' ';
-//            }
-//            buf[ConvertResLen+SpecialSymbolNum-1] = '\0';
-//            
-//            //pNewNode->ContentWidth = GetWidth(buf) - SpecialSymbolNum;
-//            pNewNode->ContentWidth = GetWidth(buf); //A Chinese symbol occupy 3 width unit when attribute is set
-
-//            if(FALSE == IsStandardSymbol(buf[ConvertResLen-2])) //If the last symbol is Chinese
-//            {
-//                if(0 == (pNewNode->ContentWidth-1)%COLS)
-//                {
-//                    
-//                    buf[ConvertResLen+SpecialSymbolNum-2] = '\0';
-//                    pNewNode->ContentWidth--;
-//                }
-//            }
-
+            buf = pConvertFormat;
         }
+        
+        pNewNode->ContentWidth = GetWidth(buf);
 #endif
         if(0 == pNewNode->ContentWidth)
         {
@@ -487,6 +450,12 @@ G_STATUS CTL_ShowFile(const char *pFileName)
     wrefresh(WinLabel);
 
     WINDOW *win = newwin(LINES-1, COLS, 0, 0);
+
+//Fix buf #2.1
+#ifdef __WINDOWS
+    wrefresh(win);  //Avoid displaying redundant symbols because of bug
+#endif
+    
     FileContent_t *pCurNode = HeadNode.pNext;
     char BottomFlag = 0;            //1 means it has been in bottom position, i.e can't page down again
     int PageCount = 1;              //PageCount must be initialize as 1
@@ -505,7 +474,10 @@ G_STATUS CTL_ShowFile(const char *pFileName)
     }
     else
     {
-        CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
+//Fix buf #2.1
+#ifdef __LINUX
+        CTL_SET_COLOR(win, CTL_PANEL_YELLOW); //It would cause abnormal display Chinese symbol on Windows platform
+#endif
         LineCount = 0;
         while(NULL != pCurNode->pNext)
         {
@@ -551,6 +523,10 @@ G_STATUS CTL_ShowFile(const char *pFileName)
                     continue;
                 
                 wclear(win);
+//Fix buf #2.1
+#ifdef __WINDOWS
+                wrefresh(win);  //Avoid displaying redundant symbols because of bug
+#endif
                 wmove(win, 0, 0);
                 for(i = 0, LineCount = 0; i < (LINES-1); i++)
                 {
@@ -601,6 +577,10 @@ G_STATUS CTL_ShowFile(const char *pFileName)
                 CurPage--;
 
                 wclear(win);
+//Fix buf #2.1
+#ifdef __WINDOWS
+                wrefresh(win); //Avoid displaying redundant symbols because of bug
+#endif
                 wmove(win, 0, 0);
                 for(i = 0, LineCount = 0; i < (LINES-1); i++)
                 {
@@ -1055,110 +1035,6 @@ WHILE_OUT :
         return STAT_ERR;
     
     return STAT_OK;
-}
-
-/*  
- *  Briefs: Fill '\n' in string according paramter cols
- *  Return: Return new address of string if success and return NULL if fail
- *  Note:   1. Only support UTF-8
- *          2. Only use to process the string that is used to display on window
- *          3. The attribution of string must be set
- *          4. If string does only consist by ASCII symbol, this function would do nothing
- */
-char *CTL_DelimitString(const char *ptr, int cols)
-{
-    if(NULL == ptr)
-        return NULL;
-
-    int ByteNum = 0;
-    int width = 0;
-    int InsertSymbolNum = 0;
-    int length = 0; //The length of ptr that counts in '\0'
-    int SpecialSymbolNum = 0;
-    const char *pTmp = ptr;
-    
-    while('\0' != *pTmp)
-    {
-        ByteNum = UTF8_GetSymbolByteNum(*pTmp);
-        if(1 < ByteNum)
-        {
-            width += 3; //A specail symbol occupy 3 width unit
-            SpecialSymbolNum++;
-        }
-        else if(1 == ByteNum)
-        {
-            width += 1;
-        }
-        else
-            return NULL;
-        
-        length += ByteNum;
-        pTmp += ByteNum;
-
-        if((cols <= width) && ('\0' != *pTmp))
-        {
-            InsertSymbolNum++;
-            width = 0;
-        }
-    }
-
-    if(0 == InsertSymbolNum)
-        return NULL;
-
-    char *pTmpNew;
-    char *pNew = (char *)malloc(length + InsertSymbolNum + SpecialSymbolNum + 1); //End with '\0'
-    if(NULL == pNew)
-        return NULL;
-
-    int i = 0;
-    int tmp = 0;
-    
-    SpecialSymbolNum = 0;
-    width = 0;
-    pTmp = ptr;
-    pTmpNew = pNew;
-    ByteNum = UTF8_GetSymbolByteNum(*pTmp);
-    
-    while('\0' != *pTmp)
-    {
-        tmp = UTF8_GetSymbolByteNum(*(pTmp+ByteNum));
-        if(('\0' != *(pTmp+1)) &&  ((width+tmp) > cols))
-        {
-            SpecialSymbolNum = 0;
-            width = 0;
-            for(i = 0; i < SpecialSymbolNum; i++)
-            {
-                *pTmpNew++ = ' ';
-            }
-            *pTmpNew++ = '\n';
-        }
-    
-        for(i = 0; i < ByteNum; i++)
-        {
-            *pTmpNew++ = *pTmp++;
-        }
-        
-        if(1 < ByteNum)
-        {
-            width += 3; //A specail symbol occupy 3 width unit
-            SpecialSymbolNum++;
-        }
-        else if(1 == ByteNum)
-        {
-            width += 1;
-        }
-
-        ByteNum = tmp;
-    }
-    
-    for(i = 0; i < SpecialSymbolNum; i++)
-    {
-        *pTmpNew++ = ' ';
-    }
-    
-    pTmpNew = '\0';
-
-    return pNew;
 }
 
 

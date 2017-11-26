@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="encrypt_debug" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="./encrypt_debug" prefix_auto="1" extension_auto="1" />
+				<Option object_output="./" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+					<Add option="-D__WINDOWS" />
+					<Add option="-D__64BIT" />
+					<Add option="-D__DEBUG" />
+					<Add option="-DPDC_WIDE" />
+					<Add option="-DPDC_FORCE_UTF8" />
+					<Add option="-D__CLEANUP_C" />
+					<Add option="-DHAVE_PTW32_CONFIG_H" />
+					<Add directory="../include" />
+					<Add directory="../lib/pdcurses/include" />
+					<Add directory="../lib/pthreads/include" />
+				</Compiler>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="../include/common.h" />
+		<Unit filename="../include/control.h" />
+		<Unit filename="../include/core_code.h" />
+		<Unit filename="../include/decoder.h" />
+		<Unit filename="../include/encryption.h" />
+		<Unit filename="../include/extra.h" />
+		<Unit filename="../include/str.h" />
+		<Unit filename="../lib/pdcurses/include/acs_defs.h" />
+		<Unit filename="../lib/pdcurses/include/curses.h" />
+		<Unit filename="../lib/pdcurses/include/curspriv.h" />
+		<Unit filename="../lib/pdcurses/include/panel.h" />
+		<Unit filename="../lib/pdcurses/include/pdcwin.h" />
+		<Unit filename="../lib/pdcurses/include/term.h" />
+		<Unit filename="../lib/pdcurses/src/addch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/addchstr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/addstr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/attr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/beep.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/bkgd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/border.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/clear.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/color.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/debug.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/delch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/deleteln.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/deprec.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/getch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/getstr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/getyx.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/inch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/inchstr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/initscr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/inopts.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/insch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/insstr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/instr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/kernel.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/keyname.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/mouse.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/move.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/outopts.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/overlay.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/pad.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/panel.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/pdcclip.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/pdcdisp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/pdcgetsc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/pdckbd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/pdcscrn.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/pdcsetsc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/pdcutil.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/printw.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/refresh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/scanw.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/scr_dump.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/scroll.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/slk.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/termattr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/terminfo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/touch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/util.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pdcurses/src/window.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/include/config.h" />
+		<Unit filename="../lib/pthreads/include/context.h" />
+		<Unit filename="../lib/pthreads/include/implement.h" />
+		<Unit filename="../lib/pthreads/include/need_errno.h" />
+		<Unit filename="../lib/pthreads/include/pthread.h" />
+		<Unit filename="../lib/pthreads/include/sched.h" />
+		<Unit filename="../lib/pthreads/include/semaphore.h" />
+		<Unit filename="../lib/pthreads/src/attr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/barrier.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/cancel.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/cleanup.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/condvar.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/create.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/dll.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/errno.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/exit.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/fork.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/global.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/misc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/mutex.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/nonportable.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/private.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/rwlock.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/sched.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/semaphore.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/signal.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/spin.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/sync.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../lib/pthreads/src/tsd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/common.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/control.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/core_code.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decoder.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/encryption.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/extra.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/str.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+			<lib_finder disable_auto="1" />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
