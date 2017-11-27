@@ -4,10 +4,10 @@ SRC_DIR     = ../src
 ifeq ($(DLL), Y)
 LIB_DIR     = .
 #relative directory of libraries, used in building libraries
-LIB_REL_DIR = ../../build_win 
+LIB_REL_DIR = ../../../build_win 
 else
 LIB_DIR     = ../lib/win
-LIB_REL_DIR = ../win
+LIB_REL_DIR = ../
 endif
 
 OBJS = common.o control.o encryption.o core_code.o main.o str.o extra.o decoder.o
@@ -21,8 +21,8 @@ DEF       = -D__WINDOWS \
 			-D__CLEANUP_C \
 			-DHAVE_PTW32_CONFIG_H
 INCS      = -I../include \
-			-I../lib/pthreads/include \
-			-I../lib/pdcurses/include
+			-I../lib/win/pthreads/include \
+			-I../lib/win/pdcurses/include
 CFLAGS    = -Wall -O3
 LIBS      = -L$(LIB_DIR) -lpthread -lcurses
 LIBS_DEPS =
@@ -49,10 +49,10 @@ all : before $(TARGET)
 before : $(LIBS_DEPS)
 
 libcurses.a libcurses.dll :
-	$(MAKE) DLL="$(DLL)" TAR_DIR="$(LIB_REL_DIR)" -C ../lib/pdcurses
+	$(MAKE) DLL="$(DLL)" TAR_DIR="$(LIB_REL_DIR)" -C ../lib/win/pdcurses
 	
 libpthread.a libpthread.dll :
-	$(MAKE) DLL="$(DLL)" TAR_DIR="$(LIB_REL_DIR)" -C ../lib/pthreads
+	$(MAKE) DLL="$(DLL)" TAR_DIR="$(LIB_REL_DIR)" -C ../lib/win/pthreads
 	
 $(TARGET) : $(OBJS)
 	$(CC) $(wildcard $(OBJ_DIR)/*.o) -o $@ $(LIBS)
