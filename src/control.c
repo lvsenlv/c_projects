@@ -1054,6 +1054,7 @@ static int CountLines(char *pBuf, int cols)
     
     int lines = 1; //Must initialize as 1
     int count = 0;
+    int ByteNum;
     
     while('\0' != *pBuf)
     {
@@ -1080,38 +1081,26 @@ static int CountLines(char *pBuf, int cols)
         }
 
         count += (*pBuf >> 7) ? 2 : 1;
+        ByteNum = UTF8_GetSymbolByteNum(*pBuf);
+        if(0 == ByteNum)
+            return 0;
         
         if(cols <= count)
         {
             count = 0;
             lines++;
-            if(*pBuf >> 7)
+            if('\n' == *(pBuf + ByteNum) || ('\0' == *(pBuf + ByteNum)))
             {
-                if('\n' == *(pBuf + 3) || ('\0' == *(pBuf + 3)))
-                {
-                    lines--;
-                    MoveString(pBuf+3, pBuf+4);
-                }
-                else if('\0' == *(pBuf + 3))
-                {
-                    lines--;
-                }
+                lines--;
+                MoveString(pBuf+ByteNum, pBuf+ByteNum+1);
             }
-            else
+            else if('\0' == *(pBuf + ByteNum))
             {
-                if('\n' == *(pBuf + 1) || ('\0' == *(pBuf + 1)))
-                {
-                    lines--;
-                    MoveString(pBuf+1, pBuf+2);
-                }
-                else if('\0' == *(pBuf + 1))
-                {
-                    lines--;
-                }
+                lines--;
             }
         }
         
-        pBuf += (*pBuf >> 7) ? 3 : 1;
+        pBuf += ByteNum;
     }
 
     return lines;

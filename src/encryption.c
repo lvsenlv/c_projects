@@ -976,6 +976,9 @@ static G_STATUS BeforeEncryptDecrypt(void)
  */
 static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
 {
+    fclose(g_LogFile);
+    g_LogFile = NULL;
+    
     if(PROCESS_STATUS_ELSE_ERR == ProcessStatus)
     {
         unlink(LOG_FILE_NAME);
@@ -1085,8 +1088,6 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     if(flag)
         return STAT_OK;
 
-    fclose(g_LogFile);
-    g_LogFile = NULL;
     CTL_ShowFile(LOG_FILE_NAME);
     
     return STAT_OK;

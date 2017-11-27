@@ -4,7 +4,7 @@ OBJ_DIR = ./object
 OBJS = common.o str.o control.o main.o encryption.o core_code.o extra.o decoder.o
 
 CC = gcc
-LIBS := -lncursesw -lpthread -L../lib/linux
+LIBS := -lpthread -lncursesw
 DEF := -D__LINUX -D__64BIT 
 INC := -I../include 
 #CFLAGS := -Wall -Wno-unused-function -O3
