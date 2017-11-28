@@ -4,9 +4,9 @@ OBJ_DIR = ./object
 OBJS = common.o str.o control.o main.o encryption.o core_code.o extra.o decoder.o
 
 CC = gcc
-LIBS := -lpthread -lncursesw
+LIBS := -Wl,-Bstatic -L../lib/linux -lncursesw -static -lpthread 
 DEF := -D__LINUX -D__64BIT 
-INC := -I../include 
+INC := -I../include -I../include/linux
 #CFLAGS := -Wall -Wno-unused-function -O3
 CFLAGS := -D__DEBUG -g -Wall -Wno-unused-function
 
@@ -18,7 +18,7 @@ $(TARGET) : $(OBJS)
 	$(CC) $(wildcard $(OBJ_DIR)/*.o) -o $@ $(LIBS)
 
 %.o : ../src/%.c
-	$(CC) -c $< -o $(OBJ_DIR)/$@ $(DEF) $(INC) $(CFLAGS)
+	$(CC) -c $<  -o $(OBJ_DIR)/$@ $(DEF) $(INC) $(CFLAGS) 
 
 clean :
 	rm -rf $(OBJ_DIR) $(TARGET) *log*

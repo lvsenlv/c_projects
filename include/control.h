@@ -10,7 +10,7 @@
 
 #include "common.h"
 #ifdef __LINUX
-#include <curses.h>
+#include "curses.h"
 #elif defined __WINDOWS
 #include "curses.h"
 #endif
