@@ -148,18 +148,19 @@ static inline void CTL_SafeExit(WINDOW *win)
 
 #ifdef __WINDOWS
 /*
- *  @Briefs: Fix bug for incomplete display if the string contains Chinese symbol
+ *  @Briefs: Fix bug #2.2
  *  @Return: STAT_ERR / STAT_OK
- *  @Note:   None
+ *  @Note:   If pStr contain ' ', SpecialSymbolNum should increase 1 but it does not increase in this function
  */
-static inline G_STATUS CTL_FixBug_IncompleteDisp(WINDOW *win, char *pStr)
+static inline G_STATUS CTL_FixBug_IncompleteDisp(WINDOW *win, char *pStr, int SymbolNum)
 {
-    int SpecSymNum = UTF8_GetSpecialSymbolNum(pStr);
-    if(0 == SpecSymNum)
+    if(LAN_EN == g_LanguageFlag)
         return STAT_ERR;
-
+    
+    int SpecialSymbolNum = (0 != SymbolNum) ? (SymbolNum - 1) : (UTF8_GetSpecialSymbolNum(pStr) - 1);
     int i;
-    for(i = 0; i < SpecSymNum; i++)
+    
+    for(i = 0; i < SpecialSymbolNum; i++)
     {
         waddch(win, ' ');
     }

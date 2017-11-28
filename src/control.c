@@ -77,6 +77,7 @@ void CTL_DrawStdConsole(void)
     
     attron(A_REVERSE);
     mvaddstr(0, (COLS-GetWidth(STR_CONSOLE_LABEL))/2, STR_CONSOLE_LABEL);
+    CTL_FixBug_IncompleteDisp(stdscr, STR_CONSOLE_LABEL, 4);
     mvaddstr(LINES-2, 2, STR_CONSOLE_END_LINE);
 
     int i;
@@ -88,7 +89,6 @@ void CTL_DrawStdConsole(void)
     refresh();
 }
 
-#ifdef __LINUX
 /*
  *  Briefs: Choose language
  *  Return: None
@@ -106,6 +106,11 @@ void CTL_ChooseLanguage(void)
     int Str2StartX = (CTL_CHOOSE_LANGUAGE_WIN_COLS - GetWidth(STR_CH_LANGUAGE))/2;
     
     mvwaddstr(win, 2, Str2StartX, STR_CH_LANGUAGE);
+//Fix bug #2.2
+#ifdef __WINDOWS
+    g_LanguageFlag = LAN_CH;
+    CTL_FixBug_IncompleteDisp(win, STR_CH_LANGUAGE, 2);
+#endif
     wattron(win, A_REVERSE);
     mvwaddstr(win, 1, Str1StartX, STR_EN_LANGUAGE);
     wattroff(win, A_REVERSE);
@@ -135,11 +140,13 @@ void CTL_ChooseLanguage(void)
             mvwaddstr(win, 1, Str1StartX, STR_EN_LANGUAGE);
             wattron(win, A_REVERSE);
             mvwaddstr(win, 2, Str2StartX, STR_CH_LANGUAGE);
+            CTL_FixBug_IncompleteDisp(win, STR_CH_LANGUAGE, 2);
             wattroff(win, A_REVERSE);
         }
         else
         {
             mvwaddstr(win, 2, Str2StartX, STR_CH_LANGUAGE);
+            CTL_FixBug_IncompleteDisp(win, STR_CH_LANGUAGE, 2);
             wattron(win, A_REVERSE);
             mvwaddstr(win, 1, Str1StartX, STR_EN_LANGUAGE);
             wattroff(win, A_REVERSE);
@@ -155,17 +162,17 @@ WHILE_OUT :
         CTL_CHOOSE_LANGUAGE_WIN_LINES);
     refresh();
 }
-#elif defined __WINDOWS
+//#elif defined __WINDOWS
 /*
- *  Briefs: Choose language
- *  Return: None
- *  Note:   None
- */
-void CTL_ChooseLanguage(void)
-{
-    CTL_DispWarning("%s\n%s", STR_EN_NOT_SUPPORT_FUNCTION, STR_CH_NOT_SUPPORT_FUNCTION);
-}
-#endif
+// *  Briefs: Choose language
+// *  Return: None
+// *  Note:   None
+// */
+//void CTL_ChooseLanguage(void)
+//{
+//    CTL_DispWarning("%s\n%s", STR_EN_NOT_SUPPORT_FUNCTION, STR_CH_NOT_SUPPORT_FUNCTION);
+//}
+//#endif
 
 
 /*
@@ -182,6 +189,7 @@ void CTL_ShowMenu(CTL_MENU *pFunc)
     wborder(win, '|', '|', '-', '-', '+', '+', '+', '+');
     wattron(win, A_REVERSE);
     mvwaddstr(win, 0, (CTL_MENU_WIN_COLS-GetWidth(STR_MENU))/2, STR_MENU);
+    CTL_FixBug_IncompleteDisp(win, STR_MENU, 2);
     wattroff(win, A_REVERSE);
 
     int CurPosY = 2;
@@ -190,12 +198,14 @@ void CTL_ShowMenu(CTL_MENU *pFunc)
     while(NULL != menu[CurPosY-1])
     {
         mvwaddstr(win, CurPosY, 2, menu[CurPosY-1]);
+        CTL_FixBug_IncompleteDisp(win, menu[CurPosY-1], 0);
         CurPosY++;
     }
 
     CurPosY = 1;
     wattron(win, A_REVERSE);
     mvwaddstr(win, CurPosY, 2, menu[0]);
+    CTL_FixBug_IncompleteDisp(win, menu[0], 0);
     wattroff(win, A_REVERSE);
     wrefresh(win);
     
@@ -210,10 +220,12 @@ void CTL_ShowMenu(CTL_MENU *pFunc)
             case CTL_KEY_DOWN:
             case CTL_KEY_TAB:
                 mvwaddstr(win, CurPosY, 2, menu[CurPosY-1]);
+                CTL_FixBug_IncompleteDisp(win, menu[CurPosY-1], 0);
                 CurPosY++;
                 break;
             case CTL_KEY_UP:
                 mvwaddstr(win, CurPosY, 2, menu[CurPosY-1]);
+                CTL_FixBug_IncompleteDisp(win, menu[CurPosY-1], 0);
                 CurPosY--;
                 break;
             case CTL_KEY_ESC:
@@ -236,6 +248,7 @@ void CTL_ShowMenu(CTL_MENU *pFunc)
 
         wattron(win, A_REVERSE);
         mvwaddstr(win, CurPosY, 2, menu[CurPosY-1]);
+        CTL_FixBug_IncompleteDisp(win, menu[CurPosY-1], 0);
         wattroff(win, A_REVERSE);
     }
 
@@ -261,6 +274,7 @@ void CTL_ShowInstruction(void)
     wattron(win, A_REVERSE);
     //mvwaddstr(win, 0, (COLS - strlen(*ptr))/2, *ptr++); //MinGW doesn't support
     mvwaddstr(win, 0, (COLS - GetWidth(*ptr))/2, *ptr);
+    CTL_FixBug_IncompleteDisp(win, *ptr, 5);
     ptr++;
     CTL_RESET_COLOR(win, CTL_PANEL_CYAN);
     wattroff(win, A_REVERSE);
@@ -271,6 +285,7 @@ void CTL_ShowInstruction(void)
     while(NULL != *ptr)
     {
         wprintw(win, "%s\n", *ptr++);
+        CTL_FixBug_IncompleteDisp(win, *ptr, 0);
     }
     CTL_RESET_COLOR(win, CTL_PANEL_GREEN);
     wattroff(win, A_BOLD); //Cancle green color highlight
@@ -278,6 +293,7 @@ void CTL_ShowInstruction(void)
     CTL_SET_COLOR(win, CTL_PANEL_CYAN);
     wattron(win, A_REVERSE);
     mvwaddstr(win, LINES-1, 0, STR_PRESS_ENTER_TO_GO_BACK);
+    CTL_FixBug_IncompleteDisp(win, *ptr, 5);
     CTL_RESET_COLOR(win, CTL_PANEL_CYAN);
     wattroff(win, A_REVERSE);
 
@@ -637,9 +653,17 @@ G_STATUS CTL_GetFileName(char *pFileName)
         mvwhline(win, CTL_GET_FILE_NAME_WIN_LINES-1, 0, '-', CTL_GET_FILE_NAME_WIN_COLS);
         
         mvwaddstr(win, 1, 0, STR_INPUT_FILE_NAME);
+        CTL_FixBug_IncompleteDisp(win, STR_INPUT_FILE_NAME, 18);
         mvwaddstr(win, 2, 0, STR_INPUT_FILE_NAME_EG);
+        CTL_FixBug_IncompleteDisp(win, STR_INPUT_FILE_NAME_EG, 3);
         mvwaddstr(win, 3, 0, STR_INPUT);
+        CTL_FixBug_IncompleteDisp(win, STR_INPUT, 3);
+//Fix bug #2.2
+#ifdef __LINUX
         mvwgetnstr(win, 3, GetWidth(STR_INPUT), pFileName, CTL_FILE_NAME_LENGHT-1); //End with '\0'
+#elif defined __WINDOWS
+        mvwgetnstr(win, 3, GetWidth(STR_INPUT)+2, pFileName, CTL_FILE_NAME_LENGHT-1); //End with '\0'
+#endif
         noecho();
         
         if(0 == access(pFileName, F_OK))
@@ -683,14 +707,20 @@ G_STATUS CTL_GetPassord(char *pPassword)
     keypad(win, true);
     while(1)
     {
-        
         mvwhline(win, 0, 0, '-', CTL_GET_PASSWORD_WIN_COLS);
         mvwhline(win, CTL_GET_PASSWORD_WIN_LINES-1, 0, '-', CTL_GET_PASSWORD_WIN_COLS);
 
         i = 0;
+//Fix bug #2.2
+#ifdef __LINUX
         CurPosX = GetWidth(STR_INPUT_PASSWORD);
+#elif defined __WINDOWS
+        CurPosX = GetWidth(STR_INPUT_PASSWORD) + UTF8_GetSpecialSymbolNum(STR_INPUT_PASSWORD);
+#endif
         mvwaddstr(win, 3, 0, STR_INPUT_PASSWORD_CONFIRM); //Display confirm firstly
+        CTL_FixBug_IncompleteDisp(win, STR_INPUT_PASSWORD_CONFIRM, 5);
         mvwaddstr(win, 2, 0, STR_INPUT_PASSWORD);
+        CTL_FixBug_IncompleteDisp(win, STR_INPUT_PASSWORD, 5);
         
         //Input password >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         while(1)
@@ -739,7 +769,12 @@ G_STATUS CTL_GetPassord(char *pPassword)
 
         //Input password again >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         i = 0;
+//Fix bug #2.2
+#ifdef __LINUX
         CurPosX = GetWidth(STR_INPUT_PASSWORD_CONFIRM);
+#elif defined __WINDOWS
+        CurPosX = GetWidth(STR_INPUT_PASSWORD_CONFIRM) + UTF8_GetSpecialSymbolNum(STR_INPUT_PASSWORD_CONFIRM);
+#endif
         wmove(win, 3, CurPosX);
         
         while(1)
@@ -832,8 +867,10 @@ G_STATUS CTL_DispWarning(const char *pFormat, ...)
     mvwhline(win, lines-1, 0, '*', CTL_WARNING_WIN_COLS);
 
     mvwaddstr(win, 1, 0, buf);
+    CTL_FixBug_IncompleteDisp(win, buf, 0);
     wattron(win, A_REVERSE);
     mvwaddstr(win, lines-2, (CTL_WARNING_WIN_COLS-GetWidth(STR_CONTINUE))/2, STR_CONTINUE);
+    CTL_FixBug_IncompleteDisp(win, buf, 3);
     wattroff(win, A_REVERSE);
 
     wrefresh(win);
@@ -883,6 +920,7 @@ G_STATUS CTL_MakeChoice(const char *pFormat, ...)
     mvwhline(win, 0, 0, '*', CTL_MAKE_CHOICE_WIN_COLS);
     mvwhline(win, lines-1, 0, '*', CTL_MAKE_CHOICE_WIN_COLS);
     mvwaddstr(win, 1, 0, buf);
+    CTL_FixBug_IncompleteDisp(win, buf, 0);
 
     char *pStr1 = STR_RETRY;
     char *pStr2 = STR_BACK;
@@ -891,8 +929,10 @@ G_STATUS CTL_MakeChoice(const char *pFormat, ...)
     int StartPosY = lines - 2;
     
     mvwaddstr(win, StartPosY, Str2StartX, pStr2);
+    CTL_FixBug_IncompleteDisp(win, pStr2, 3);
     wattron(win, A_REVERSE);
     mvwaddstr(win, StartPosY, Str1StartX, pStr1);
+    CTL_FixBug_IncompleteDisp(win, pStr2, 3);
     wattroff(win, A_REVERSE);
 
     char flag = 0;
@@ -917,15 +957,19 @@ G_STATUS CTL_MakeChoice(const char *pFormat, ...)
         if(flag)
         {
             mvwaddstr(win, StartPosY, Str1StartX, pStr1);
+            CTL_FixBug_IncompleteDisp(win, pStr1, 3);
             wattron(win, A_REVERSE);
             mvwaddstr(win, StartPosY, Str2StartX, pStr2);
+            CTL_FixBug_IncompleteDisp(win, pStr2, 3);
             wattroff(win, A_REVERSE);
         }
         else
         {
             mvwaddstr(win, StartPosY, Str2StartX, pStr2);
+            CTL_FixBug_IncompleteDisp(win, pStr2, 3);
             wattron(win, A_REVERSE);
             mvwaddstr(win, StartPosY, Str1StartX, pStr1);
+            CTL_FixBug_IncompleteDisp(win, pStr1, 3);
             wattroff(win, A_REVERSE);
         }
     }
@@ -978,6 +1022,7 @@ G_STATUS CTL_ConfirmOperation(const char *pFormat, ...)
     mvwhline(win, 0, 0, '*', CTL_CONFIRM_WIN_COLS);
     mvwhline(win, lines-1, 0, '*', CTL_CONFIRM_WIN_COLS);
     mvwaddstr(win, 1, 0, buf);
+    CTL_FixBug_IncompleteDisp(win, buf, 0);
 
     char *pStr1 = STR_YES;
     char *pStr2 = STR_NO;
@@ -986,8 +1031,10 @@ G_STATUS CTL_ConfirmOperation(const char *pFormat, ...)
     int StartPosY = lines - 2;
     
     mvwaddstr(win, StartPosY, Str2StartX, pStr2);
+    CTL_FixBug_IncompleteDisp(win, pStr2, 3);
     wattron(win, A_REVERSE);
     mvwaddstr(win, StartPosY, Str1StartX, pStr1);
+    CTL_FixBug_IncompleteDisp(win, pStr1, 3);
     wattroff(win, A_REVERSE);
 
     char flag = 0;
@@ -1012,15 +1059,19 @@ G_STATUS CTL_ConfirmOperation(const char *pFormat, ...)
         if(flag)
         {
             mvwaddstr(win, StartPosY, Str1StartX, pStr1);
+            CTL_FixBug_IncompleteDisp(win, pStr1, 3);
             wattron(win, A_REVERSE);
             mvwaddstr(win, StartPosY, Str2StartX, pStr2);
+            CTL_FixBug_IncompleteDisp(win, pStr2, 3);
             wattroff(win, A_REVERSE);
         }
         else
         {
             mvwaddstr(win, StartPosY, Str2StartX, pStr2);
+            CTL_FixBug_IncompleteDisp(win, pStr2, 3);
             wattron(win, A_REVERSE);
             mvwaddstr(win, StartPosY, Str1StartX, pStr1);
+            CTL_FixBug_IncompleteDisp(win, pStr1, 3);
             wattroff(win, A_REVERSE);
         }
     }

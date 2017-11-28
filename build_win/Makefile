@@ -1,10 +1,20 @@
-TARGET      = encrypt
+TARGET_BASE_NAME = encrypt
+TARGET_NAME = $(TARGET_BASE_NAME)
+ifneq ($(PLATFORM),)
+	ifneq ($(PTHREAD_NUM_MAX),)
+		ifneq ($(BASE_FILE_SIZE),)
+			TARGET_NAME = $(TARGET_BASE_NAME)_$(PLATFORM)_$(PTHREAD_NUM_MAX)_$(BASE_FILE_SIZE)
+		endif
+	endif
+endif
+TARGET      = $(TARGET_NAME)
+
 OBJ_DIR     = ./object
 SRC_DIR     = ../src
 ifeq ($(DLL), Y)
 LIB_DIR     = .
 #relative directory of libraries, used in building libraries
-LIB_REL_DIR = ../../../build_win 
+LIB_REL_DIR = ../../../build_win
 else
 LIB_DIR     = ../lib/win
 LIB_REL_DIR = ../
@@ -50,17 +60,17 @@ before : $(LIBS_DEPS)
 
 libcurses.a libcurses.dll :
 	$(MAKE) DLL="$(DLL)" TAR_DIR="$(LIB_REL_DIR)" -C ../lib/win/pdcurses
-	
+
 libpthread.a libpthread.dll :
 	$(MAKE) DLL="$(DLL)" TAR_DIR="$(LIB_REL_DIR)" -C ../lib/win/pthreads
-	
+
 $(TARGET) : $(OBJS)
 	$(CC) $(wildcard $(OBJ_DIR)/*.o) -o $@ $(LIBS)
 
 %.o : $(SRC_DIR)/%.c
 	$(CC) -c $< -o $(OBJ_DIR)/$@ $(DEF) $(INCS) $(CFLAGS)
-	
+
 .PHONY : clean
-	
+
 clean :
 	-clean.bat
