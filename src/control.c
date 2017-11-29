@@ -284,8 +284,14 @@ void CTL_ShowInstruction(void)
     wmove(win, 1, 0);
     while(NULL != *ptr)
     {
+#ifdef __LINUX
         wprintw(win, "%s\n", *ptr++);
+#elif defined __WINDOWS
+        wprintw(win, "%s", *ptr);
         CTL_FixBug_IncompleteDisp(win, *ptr, 0);
+        wprintw(win, "\n");
+        ptr++;
+#endif
     }
     CTL_RESET_COLOR(win, CTL_PANEL_GREEN);
     wattroff(win, A_BOLD); //Cancle green color highlight

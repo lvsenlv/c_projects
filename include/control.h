@@ -146,7 +146,9 @@ static inline void CTL_SafeExit(WINDOW *win)
     touchwin(win);
 }
 
-#ifdef __WINDOWS
+#ifdef __LINUX
+#define CTL_FixBug_IncompleteDisp(w, p, s) ((void)0)
+#elif defined __WINDOWS
 /*
  *  @Briefs: Fix bug #2.2
  *  @Return: STAT_ERR / STAT_OK
