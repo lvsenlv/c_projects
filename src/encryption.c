@@ -10,6 +10,18 @@
 #include <unistd.h>
 #include <dirent.h>
 
+#ifdef PTHREAD_NUM_MAX
+#if (PTHREAD_NUM_MAX < 2) || (PTHREAD_NUM_MAX > 8)
+    #error "Macro define rule: 2 <= PTHREAD_NUM_MAX <= 8"
+#endif
+#endif
+
+#ifdef FREE_MEMORY
+#if (FREE_MEMORY < 100) || (FREE_MEMORY > 4096)
+#error "Macro define rule: 100 <= FREE_MEMORY <= 4096"
+#endif
+#endif
+
 static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func);
 static PROCESS_STATUS EncryptDecrypt_plus(FileList_t *pFileList, CTL_MENU func);
 static G_STATUS BeforeEncryptDecrypt(void);
@@ -105,8 +117,8 @@ G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
             (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING, FileName, 
             STR_TOTAL_FILE, pFileList->FileSize, STR_IF_CONTINUE))
 #elif defined __WINDOWS
-        if(STAT_OK != CTL_ConfirmOperation("%s%s\n%s: %d\n", 
-            (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING, FileName, 
+        if(STAT_OK != CTL_ConfirmOperation("%s%s %d\n        ", 
+            (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING,  
             STR_TOTAL_FILE, pFileList->FileSize))
 #endif
         {
@@ -144,14 +156,6 @@ G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
  */
 static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
 {
-#ifdef PTHREAD_NUM_MAX
-#if (PTHREAD_NUM_MAX < 2)
-    #error STR_ERR_PTHREAD_NUM_TOO_SMALL
-#elif (PTHREAD_NUM_MAX > 8)
-    #error STR_ERR_PTHREAD_NUM_TOO_BIG
-#endif
-#endif
-
 #ifdef __DEBUG
     if(NULL == pFileList)
     {
@@ -258,7 +262,6 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
     int StrSuccessWidth = GetWidth(STR_SUCCESS_COUNT);
     int StrFailWidth = GetWidth(STR_FAIL_COUNT);
     int StrRateWidth = GetWidth(STR_RATE);
-//Fix bug #2.1
 #ifdef __WINDOWS
     char *pConverFormat;
 #endif
@@ -319,7 +322,6 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
                             denominator[i] = (int)(PthreadArg[i].pCurFileList->FileSize / BASE_FILE_SIZE);
                             if(0 == denominator[i])
                                 denominator[i] = 100;
-//Fix bug #2.1
 #ifdef __LINUX
                             wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
 #elif defined __WINDOWS
@@ -394,14 +396,6 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
  */
 static PROCESS_STATUS EncryptDecrypt_plus(FileList_t *pFileList, CTL_MENU func)
 {
-#ifdef PTHREAD_NUM_MAX
-#if (PTHREAD_NUM_MAX < 2)
-    #error STR_EN_ERR_PTHREAD_NUM_TOO_SMALL
-#elif (PTHREAD_NUM_MAX > 8)
-    #error STR_EN_ERR_PTHREAD_NUM_TOO_BIG
-#endif
-#endif
-
 #ifdef __DEBUG
     if(NULL == pFileList)
     {
@@ -503,7 +497,6 @@ static PROCESS_STATUS EncryptDecrypt_plus(FileList_t *pFileList, CTL_MENU func)
     int StrSuccessWidth = GetWidth(STR_SUCCESS_COUNT);
     int StrFailWidth = GetWidth(STR_FAIL_COUNT);
     int StrRateWidth = GetWidth(STR_RATE);
-//Fix bug #2.1
 #ifdef __WINDOWS
     char *pConverFormat;
 #endif
@@ -562,7 +555,6 @@ static PROCESS_STATUS EncryptDecrypt_plus(FileList_t *pFileList, CTL_MENU func)
                             denominator[i] = (int)(PthreadArg[i].pCurFileList->FileSize / BASE_FILE_SIZE);
                             if(0 == denominator[i])
                                 denominator[i] = 100;
-//Fix bug #2.1
 #ifdef __LINUX
                             wprintw(win[i], "%s", PthreadArg[i].pCurFileList->pFileName);
 #elif defined __WINDOWS

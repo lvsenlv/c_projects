@@ -28,7 +28,10 @@
 #define DIR_DELIMITER                           '\\'
 #endif
 
-#define PTHREAD_NUM_MAX                         4
+#ifndef PTHREAD_NUM_MAX
+#define PTHREAD_NUM_MAX                         2
+#endif
+
 #define REFRESH_INTERVAL                        1 //Unit: ms
 
 typedef enum

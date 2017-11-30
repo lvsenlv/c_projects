@@ -8,6 +8,12 @@
 #include "core_code.h"
 #include <unistd.h>
 
+#ifdef FREE_MEMORY
+#if (FREE_MEMORY < 100) || (FREE_MEMORY > 4096)
+#error "Macro define rule: 100 <= FREE_MEMORY <= 4096"
+#endif
+#endif
+
 static G_STATUS CheckPthreadArg(PthreadArg_t *pArg_t);
 static inline void DeleteEncyptSuffix(char *pFileName);
 static inline G_STATUS RemoveFile(const char *pFileName);

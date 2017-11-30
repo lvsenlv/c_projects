@@ -150,7 +150,7 @@ static inline void CTL_SafeExit(WINDOW *win)
 #define CTL_FixBug_IncompleteDisp(w, p, s) ((void)0)
 #elif defined __WINDOWS
 /*
- *  @Briefs: Fix bug #2.2
+ *  @Briefs: Fix bug #2.1
  *  @Return: STAT_ERR / STAT_OK
  *  @Note:   If pStr contain ' ', SpecialSymbolNum should increase 1 but it does not increase in this function
  */

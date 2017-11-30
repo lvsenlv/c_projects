@@ -15,7 +15,16 @@
 #include <windows.h>
 #endif
 
-#define BASE_FILE_SIZE                          ((int64_t)(1024*1024*100)) //100Mb
+#ifdef FREE_MEMORY
+    #if (FREE_MEMORY >= 100) && (FREE_MEMORY <= 4096)
+        #define BASE_FILE_SIZE                          (FREE_MEMORY/PTHREAD_NUM_MAX)
+    #else
+        #define BASE_FILE_SIZE                          ((int64_t)(1024*1024*10)) //10Mb
+    #endif 
+#else 
+    #define BASE_FILE_SIZE                          ((int64_t)(1024*1024*10)) //10Mb
+#endif 
+
 #define PTHREAD_WAIT_INTERVAL                   1 //Unit: ms, wait for parent process to refresh window
 
 #ifdef __LINUX

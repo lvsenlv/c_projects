@@ -106,7 +106,7 @@ void CTL_ChooseLanguage(void)
     int Str2StartX = (CTL_CHOOSE_LANGUAGE_WIN_COLS - GetWidth(STR_CH_LANGUAGE))/2;
     
     mvwaddstr(win, 2, Str2StartX, STR_CH_LANGUAGE);
-//Fix bug #2.2
+//Fix bug #2.1
 #ifdef __WINDOWS
     g_LanguageFlag = LAN_CH;
     CTL_FixBug_IncompleteDisp(win, STR_CH_LANGUAGE, 2);
@@ -382,7 +382,6 @@ G_STATUS CTL_ShowFile(const char *pFileName)
     FileContent_t *pTmpNode = &HeadNode;
     FileContent_t *pNewNode;
 
-//Fix buf #2.1
 #ifdef __WINDOWS
     char *pConvertFormat;
 #endif
@@ -401,7 +400,6 @@ G_STATUS CTL_ShowFile(const char *pFileName)
 
         ReplaceChar(buf, '\n', '\0');
 
-//Fix buf #2.1
 #ifdef __LINUX
         pNewNode->ContentWidth = GetWidth(buf);
 #elif defined __WINDOWS
@@ -473,7 +471,7 @@ G_STATUS CTL_ShowFile(const char *pFileName)
 
     WINDOW *win = newwin(LINES-1, COLS, 0, 0);
 
-//Fix buf #2.1
+//Fix buf #2.4
 #ifdef __WINDOWS
     wrefresh(win);  //Avoid displaying redundant symbols because of bug
 #endif
@@ -496,7 +494,7 @@ G_STATUS CTL_ShowFile(const char *pFileName)
     }
     else
     {
-//Fix buf #2.1
+//Fix bug #2.1
 #ifdef __LINUX
         CTL_SET_COLOR(win, CTL_PANEL_YELLOW); //It would cause abnormal display Chinese symbol on Windows platform
 #endif
@@ -545,7 +543,7 @@ G_STATUS CTL_ShowFile(const char *pFileName)
                     continue;
                 
                 wclear(win);
-//Fix buf #2.1
+//Fix buf #2.4
 #ifdef __WINDOWS
                 wrefresh(win);  //Avoid displaying redundant symbols because of bug
 #endif
@@ -599,7 +597,7 @@ G_STATUS CTL_ShowFile(const char *pFileName)
                 CurPage--;
 
                 wclear(win);
-//Fix buf #2.1
+//Fix buf #2.4
 #ifdef __WINDOWS
                 wrefresh(win); //Avoid displaying redundant symbols because of bug
 #endif
@@ -664,7 +662,7 @@ G_STATUS CTL_GetFileName(char *pFileName)
         CTL_FixBug_IncompleteDisp(win, STR_INPUT_FILE_NAME_EG, 3);
         mvwaddstr(win, 3, 0, STR_INPUT);
         CTL_FixBug_IncompleteDisp(win, STR_INPUT, 3);
-//Fix bug #2.2
+//Fix bug #2.1
 #ifdef __LINUX
         mvwgetnstr(win, 3, GetWidth(STR_INPUT), pFileName, CTL_FILE_NAME_LENGHT-1); //End with '\0'
 #elif defined __WINDOWS
@@ -717,7 +715,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
         mvwhline(win, CTL_GET_PASSWORD_WIN_LINES-1, 0, '-', CTL_GET_PASSWORD_WIN_COLS);
 
         i = 0;
-//Fix bug #2.2
+//Fix bug #2.1
 #ifdef __LINUX
         CurPosX = GetWidth(STR_INPUT_PASSWORD);
 #elif defined __WINDOWS
@@ -775,7 +773,7 @@ G_STATUS CTL_GetPassord(char *pPassword)
 
         //Input password again >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         i = 0;
-//Fix bug #2.2
+//Fix bug #2.1
 #ifdef __LINUX
         CurPosX = GetWidth(STR_INPUT_PASSWORD_CONFIRM);
 #elif defined __WINDOWS
