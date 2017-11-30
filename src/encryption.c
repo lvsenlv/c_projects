@@ -11,14 +11,19 @@
 #include <dirent.h>
 
 #ifdef PTHREAD_NUM_MAX
-#if (PTHREAD_NUM_MAX < 2) || (PTHREAD_NUM_MAX > 8)
-    #error "Macro define rule: 2 <= PTHREAD_NUM_MAX <= 8"
+#if (PTHREAD_NUM_MAX != 2) && (PTHREAD_NUM_MAX != 4) && \
+    (PTHREAD_NUM_MAX != 6) && (PTHREAD_NUM_MAX != 8)
+#error "Macro define rule: PTHREAD_NUM_MAX = 2 / 4 / 6 / 8"
+#undef PTHREAD_NUM_MAX
+#define PTHREAD_NUM_MAX 1
 #endif
 #endif
 
 #ifdef FREE_MEMORY
-#if (FREE_MEMORY < 100) || (FREE_MEMORY > 4096)
-#error "Macro define rule: 100 <= FREE_MEMORY <= 4096"
+#if (FREE_MEMORY != 120) && (FREE_MEMORY != 240) && \
+    (FREE_MEMORY != 360) && (FREE_MEMORY != 480) && \
+    (FREE_MEMORY != 600) && (FREE_MEMORY != 720)
+#error "Macro define rule: FREE_MEMORY = 120 / 240 / 360 / 480 / 600 / 720"
 #endif
 #endif
 

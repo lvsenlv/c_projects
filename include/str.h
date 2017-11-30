@@ -22,6 +22,7 @@
 #define STR_FILE_IS_NULL                       ((0 == g_LanguageFlag) ? STR_EN_FILE_IS_NULL                 : STR_CH_FILE_IS_NULL                  )
 #define STR_FILE_LIST_IS_NULL                  ((0 == g_LanguageFlag) ? STR_EN_FILE_LIST_IS_NULL            : STR_CH_FILE_LIST_IS_NULL             )
 #define STR_FILE_NOT_EXIST                     ((0 == g_LanguageFlag) ? STR_EN_FILE_NOT_EXIST               : STR_CH_FILE_NOT_EXIST                )
+#define STR_FREE_MEMORY                        ((0 == g_LanguageFlag) ? STR_EN_FREE_MEMORY                  : STR_CH_FREE_MEMORY                   )
 #define STR_GO_BACK                            ((0 == g_LanguageFlag) ? STR_EN_GO_BACK                      : STR_CH_GO_BACK                       )
 #define STR_IF_CONTINUE                        ((0 == g_LanguageFlag) ? STR_EN_IF_CONTINUE                  : STR_CH_IF_CONTINUE                   )
 #define STR_IN_ENCRYPTING                      ((0 == g_LanguageFlag) ? STR_EN_IN_ENCRYPTING                : STR_CH_IN_ENCRYPTING                 )
@@ -35,6 +36,7 @@
 #define STR_INVALID_PARAMTER                   ((0 == g_LanguageFlag) ? STR_EN_INVALID_PARAMETER            : STR_CH_INVALID_PARAMETER             )
 #define STR_LANGUAGE                           ((0 == g_LanguageFlag) ? STR_EN_LANGUAGE                     : STR_CH_LANGUAGE                      )
 #define STR_LOG_IS_NULL                        ((0 == g_LanguageFlag) ? STR_EN_LOG_IS_NULL                  : STR_CH_LOG_IS_NULL                   )
+#define STR_MACHINE_REQUIREMENT                ((0 == g_LanguageFlag) ? STR_EN_MACHINE_REQUIREMENT          : STR_CH_MACHINE_REQUIREMENT           )
 #define STR_MENU                               ((0 == g_LanguageFlag) ? STR_EN_MENU                         : STR_CH_MENU                          )
 #define STR_NO                                 ((0 == g_LanguageFlag) ? STR_EN_NO                           : STR_CH_NO                            )
 #define STR_NOT_A_FILE                         ((0 == g_LanguageFlag) ? STR_EN_NOT_A_FILE                   : STR_CH_NOT_A_FILE                    )
@@ -53,6 +55,7 @@
 #define STR_SUCCESS_COUNT                      ((0 == g_LanguageFlag) ? STR_EN_SUCCESS_COUNT                : STR_CH_SUCCESS_COUNT                 )
 #define STR_TASK                               ((0 == g_LanguageFlag) ? STR_EN_TASK                         : STR_CH_TASK                          )
 #define STR_TOTAL_FILE                         ((0 == g_LanguageFlag) ? STR_EN_TOTAL_FILE                   : STR_CH_TOTAL_FILE                    )
+#define STR_THREAD_NUM                         ((0 == g_LanguageFlag) ? STR_EN_THREAD_NUM                   : STR_CH_THREAD_NUM                    )
 #define STR_VIEW_LOG                           ((0 == g_LanguageFlag) ? STR_EN_VIEW_LOG                     : STR_CH_VIEW_LOG                      )
 #define STR_YES                                ((0 == g_LanguageFlag) ? STR_EN_YES                          : STR_CH_YES                           )
                                                                                                                                                   
@@ -89,6 +92,7 @@
 #define STR_EN_FILE_IS_NULL                     "It is an empty file"
 #define STR_EN_FILE_LIST_IS_NULL                "Folder is empty"
 #define STR_EN_FILE_NOT_EXIST                   "The file does not exist"
+#define STR_EN_FREE_MEMORY                      "Free memory"
 #define STR_EN_GO_BACK                          "[ go back ]"
 #define STR_EN_IF_CONTINUE                      "If continue ?"
 #define STR_EN_IN_ENCRYPTING                    "Encrypting: "
@@ -106,6 +110,7 @@
 #define STR_EN_INVALID_PARAMETER                "Invalid paramter"
 #define STR_EN_LANGUAGE                         "English"
 #define STR_EN_LOG_IS_NULL                      "Log is empty"
+#define STR_EN_MACHINE_REQUIREMENT              "Lowest machine requirement:"
 #define STR_EN_MENU                             "Menu"
 #define STR_EN_NO                               "[ no ]"
 #define STR_EN_NOT_A_FILE                       "It is not a file"
@@ -124,6 +129,7 @@
 #define STR_EN_SUCCESS_COUNT                    "Success: "
 #define STR_EN_TASK                             "Task"
 #define STR_EN_TOTAL_FILE                       "Total files"
+#define STR_EN_THREAD_NUM                       "Thread number"
 #define STR_EN_VIEW_LOG                         "[ view log ]"
 #define STR_EN_YES                              "[ yes ]"
 
@@ -162,6 +168,7 @@
 #define STR_CH_FILE_IS_NULL                     "文件为空"
 #define STR_CH_FILE_LIST_IS_NULL                "文件夹为空"
 #define STR_CH_FILE_NOT_EXIST                   "文件不存在"
+#define STR_CH_FREE_MEMORY                      "剩余内存"
 #define STR_CH_GO_BACK                          "[ 返回 ]"
 #define STR_CH_IF_CONTINUE                      "是否继续? "
 #define STR_CH_IN_ENCRYPTING                    "加密: "
@@ -179,6 +186,7 @@
 #define STR_CH_INVALID_PARAMETER                "无效的参数"
 #define STR_CH_LANGUAGE                         "中文"
 #define STR_CH_LOG_IS_NULL                      "日志为空"
+#define STR_CH_MACHINE_REQUIREMENT              "机器最低要求: "
 #define STR_CH_MENU                             "菜单"
 #define STR_CH_NO                               "[ 否 ]"
 #define STR_CH_NOT_A_FILE                       "不是一个文件"
@@ -197,6 +205,7 @@
 #define STR_CH_SUCCESS_COUNT                    "成功: "
 #define STR_CH_TASK                             "线程"
 #define STR_CH_TOTAL_FILE                       "文件总数"
+#define STR_CH_THREAD_NUM                       "线程数量"
 #define STR_CH_VIEW_LOG                         "[ 日志 ]"
 #define STR_CH_YES                              "[ 是 ]"
     

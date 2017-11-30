@@ -1,30 +1,37 @@
 TARGET_BASE_NAME 	= encrypt
-TARGET_NAME 		= $(TARGET_BASE_NAME)
 CC 					= gcc
 LIBS 				= -Wl,-Bstatic -L../lib/linux -lncursesw -static -lpthread 
-DEF 				= -D__LINUX -D__64BIT -D__DEBUG 
+DEF 				= -D__LINUX -D__64BIT 
 INC 				= -I../include -I../include/linux
 CFLAGS 				= -g -Wall -Wno-unused-function
 
-ifneq ($(PLATFORM),)
-	ifneq ($(PTHREAD_NUM_MAX),)
-		DEF += -DPTHREAD_NUM_MAX=$(PTHREAD_NUM_MAX)
-		ifneq ($(FREE_MEMORY),)
-			TARGET_NAME = $(TARGET_BASE_NAME)_$(PLATFORM)_$(PTHREAD_NUM_MAX)th_$(FREE_MEMORY)Mb
-			DEF += -DFREE_MEMORY=$(FREE_MEMORY)
-		else
-			TARGET_NAME = $(TARGET_BASE_NAME)_$(PLATFORM)_$(PTHREAD_NUM_MAX)th_100Mb
-		endif
-	else
-		TARGET_NAME = $(TARGET_BASE_NAME)_$(PLATFORM)_2th_100Mb
-	endif
+ifneq ($(findstring $(PLATFORM), "linux_x86" "linux_x64"),)
+	PLATFORM_NAME = _$(PLATFORM)
 else
-	TARGET_NAME = $(TARGET_BASE_NAME)_linux_2th_100Mb
+	PLATFORM_NAME = _linux
 endif
-TARGET  = $(TARGET_NAME)
 
+ifneq ($(PTHREAD_NUM_MAX),)
+	DEF += -DPTHREAD_NUM_MAX=$(PTHREAD_NUM_MAX)
+	PTHREAD_NUM_MAX_NAME = _$(PTHREAD_NUM_MAX)th
+else
+	PTHREAD_NUM_MAX_NAME = _1th
+endif
+
+ifneq ($(FREE_MEMORY),)
+	DEF += -DFREE_MEMORY=$(FREE_MEMORY)
+	FREE_MEMORY_NAME = _$(FREE_MEMORY)Mb
+else
+	ifneq ($(findstring $(PTHREAD_NUM_MAX), 2 4 6 8),)
+		FREE_MEMORY_NAME = _$(PTHREAD_NUM_MAX)0Mb
+	else
+		FREE_MEMORY_NAME = _10Mb
+	endif
+endif
+
+TARGET  = $(TARGET_BASE_NAME)$(PLATFORM_NAME)$(PTHREAD_NUM_MAX_NAME)$(FREE_MEMORY_NAME)
 OBJ_DIR = ./object
-OBJS = common.o str.o control.o main.o encryption.o core_code.o extra.o decoder.o
+OBJS 	= common.o str.o control.o main.o encryption.o core_code.o extra.o decoder.o
 
 $(shell mkdir -p $(OBJ_DIR))
 

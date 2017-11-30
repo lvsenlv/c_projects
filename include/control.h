@@ -16,6 +16,22 @@
 #endif
 #include "str.h"
 
+#ifndef PTHREAD_NUM_MAX
+#define PTHREAD_NUM_MAX                         2
+#endif
+
+#ifdef FREE_MEMORY
+    #if (FREE_MEMORY == 120) || (FREE_MEMORY == 240) || \
+        (FREE_MEMORY == 360) || (FREE_MEMORY == 480) || \
+        (FREE_MEMORY == 600) || (FREE_MEMORY == 720)
+        #define BASE_FILE_SIZE                          (FREE_MEMORY*1024*1024/PTHREAD_NUM_MAX)
+    #else
+        #define BASE_FILE_SIZE                          ((int64_t)(1024*1024*10)) //10Mb
+    #endif 
+#else 
+        #define BASE_FILE_SIZE                          ((int64_t)(1024*1024*10)) //10Mb
+#endif
+
 #define CTL_KEY_TAB                             9   //ASCII
 #define CTL_KEY_DOWN                            KEY_DOWN
 #define CTL_KEY_UP                              KEY_UP

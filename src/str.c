@@ -58,7 +58,6 @@ char *EnInstruction[] = {
 #ifdef __LINUX
 char *ChInstruction[] = { 
     "请仔细阅读",
-    "暂无说明",
     "",
     "如有任何问题, 请发送邮件至lvsen46000@163.com ",
     NULL,

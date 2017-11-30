@@ -32,7 +32,9 @@ void CTL_InitConsole(void)
 
 #ifdef __LINUX
     setlocale(LC_ALL, "");
-    //signal(SIGINT, SIG_IGN);
+#ifndef __DEBUG
+    signal(SIGINT, SIG_IGN);
+#endif
 #endif
     
     initscr();
@@ -282,6 +284,17 @@ void CTL_ShowInstruction(void)
     CTL_SET_COLOR(win, CTL_PANEL_GREEN);
     wattron(win, A_BOLD); //Make green color highlight
     wmove(win, 1, 0);
+
+#ifdef __LINUX
+    wprintw(win, "%s\n", STR_MACHINE_REQUIREMENT);
+    wprintw(win, "    %s: %d\n", STR_THREAD_NUM, PTHREAD_NUM_MAX);
+    wprintw(win, "    %s: %dMb\n\n", STR_FREE_MEMORY, BASE_FILE_SIZE*PTHREAD_NUM_MAX>>20);
+#elif defined __WINDOWS
+    wprintw(win, "%s        \n", STR_MACHINE_REQUIREMENT);
+    wprintw(win, "    %s: %d        \n", STR_THREAD_NUM, PTHREAD_NUM_MAX);
+    wprintw(win, "    %s: %dMb        \n\n", STR_FREE_MEMORY, BASE_FILE_SIZE*PTHREAD_NUM_MAX>>20);
+#endif
+    
     while(NULL != *ptr)
     {
 #ifdef __LINUX
