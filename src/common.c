@@ -8,29 +8,31 @@
 #include "common.h"
 #include <stdarg.h>
 
-#ifdef __LINUX
-    #pragma message("Activate __LINUX")
-#elif defined __WINDOWS
-    #pragma message("Activate __WINDOWS")
-#else
-    #error "You must assign the platform as __LINUX or __WINDOWS"
-#endif
+#ifndef __DISABLE_COMPILE_INFO
+    #ifdef __LINUX
+        #pragma message("Activate __LINUX")
+    #elif defined __WINDOWS
+        #pragma message("Activate __WINDOWS")
+    #else
+        #error "You must assign the platform as __LINUX or __WINDOWS"
+    #endif
     
-#ifdef __32BIT
-    #pragma message("Activate __32BIT")
-#elif defined __64BIT
-    #pragma message("Activate __64BIT")
-#else
-    #error "You must assign the platform as __32BIT or __64BIT"
-#endif //__LINUX
-
-#ifdef __DEBUG
-    #pragma message("Activate __DEBUG")
-#endif //__DEBUG
-
-#ifdef __REDIRECTION
-    #pragma message("Activate __REDIRECTION")
-#endif //__REDIRECTION
+    #ifdef __32BIT
+        #pragma message("Activate __32BIT")
+    #elif defined __64BIT
+        #pragma message("Activate __64BIT")
+    #else
+        #error "You must assign the platform as __32BIT or __64BIT"
+    #endif //__LINUX
+    
+    #ifdef __DEBUG
+        #pragma message("Activate __DEBUG")
+    #endif //__DEBUG
+    
+    #ifdef __REDIRECTION
+        #pragma message("Activate __REDIRECTION")
+    #endif //__REDIRECTION
+#endif //__DISABLE_COMPILE_INFO
 
 /******************************Modifiable*******************************/
 FILE *g_LogFile = NULL;

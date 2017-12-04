@@ -11,6 +11,9 @@
 #ifdef __LINUX
 #include <locale.h>
 #include <signal.h>
+#elif defined __WINDOWS
+#define _WIN32_WINNT    0x0500
+#include <windows.h>
 #endif
 
 static int CountLines(char *pBuf, int cols);
@@ -1103,6 +1106,24 @@ WHILE_OUT :
         return STAT_ERR;
     
     return STAT_OK;
+}
+
+/*  
+ *  Briefs: Disable some buttons to avoid close or resize the window
+ *  Return: None
+ *  Note:   None
+ */
+void CTL_DisableButton(void)
+{
+#ifdef __LINUX
+    (void)0;
+#elif defined __WINDOWS
+
+    DeleteMenu(GetSystemMenu(GetConsoleWindow(), FALSE), SC_CLOSE, MF_BYCOMMAND);
+    DeleteMenu(GetSystemMenu(GetConsoleWindow(), FALSE), SC_MAXIMIZE , MF_BYCOMMAND);
+    DeleteMenu(GetSystemMenu(GetConsoleWindow(), FALSE), SC_SIZE , MF_BYCOMMAND);
+    //DrawMenuBar(GetConsoleWindow());
+#endif
 }
 
 

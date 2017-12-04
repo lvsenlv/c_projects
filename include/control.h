@@ -17,7 +17,7 @@
 #include "str.h"
 
 #ifndef PTHREAD_NUM_MAX
-#define PTHREAD_NUM_MAX                         2
+#define PTHREAD_NUM_MAX                         1
 #endif
 
 #ifdef FREE_MEMORY
@@ -141,6 +141,7 @@ G_STATUS CTL_GetPassord(char *pPassword);
 G_STATUS CTL_DispWarning(const char *pFormat, ...);
 G_STATUS CTL_MakeChoice(const char*format, ...);
 G_STATUS CTL_ConfirmOperation(const char *pFormat, ...);
+void CTL_DisableButton(void);
 
 
 

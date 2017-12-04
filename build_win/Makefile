@@ -1,16 +1,22 @@
-TARGET_BASE_NAME = encrypt
-TARGET_NAME = $(TARGET_BASE_NAME)
-ifneq ($(PLATFORM),)
-	ifneq ($(PTHREAD_NUM_MAX),)
-		ifneq ($(BASE_FILE_SIZE),)
-			TARGET_NAME = $(TARGET_BASE_NAME)_$(PLATFORM)_$(PTHREAD_NUM_MAX)_$(BASE_FILE_SIZE)
-		endif
-	endif
-endif
-TARGET      = $(TARGET_NAME)
+TARGET_BASE_NAME 	= encrypt
+CC 					= gcc
+LIBS 				= -L$(LIB_DIR) -lpthread -lcurses
+DEF       			= -D__WINDOWS \
+					  -D__64BIT \
+					  -D__DEBUG \
+					  -DPDC_WIDE \
+					  -DPDC_FORCE_UTF8 \
+					  -D__CLEANUP_C \
+					  -DHAVE_PTW32_CONFIG_H
+INCS      			= -I../include \
+					  -I../lib/win/pthreads/include \
+					  -I../lib/win/pdcurses/include
+CFLAGS 				= -O3 #-Wall -Wno-unused-function -O3
+SRC_DIR     		= ../src
+OBJ_DIR 			= ./object
+OBJS 				= common.o str.o decoder.o control.o encryption.o core_code.o extra.o main.o
+LIBS_DEPS 			=
 
-OBJ_DIR     = ./object
-SRC_DIR     = ../src
 ifeq ($(DLL), Y)
 LIB_DIR     = .
 #relative directory of libraries, used in building libraries
@@ -20,22 +26,36 @@ LIB_DIR     = ../lib/win
 LIB_REL_DIR = ../
 endif
 
-OBJS = common.o control.o encryption.o core_code.o main.o str.o extra.o decoder.o
+ifneq ($(PLATFORM),)
+	PLATFORM_NAME = _$(PLATFORM)
+else
+	PLATFORM_NAME = _win
+endif
+ifneq ($(PTHREAD_NUM_MAX),)
+	DEF += -DPTHREAD_NUM_MAX=$(PTHREAD_NUM_MAX)
+	PTHREAD_NUM_MAX_NAME = _$(PTHREAD_NUM_MAX)th
+else
+	PTHREAD_NUM_MAX_NAME = _1th
+endif
+ifneq ($(FREE_MEMORY),)
+	DEF += -DFREE_MEMORY=$(FREE_MEMORY)
+	FREE_MEMORY_NAME = _$(FREE_MEMORY)Mb
+else
+	ifneq ($(findstring $(PTHREAD_NUM_MAX), 2 4 6 8),)
+		FREE_MEMORY_NAME = _$(PTHREAD_NUM_MAX)0Mb
+	else
+		FREE_MEMORY_NAME = _10Mb
+	endif
+endif
+TARGET  = $(TARGET_BASE_NAME)$(PLATFORM_NAME)$(PTHREAD_NUM_MAX_NAME)$(FREE_MEMORY_NAME)
 
-CC        = gcc
-DEF       = -D__WINDOWS \
-			-D__64BIT \
-			-D__DEBUG \
-			-DPDC_WIDE \
-			-DPDC_FORCE_UTF8 \
-			-D__CLEANUP_C \
-			-DHAVE_PTW32_CONFIG_H
-INCS      = -I../include \
-			-I../lib/win/pthreads/include \
-			-I../lib/win/pdcurses/include
-CFLAGS    = -Wall -O3
-LIBS      = -L$(LIB_DIR) -lpthread -lcurses
-LIBS_DEPS =
+ifndef TARGET_DIR
+	TARGET_DIR = ./output
+endif
+
+ifdef DISABLE_COMPILE_INFO
+	DEF += -D__DISABLE_COMPILE_INFO
+endif
 
 ifeq ($(DLL), Y)
 	DEF += -DPDC_DLL_BUILD

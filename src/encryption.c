@@ -11,9 +11,10 @@
 #include <dirent.h>
 
 #ifdef PTHREAD_NUM_MAX
-#if (PTHREAD_NUM_MAX != 2) && (PTHREAD_NUM_MAX != 4) && \
-    (PTHREAD_NUM_MAX != 6) && (PTHREAD_NUM_MAX != 8)
-#error "Macro define rule: PTHREAD_NUM_MAX = 2 / 4 / 6 / 8"
+#if (PTHREAD_NUM_MAX != 1) && (PTHREAD_NUM_MAX != 2) && \
+    (PTHREAD_NUM_MAX != 4) && (PTHREAD_NUM_MAX != 6) && \
+    (PTHREAD_NUM_MAX != 8)
+#error "Macro define rule: PTHREAD_NUM_MAX = 1 / 2 / 4 / 6 / 8"
 #undef PTHREAD_NUM_MAX
 #define PTHREAD_NUM_MAX 1
 #endif
@@ -161,6 +162,10 @@ G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
  */
 static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
 {
+#if (PTHREAD_NUM_MAX == 1)
+    return EncryptDecrypt_plus(pFileList, func);
+#endif
+
 #ifdef __DEBUG
     if(NULL == pFileList)
     {
@@ -373,7 +378,7 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
     touchwin(stdscr);
     refresh();
     
-    for(i = 0; i < PTHREAD_NUM_MAX; i++)
+    for(i = 0; i < CycleIndex; i++)
     {
         g_SuccessFailCountTable[0] += PthreadArg[i].SuccessCount;
         g_SuccessFailCountTable[1] += PthreadArg[i].FailCount;
@@ -962,6 +967,8 @@ static G_STATUS BeforeEncryptDecrypt(void)
 
     g_SuccessFailCountTable[0] = 0;
     g_SuccessFailCountTable[1] = 0;
+    
+    CTL_DisableButton();
     
     return STAT_OK;
 }

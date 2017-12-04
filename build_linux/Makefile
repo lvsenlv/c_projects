@@ -4,12 +4,10 @@ LIBS 				= -Wl,-Bstatic -L../lib/linux -lncursesw -static -lpthread
 DEF 				= -D__LINUX -D__64BIT 
 INC 				= -I../include -I../include/linux
 CFLAGS 				= -g -Wall -Wno-unused-function
-
-ifneq ($(findstring $(PLATFORM), "linux_x86" "linux_x64"),)
-	PLATFORM_NAME = _$(PLATFORM)
-else
-	PLATFORM_NAME = _linux
-endif
+SRC_DIR     		= ../src
+OBJ_DIR 			= ./object
+OBJS 				= common.o str.o control.o main.o encryption.o core_code.o extra.o decoder.o
+PLATFORM_NAME 		= _linux_$(shell arch)
 
 ifneq ($(PTHREAD_NUM_MAX),)
 	DEF += -DPTHREAD_NUM_MAX=$(PTHREAD_NUM_MAX)
@@ -17,7 +15,6 @@ ifneq ($(PTHREAD_NUM_MAX),)
 else
 	PTHREAD_NUM_MAX_NAME = _1th
 endif
-
 ifneq ($(FREE_MEMORY),)
 	DEF += -DFREE_MEMORY=$(FREE_MEMORY)
 	FREE_MEMORY_NAME = _$(FREE_MEMORY)Mb
@@ -28,20 +25,26 @@ else
 		FREE_MEMORY_NAME = _10Mb
 	endif
 endif
-
 TARGET  = $(TARGET_BASE_NAME)$(PLATFORM_NAME)$(PTHREAD_NUM_MAX_NAME)$(FREE_MEMORY_NAME)
-OBJ_DIR = ./object
-OBJS 	= common.o str.o control.o main.o encryption.o core_code.o extra.o decoder.o
 
+ifndef TARGET_DIR
+	TARGET_DIR = ./output
+endif
+
+ifdef DISABLE_COMPILE_INFO
+	DEF += -D__DISABLE_COMPILE_INFO
+endif
+
+$(shell mkdir -p $(TARGET_DIR))
 $(shell mkdir -p $(OBJ_DIR))
 
 all : $(TARGET)
 
 $(TARGET) : $(OBJS)
-	$(CC) $(wildcard $(OBJ_DIR)/*.o) -o $@ $(LIBS)
+	$(CC) $(wildcard $(OBJ_DIR)/*.o) -o $(TARGET_DIR)/$@ $(LIBS)
 
-%.o : ../src/%.c
+%.o : $(SRC_DIR)//%.c
 	$(CC) -c $<  -o $(OBJ_DIR)/$@ $(DEF) $(INC) $(CFLAGS) 
 
 clean :
-	rm -rf $(OBJ_DIR) $(TARGET_BASE_NAME)* *log*
+	rm -rf $(TARGET_DIR) $(OBJ_DIR) $(TARGET_BASE_NAME)* *log*
