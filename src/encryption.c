@@ -123,7 +123,7 @@ G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
             (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING, FileName, 
             STR_TOTAL_FILE, pFileList->FileSize, STR_IF_CONTINUE))
 #elif defined __WINDOWS
-        if(STAT_OK != CTL_ConfirmOperation("%s%s %d\n        ", 
+        if(STAT_OK != CTL_ConfirmOperation("%s%s %d      \n", 
             (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING,  
             STR_TOTAL_FILE, pFileList->FileSize))
 #endif

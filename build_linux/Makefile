@@ -1,12 +1,12 @@
 TARGET_BASE_NAME 	= encrypt
 CC 					= gcc
 LIBS 				= -Wl,-Bstatic -L../lib/linux -lncursesw -static -lpthread 
-DEF 				= -D__LINUX -D__64BIT 
-INC 				= -I../include -I../include/linux
 CFLAGS 				= -g -Wall -Wno-unused-function
 SRC_DIR     		= ../src
 OBJ_DIR 			= ./object
 OBJS 				= common.o str.o control.o main.o encryption.o core_code.o extra.o decoder.o
+DEF 				= -D__LINUX -D__64BIT 
+INC 				= -I../include -I../include/linux
 PLATFORM_NAME 		= _linux_$(shell arch)
 
 ifneq ($(PTHREAD_NUM_MAX),)
@@ -43,7 +43,7 @@ all : $(TARGET)
 $(TARGET) : $(OBJS)
 	$(CC) $(wildcard $(OBJ_DIR)/*.o) -o $(TARGET_DIR)/$@ $(LIBS)
 
-%.o : $(SRC_DIR)//%.c
+%.o : $(SRC_DIR)/%.c
 	$(CC) -c $<  -o $(OBJ_DIR)/$@ $(DEF) $(INC) $(CFLAGS) 
 
 clean :

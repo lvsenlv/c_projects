@@ -54,7 +54,7 @@ endif
 	LIB_DEPS  = $(OBJS)
 endif
 
-all : $(LIBS) clean
+all : before_make $(LIBS) clean
 
 $(LIBS) : $(LIB_DEPS)
 	$(LIB_EXE) $(LIB_FLAGS) $(TAR_DIR)/$@ $(wildcard $(OBJ_DIR)/*.o)
@@ -62,7 +62,10 @@ $(LIBS) : $(LIB_DEPS)
 %.o : $(SRC_DIR)/%.c
 	$(CC) -c $(CFLAGS) $< -o $(OBJ_DIR)/$@
 
-.PHONY : clean
+.PHONY : before_make clean
+
+before_make :
+	-before_make.bat
 
 clean:
 	-clean.bat
