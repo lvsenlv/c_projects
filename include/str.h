@@ -45,6 +45,7 @@
 #define STR_PASSWORD_NOT_MATCH                 ((0 == g_LanguageFlag) ? STR_EN_PASSWORD_NOT_MATCH           : STR_CH_PASSWORD_NOT_MATCH            )
 #define STR_PASSWORD_NULL                      ((0 == g_LanguageFlag) ? STR_EN_PASSWORD_NULL                : STR_CH_PASSWORD_NULL                 )
 #define STR_PASSWORD_TOO_SHORT                 ((0 == g_LanguageFlag) ? STR_EN_PASSWORD_TOO_SHORT           : STR_CH_PASSWORD_TOO_SHORT            )
+#define STR_PERMISSION_DENIED                  ((0 == g_LanguageFlag) ? STR_EN_PERMISSION_DENIED            : STR_CH_PERMISSION_DENIED             )
 #define STR_PRESS_ENTER_TO_GO_BACK             ((0 == g_LanguageFlag) ? STR_EN_PRESS_ENTER_TO_GO_BACK       : STR_CH_PRESS_ENTER_TO_GO_BACK        )
 #define STR_PRO_REASON_NO_ENCRYPT_FILE         ((0 == g_LanguageFlag) ? STR_EN_PRO_REASON_NO_ENCRYPT_FILE   : STR_CH_PRO_REASON_NO_ENCRYPT_FILE    )
 #define STR_PRO_REASON_NO_DECRYPT_FILE         ((0 == g_LanguageFlag) ? STR_EN_PRO_REASON_NO_DECRYPT_FILE   : STR_CH_PRO_REASON_NO_DECRYPT_FILE    )
@@ -119,6 +120,7 @@
 #define STR_EN_PASSWORD_NOT_MATCH               "Two password do not match"
 #define STR_EN_PASSWORD_NULL                    "Length of key could not be null"
 #define STR_EN_PASSWORD_TOO_SHORT               "Password too short, at least 8 bits"
+#define STR_EN_PERMISSION_DENIED                "Permission denied"
 #define STR_EN_PRESS_ENTER_TO_GO_BACK           "[ press Enter to go back ]"
 #define STR_EN_PRO_REASON_NO_DECRYPT_FILE       "Protable cause: absent encrytable file in directory"
 #define STR_EN_PRO_REASON_NO_ENCRYPT_FILE       "Protable cause: absent decrytable file in directory"
@@ -195,6 +197,7 @@
 #define STR_CH_PASSWORD_NOT_MATCH               "两次密码不匹配"
 #define STR_CH_PASSWORD_NULL                    "密码不能为空"
 #define STR_CH_PASSWORD_TOO_SHORT               "密码太短, 至少需要8位"
+#define STR_CH_PERMISSION_DENIED                "权限不足"
 #define STR_CH_PRESS_ENTER_TO_GO_BACK           "[ 按 Enter 键返回 ]"
 #define STR_CH_PRO_REASON_NO_DECRYPT_FILE       "可能原因: 目录中无可解密文件"
 #define STR_CH_PRO_REASON_NO_ENCRYPT_FILE       "可能原因: 目录中无可加密文件"

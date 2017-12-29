@@ -687,17 +687,31 @@ G_STATUS CTL_GetFileName(char *pFileName)
         noecho();
         
         if(0 == access(pFileName, F_OK))
-            break;
-
-        if(STAT_OK != CTL_MakeChoice(STR_FILE_NOT_EXIST))
         {
-            delwin(win);
-            touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, 
-                CTL_GET_FILE_NAME_WIN_LINES);
-            refresh();
-            return STAT_ERR;
-        }
+            if((0 == access(pFileName, R_OK)) && (0 == access(pFileName, W_OK)))
+               break;
         
+            if(STAT_OK != CTL_MakeChoice(STR_PERMISSION_DENIED))
+            {
+                delwin(win);
+                touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, 
+                    CTL_GET_FILE_NAME_WIN_LINES);
+                refresh();
+                return STAT_ERR;
+            }
+        }
+        else
+        {
+            if(STAT_OK != CTL_MakeChoice(STR_FILE_NOT_EXIST))
+            {
+                delwin(win);
+                touchline(stdscr, (LINES-CTL_GET_FILE_NAME_WIN_LINES)/2, 
+                    CTL_GET_FILE_NAME_WIN_LINES);
+                refresh();
+                return STAT_ERR;
+            }
+        }
+
         wclear(win);
     }
 
