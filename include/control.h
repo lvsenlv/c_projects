@@ -91,26 +91,49 @@
 #define CTL_PANEL_YELLOW                        3
 #define CTL_PANEL_GREEN                         4
 #define CTL_PANEL_MAGENTA                       5
-#define CTL_SET_COLOR(w, p)                     wattron(w, COLOR_PAIR(p))
-#define CTL_RESET_COLOR(w, p)                   wattroff(w, COLOR_PAIR(p))
+#define CTL_SET_COLOR(w, p) \
+        do \
+        { \
+            wattron(w, COLOR_PAIR(p)); \
+        }while(0)
+        
+#define CTL_RESET_COLOR(w, p) \
+        do \
+        { \
+            wattroff(w, COLOR_PAIR(p)); \
+        }while(0)
 
 //Must invoke CTL_InitConsole before using CTL_*Exit related macro
-#define CTL_ForceExit()                         {endwin();exit(0);}
+#define CTL_ForceExit() \
+        do \
+        { \
+            endwin(); \
+            exit(0); \
+        }while(0)
+        
 #define CTL_ErrExit(format, arg...) \
+        do \
         { \
             endwin(); \
             fprintf(stderr, format, ##arg); \
             exit(0); \
-        }
+        }while(0)
         
-#define CTL_HIDE_CONSOLE_END_LINE()             {mvhline(LINES-2, 2, ' ', COLS-3);refresh();}
+#define CTL_HIDE_CONSOLE_END_LINE() \
+        do \
+        { \
+            mvhline(LINES-2, 2, ' ', COLS-3); \
+            refresh(); \
+        }while(0)
+        
 #define CTL_SHOW_CONSOLE_END_LINE() \
+        do \
         { \
             attron(A_REVERSE); \
             mvaddnstr(LINES-2, 2, STR_CONSOLE_END_LINE, COLS-3); \
             attroff(A_REVERSE); \
             refresh(); \
-        }
+        }while(0)
 
 typedef enum {
     CTL_MENU_SHOW_INSTRUCTION = 0,
@@ -138,9 +161,9 @@ void CTL_ShowInstruction(void);
 G_STATUS CTL_ShowFile(const char *pFileName);
 G_STATUS CTL_GetFileName(char *pFileName);
 G_STATUS CTL_GetPassord(char *pPassword);
-G_STATUS CTL_DispWarning(const char *pFormat, ...);
-G_STATUS CTL_MakeChoice(const char*format, ...);
-G_STATUS CTL_ConfirmOperation(const char *pFormat, ...);
+G_STATUS CTL_DispWarning(const char *pFormat, ...) PRINTF_FORMAT;
+G_STATUS CTL_MakeChoice(const char*format, ...) PRINTF_FORMAT;
+G_STATUS CTL_ConfirmOperation(const char *pFormat, ...) PRINTF_FORMAT;
 void CTL_DisableButton(void);
 
 
@@ -187,6 +210,5 @@ static inline G_STATUS CTL_FixBug_IncompleteDisp(WINDOW *win, char *pStr, int Sy
     return STAT_OK;
 }
 #endif //#ifdef __WINDOWS
-
 
 #endif

@@ -4,6 +4,7 @@ LIBS 				= -Wl,-Bstatic -L../lib/linux -lncursesw -static -lpthread
 CFLAGS 				= -g -Wall -Wno-unused-function
 SRC_DIR     		= ../src
 OBJ_DIR 			= ./object
+LIB_DIR 			= ../lib/linux
 OBJS 				= common.o str.o control.o main.o encryption.o core_code.o extra.o decoder.o
 DEF 				= -D__LINUX -D__64BIT 
 INC 				= -I../include -I../include/linux
@@ -38,7 +39,10 @@ endif
 $(shell mkdir -p $(TARGET_DIR))
 $(shell mkdir -p $(OBJ_DIR))
 
-all : $(TARGET)
+all : before_make $(TARGET)
+
+before_make :
+	$(LIB_DIR)/build_ncurses.sh $(LIB_DIR)
 
 $(TARGET) : $(OBJS)
 	$(CC) $(wildcard $(OBJ_DIR)/*.o) -o $(TARGET_DIR)/$@ $(LIBS)
@@ -48,3 +52,4 @@ $(TARGET) : $(OBJS)
 
 clean :
 	rm -rf $(TARGET_DIR) $(OBJ_DIR) $(TARGET_BASE_NAME)* *log*
+	rm -rf $(LIB_DIR)/ncurses-6.0

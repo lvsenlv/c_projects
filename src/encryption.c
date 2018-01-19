@@ -32,6 +32,7 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func);
 static PROCESS_STATUS EncryptDecrypt_plus(FileList_t *pFileList, CTL_MENU func);
 static G_STATUS BeforeEncryptDecrypt(void);
 static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus);
+static G_STATUS ProcessEncryptDecryptResult(PROCESS_STATUS ProcessStatus);
 static FileList_t *ScanDirectory(char *pFolderName);
 static FileList_t *ScanEncryptFile(char *pFolderName);
 static inline void DeleteTailSymbol(char *pFileName, int FileNameLength);
@@ -119,9 +120,15 @@ G_STATUS CTL_EncryptDecrypt(CTL_MENU func)
 
 //Fix bug #2.1
 #ifdef __LINUX
+    #ifdef __64BIT
+        if(STAT_OK != CTL_ConfirmOperation("%s%s\n%s: %ld, %s\n", 
+            (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING, FileName, 
+            STR_TOTAL_FILE, pFileList->FileSize, STR_IF_CONTINUE))
+     #elif defined __32BIT
         if(STAT_OK != CTL_ConfirmOperation("%s%s\n%s: %d, %s\n", 
             (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING, FileName, 
             STR_TOTAL_FILE, pFileList->FileSize, STR_IF_CONTINUE))
+      #endif
 #elif defined __WINDOWS
         if(STAT_OK != CTL_ConfirmOperation("%s%s %d      \n", 
             (CTL_MENU_ENCRYPT == func) ? STR_IN_ENCRYPTING : STR_IN_DECRYPTING,  
@@ -301,31 +308,39 @@ static PROCESS_STATUS EncryptDecrypt(FileList_t *pFileList, CTL_MENU func)
                                 "%d", PthreadArg[i].SuccessCount);
                             mvwprintw(ScheduleWin[i], 0, (COLS*4/5 + StrRateWidth), "100%%");
                             CTL_SET_COLOR(win[i], CTL_PANEL_GREEN);
+//Fix bug #2.1
+#ifdef __LINUX
                             wattron(win[i], A_BOLD);
                             wprintw(win[i], " %s\n", STR_SUCCESS);
                             wattroff(win[i], A_BOLD);
-//Fix bug #2.1
-#ifdef __LINUX
                             CTL_SET_COLOR(win[i], CTL_PANEL_YELLOW);
 #elif defined __WINDOWS
+                            wattron(win[i], A_BOLD);
+                            wprintw(win[i], " %s", STR_SUCCESS);
+                            CTL_FixBug_IncompleteDisp(win[i], NULL, 3);
+                            wprintw(win[i], "\n");
+                            wattroff(win[i], A_BOLD);
                             CTL_RESET_COLOR(win[i], CTL_PANEL_GREEN);
 #endif
-
                             break;
                         case REFRESH_FLAG_FAIL:
                             mvwprintw(ScheduleWin[i], 0, (COLS*3/5 + StrFailWidth), 
                                 "%d", PthreadArg[i].FailCount);
                             CTL_SET_COLOR(win[i], CTL_PANEL_RED);
+//Fix bug #2.1
+#ifdef __LINUX
                             wattron(win[i], A_BOLD);
                             wprintw(win[i], " %s\n", STR_FAIL);
                             wattroff(win[i], A_BOLD);
-//Fix bug #2.1
-#ifdef __LINUX
                             CTL_SET_COLOR(win[i], CTL_PANEL_YELLOW);
 #elif defined __WINDOWS
+                            wattron(win[i], A_BOLD);
+                            wprintw(win[i], " %s", STR_FAIL);
+                            CTL_FixBug_IncompleteDisp(win[i], NULL, 3);
+                            wprintw(win[i], "\n");
+                            wattroff(win[i], A_BOLD);
                             CTL_RESET_COLOR(win[i], CTL_PANEL_RED);
 #endif
-
                             break;
                         default:
                             RatioFactor[i] = 0;
@@ -536,13 +551,18 @@ static PROCESS_STATUS EncryptDecrypt_plus(FileList_t *pFileList, CTL_MENU func)
                                 "%d", PthreadArg[i].SuccessCount);
                             mvwprintw(ScheduleWin[i], 0, (COLS*4/5 + StrRateWidth), "100%%");
                             CTL_SET_COLOR(win[i], CTL_PANEL_GREEN);
+                            //Fix bug #2.1
+#ifdef __LINUX
                             wattron(win[i], A_BOLD);
                             wprintw(win[i], " %s\n", STR_SUCCESS);
                             wattroff(win[i], A_BOLD);
-//Fix bug #2.1
-#ifdef __LINUX
                             CTL_SET_COLOR(win[i], CTL_PANEL_YELLOW);
 #elif defined __WINDOWS
+                            wattron(win[i], A_BOLD);
+                            wprintw(win[i], " %s", STR_SUCCESS);
+                            CTL_FixBug_IncompleteDisp(win[i], NULL, 3);
+                            wprintw(win[i], "\n");
+                            wattroff(win[i], A_BOLD);
                             CTL_RESET_COLOR(win[i], CTL_PANEL_GREEN);
 #endif
                             break;
@@ -550,13 +570,18 @@ static PROCESS_STATUS EncryptDecrypt_plus(FileList_t *pFileList, CTL_MENU func)
                             mvwprintw(ScheduleWin[i], 0, (COLS*3/5 + StrFailWidth), 
                                 "%d", PthreadArg[i].FailCount);
                             CTL_SET_COLOR(win[i], CTL_PANEL_RED);
+                            //Fix bug #2.1
+#ifdef __LINUX
                             wattron(win[i], A_BOLD);
                             wprintw(win[i], " %s\n", STR_FAIL);
                             wattroff(win[i], A_BOLD);
-//Fix bug #2.1
-#ifdef __LINUX
                             CTL_SET_COLOR(win[i], CTL_PANEL_YELLOW);
 #elif defined __WINDOWS
+                            wattron(win[i], A_BOLD);
+                            wprintw(win[i], " %s", STR_FAIL);
+                            CTL_FixBug_IncompleteDisp(win[i], NULL, 3);
+                            wprintw(win[i], "\n");
+                            wattroff(win[i], A_BOLD);
                             CTL_RESET_COLOR(win[i], CTL_PANEL_RED);
 #endif
                             break;
@@ -980,18 +1005,31 @@ static G_STATUS BeforeEncryptDecrypt(void)
  */
 static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
 {
+    ProcessEncryptDecryptResult(ProcessStatus);
+
+    return STAT_OK;
+}
+
+/*
+ *  @Briefs: Process the result of encryption or decryption
+ *  @Return: Always STAT_OK
+ *  @Note:   None
+ */
+static G_STATUS ProcessEncryptDecryptResult(PROCESS_STATUS ProcessStatus)
+{
     fclose(g_LogFile);
     g_LogFile = NULL;
     
     if(PROCESS_STATUS_ELSE_ERR == ProcessStatus)
     {
         unlink(LOG_FILE_NAME);
-        CTL_DispWarning(g_ErrBuf);
+        CTL_DispWarning("%s\n", g_ErrBuf);
         return STAT_OK;
     }
-
+    
     WINDOW *win = newwin(CTL_RESULT_WIN_LINES, CTL_RESULT_WIN_COLS, 
             (LINES-CTL_RESULT_WIN_LINES)/2, (COLS-CTL_RESULT_WIN_COLS)/2);
+    
     int key;
     char buf[COLS - 4];
 
@@ -1000,12 +1038,17 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     if(PROCESS_STATUS_SUCCESS == ProcessStatus)
     {
         unlink(LOG_FILE_NAME);
-        
-        CTL_SET_COLOR(win, CTL_PANEL_GREEN);
+
         wattron(win, A_BOLD);
+        CTL_SET_COLOR(win, CTL_PANEL_GREEN);
         snprintf(buf, sizeof(buf), "%s%s %d", STR_SUCCESS_COUNT, STR_TOTAL_FILE, 
             g_SuccessFailCountTable[0]);
+#ifdef __LINUX
         mvwaddstr(win, 1, (CTL_RESULT_WIN_COLS-GetWidth(buf))/2, buf);
+#elif defined __WINDOWS
+        mvwaddstr(win, 1, 1, buf);
+        CTL_FixBug_IncompleteDisp(win, buf, UTF8_GetSpecialSymbolNum(buf)+1);
+#endif
         CTL_RESET_COLOR(win, CTL_PANEL_GREEN);
         wattroff(win, A_BOLD);
 
@@ -1013,6 +1056,7 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
         wborder(win, '*', '*', '*', '*', '*', '*', '*', '*');
         wattron(win, A_REVERSE);
         mvwaddstr(win, 2, (CTL_RESULT_WIN_COLS-GetWidth(STR_GO_BACK))/2, STR_GO_BACK);
+        CTL_FixBug_IncompleteDisp(win, buf, 3);
         wattroff(win, A_REVERSE);
         wrefresh(win);
         
@@ -1033,17 +1077,18 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     }
     
     //If error >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    snprintf(buf, sizeof(buf), "%s[ %d ]     %s[ %d ]", STR_SUCCESS, 
-        g_SuccessFailCountTable[0], STR_FAIL, g_SuccessFailCountTable[1]);
-    CTL_SET_COLOR(win, CTL_PANEL_GREEN);
     wattron(win, A_BOLD);
-    mvwprintw(win, 1, (CTL_RESULT_WIN_COLS-GetWidth(buf))/2, 
-        "%s[ %d ]     ", STR_SUCCESS, g_SuccessFailCountTable[0]);
-    CTL_SET_COLOR(win, CTL_PANEL_RED);
-    wprintw(win, "%s[ %d ]", STR_FAIL, g_SuccessFailCountTable[1]);
+    CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
+    snprintf(buf, sizeof(buf), "%s%d   %s%d", STR_SUCCESS_COUNT, 
+        g_SuccessFailCountTable[0], STR_FAIL_COUNT, g_SuccessFailCountTable[1]);
+#ifdef __LINUX
+    mvwaddstr(win, 1, (CTL_RESULT_WIN_COLS-GetWidth(buf))/2, buf);
+#elif defined __WINDOWS
+    mvwaddstr(win, 1, 1, buf);
+    CTL_FixBug_IncompleteDisp(win, buf, UTF8_GetSpecialSymbolNum(buf)+1);
+#endif
     wattroff(win, A_BOLD);
         
-    CTL_SET_COLOR(win, CTL_PANEL_YELLOW);
     wborder(win, '*', '*', '*', '*', '*', '*', '*', '*');
     
     char *pStr1 = STR_VIEW_LOG;
@@ -1053,8 +1098,10 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
     char flag = 0;
 
     mvwaddstr(win, 2, Str2StartX, pStr2);
+    CTL_FixBug_IncompleteDisp(win, pStr2, 3);
     wattron(win, A_REVERSE);
     mvwaddstr(win, 2, Str1StartX, pStr1);
+    CTL_FixBug_IncompleteDisp(win, pStr1, 3);
     wattroff(win, A_REVERSE);
     
     while(1)
@@ -1072,15 +1119,19 @@ static G_STATUS AfterEncryptDecrypt(PROCESS_STATUS ProcessStatus)
         if(flag)
         {
             mvwaddstr(win, 2, Str1StartX, pStr1);
+            CTL_FixBug_IncompleteDisp(win, pStr1, 3);
             wattron(win, A_REVERSE);
             mvwaddstr(win, 2, Str2StartX, pStr2);
+            CTL_FixBug_IncompleteDisp(win, pStr2, 3);
             wattroff(win, A_REVERSE);
         }
         else
         {
             mvwaddstr(win, 2, Str2StartX, pStr2);
+            CTL_FixBug_IncompleteDisp(win, pStr2, 3);
             wattron(win, A_REVERSE);
             mvwaddstr(win, 2, Str1StartX, pStr1);
+            CTL_FixBug_IncompleteDisp(win, pStr1, 3);
             wattroff(win, A_REVERSE);
         }
     }

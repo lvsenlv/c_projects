@@ -167,18 +167,6 @@ WHILE_OUT :
         CTL_CHOOSE_LANGUAGE_WIN_LINES);
     refresh();
 }
-//#elif defined __WINDOWS
-/*
-// *  Briefs: Choose language
-// *  Return: None
-// *  Note:   None
-// */
-//void CTL_ChooseLanguage(void)
-//{
-//    CTL_DispWarning("%s\n%s", STR_EN_NOT_SUPPORT_FUNCTION, STR_CH_NOT_SUPPORT_FUNCTION);
-//}
-//#endif
-
 
 /*
  *  Briefs: Show menu
@@ -483,6 +471,7 @@ G_STATUS CTL_ShowFile(const char *pFileName)
     CTL_SET_COLOR(WinLabel, CTL_PANEL_CYAN);
     wattron(WinLabel, A_REVERSE);
     mvwaddstr(WinLabel, 0, 0, STR_SHOW_FILE_LABEL);
+    CTL_FixBug_IncompleteDisp(WinLabel, NULL, 10);
     wrefresh(WinLabel);
 
     WINDOW *win = newwin(LINES-1, COLS, 0, 0);
@@ -546,6 +535,7 @@ G_STATUS CTL_ShowFile(const char *pFileName)
         }
         wrefresh(win);
         mvwprintw(WinLabel, 0, LabelWidth, "[%d/%d] ", PageCount, CurPage+1);
+        CTL_FixBug_IncompleteDisp(WinLabel, NULL, 10);
     }
     
     keypad(WinLabel, true);
@@ -588,6 +578,7 @@ G_STATUS CTL_ShowFile(const char *pFileName)
                 CurPage++;
     
                 mvwprintw(WinLabel, 0, LabelWidth, "[%d/%d] ", PageCount, CurPage+1);
+                CTL_FixBug_IncompleteDisp(WinLabel, NULL, 10);
                 break;
             case CTL_KEY_PPAGE:
                 if(0 >= CurPage)
@@ -634,6 +625,7 @@ G_STATUS CTL_ShowFile(const char *pFileName)
                 LogCount = i;
             
                 mvwprintw(WinLabel, 0, LabelWidth, "[%d/%d] ", PageCount, CurPage+1);
+                CTL_FixBug_IncompleteDisp(WinLabel, NULL, 10);
                 break;
             case CTL_KEY_ENTER:
                 goto WHILE_OUT;
@@ -682,7 +674,14 @@ G_STATUS CTL_GetFileName(char *pFileName)
 #ifdef __LINUX
         mvwgetnstr(win, 3, GetWidth(STR_INPUT), pFileName, CTL_FILE_NAME_LENGHT-1); //End with '\0'
 #elif defined __WINDOWS
-        mvwgetnstr(win, 3, GetWidth(STR_INPUT)+2, pFileName, CTL_FILE_NAME_LENGHT-1); //End with '\0'
+        if(LAN_EN == g_LanguageFlag)
+        {
+            mvwgetnstr(win, 3, GetWidth(STR_INPUT), pFileName, CTL_FILE_NAME_LENGHT-1); //End with '\0'
+        }
+        else
+        {
+            mvwgetnstr(win, 3, GetWidth(STR_INPUT)+2, pFileName, CTL_FILE_NAME_LENGHT-1); //End with '\0'
+        }
 #endif
         noecho();
         

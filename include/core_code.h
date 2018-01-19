@@ -25,6 +25,7 @@
 
 //Format should contain '\n'
 #define     DISP_LOG(format, args...) \
+            do \
             { \
                 pthread_mutex_lock(&g_LogLock); \
                 g_ti = time(NULL); \
@@ -34,7 +35,7 @@
                     g_time->tm_hour, g_time->tm_min, g_time->tm_sec); \
                 fprintf(g_LogFile, format, ##args); \
                 pthread_mutex_unlock(&g_LogLock); \
-            }
+            }while(0)
 
 typedef struct PthreadArgStruct
 {

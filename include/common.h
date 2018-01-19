@@ -57,16 +57,28 @@ extern time_t g_ti;
 extern struct tm *g_time;
 
 #define     DISP(format, args...) \
-            fprintf(stdout, format, ##args)
+            do \
+            { \
+                fprintf(stdout, format, ##args); \
+            }while(0)
             
 #define     DISP_ERR_DEBUG(str) \
-            snprintf(g_ErrBuf, sizeof(g_ErrBuf), "[%s][%d]: %s\n", __func__, __LINE__, str)
+            do \
+            { \
+                snprintf(g_ErrBuf, sizeof(g_ErrBuf), "[%s][%d]: %s\n", __func__, __LINE__, str); \
+            }while(0)
             
 #define     DISP_ERR(format, args...) \
-            snprintf(g_ErrBuf, sizeof(g_ErrBuf), format, ##args)
+            do \
+            { \
+                snprintf(g_ErrBuf, sizeof(g_ErrBuf), format, ##args); \
+            }while(0)
             
 #define     DISP_ERR_PLUS(format, args...) \
-            snprintf(g_ErrBuf, sizeof(g_ErrBuf), format, ##args)
+            do \
+            { \
+                snprintf(g_ErrBuf, sizeof(g_ErrBuf), format, ##args); \
+            }while(0)
             
 //#undef      NULL
 //#define     NULL                                ((void *)0)
@@ -76,6 +88,7 @@ extern struct tm *g_time;
 #define     __O                                 volatile
 #define     __IO                                volatile
 #define     ALIGN_4K                            __attribute__((aligned(4)))
+#define     PRINTF_FORMAT                       __attribute__((__format__ (__printf__, 1, 2)))
 
 #ifdef __LINUX
 #define     LOG_FILE_NAME                       "./log"
@@ -97,7 +110,7 @@ typedef enum {
     STAT_FATAL_ERR,
 }ALIGN_4K G_STATUS;
 
-G_STATUS SafeExecute(char *pFormat, ...);
+G_STATUS SafeExecute(char *pFormat, ...) PRINTF_FORMAT;
 
 #if 0
 #if (defined __LINUX) || (defined __WINDOWS)

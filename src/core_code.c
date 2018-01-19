@@ -127,9 +127,26 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
 {
     FILE *fp = NULL;
     fp = fopen(pFileName, "rb");
+#ifdef __WINDOWS
+    char *pConvertFormatRes = NULL;
+#endif
+    
     if(NULL == fp)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_OPEN_FILE);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_OPEN_FILE);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_FAIL_TO_OPEN_FILE, NULL);
+            DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         return STAT_ERR;
     }
     fseek(fp, 0, SEEK_SET);
@@ -137,7 +154,20 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     char *pNewFileName = (char *)malloc(FileNameLength+sizeof(ENCRYPT_FILE_SUFFIX_NAME));
     if(NULL == pNewFileName)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_ERR_FAIL_TO_MALLOC, NULL);
+            DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         fclose(fp);
         return STAT_FATAL_ERR;
     }
@@ -148,7 +178,20 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     NewFp = fopen(pNewFileName, "wb+");
     if(NULL == NewFp)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_CREATE_OPEN_FILE);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_CREATE_OPEN_FILE);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_FAIL_TO_CREATE_OPEN_FILE, NULL);
+            DISP_LOG("%s: %s\n", pNewFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         free(pNewFileName); //Must free after DISP_LOG
         fclose(fp);
         return STAT_ERR;
@@ -166,7 +209,20 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     pData = (uint8_t *)malloc(sizeof(uint8_t) * BASE_FILE_SIZE);
     if(NULL == pData)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_ERR_FAIL_TO_MALLOC, NULL);
+            DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         unlink(pNewFileName);
         free(pNewFileName); //Must free after unlink
         fclose(fp);
@@ -188,7 +244,20 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     }
     if(0 == PasswordLength)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pFileName, STR_PASSWORD_NULL);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pFileName, STR_PASSWORD_NULL);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_PASSWORD_NULL, NULL);
+            DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         unlink(pNewFileName);
         free(pData);
         free(pNewFileName); //Must free after unlink
@@ -212,7 +281,20 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     pBackupData = (uint8_t *)malloc(PasswordLength * sizeof(uint8_t));
     if(NULL == pBackupData)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_ERR_FAIL_TO_MALLOC, NULL);
+            DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         unlink(pNewFileName);
         free(pData);
         free(pNewFileName); //Must free after unlink
@@ -230,7 +312,20 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         size = fread(pData, sizeof(uint8_t), BASE_FILE_SIZE, fp);
         if(BASE_FILE_SIZE != size)
         {
+#ifdef __LINUX
             DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
+#elif defined __WINDOWS
+            if(LAN_EN == g_LanguageFlag)
+            {
+                DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
+            }
+            else
+            {
+                pConvertFormatRes = UTF8ToANSI(STR_FAIL_TO_READ_FILE, NULL);
+                DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+                free(pConvertFormatRes);
+            }
+#endif
             unlink(pNewFileName);
             free(pData);
             free(pBackupData);
@@ -297,7 +392,20 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         size = fwrite(pData, sizeof(uint8_t), BASE_FILE_SIZE, NewFp);
         if(BASE_FILE_SIZE != size)
         {
+#ifdef __LINUX
             DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
+#elif defined __WINDOWS
+            if(LAN_EN == g_LanguageFlag)
+            {
+                DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
+            }
+            else
+            {
+                pConvertFormatRes = UTF8ToANSI(STR_FAIL_TO_WRITE_FILE, NULL);
+                DISP_LOG("%s: %s\n", pNewFileName, pConvertFormatRes);
+                free(pConvertFormatRes);
+            }
+#endif
             unlink(pNewFileName);
             free(pData);
             free(pBackupData);
@@ -316,7 +424,20 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     size = fread(pData, sizeof(uint8_t), RestDataSize, fp);
     if(size != RestDataSize)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_FAIL_TO_READ_FILE, NULL);
+            DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         unlink(pNewFileName);
         free(pData);
         free(pBackupData);
@@ -393,7 +514,20 @@ G_STATUS encrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     size = fwrite(pData, sizeof(uint8_t), RestDataSize, NewFp);
     if(size != RestDataSize)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_FAIL_TO_WRITE_FILE, NULL);
+            DISP_LOG("%s: %s\n", pNewFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         unlink(pNewFileName);
         free(pData);
         free(pBackupData);
@@ -435,9 +569,26 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
 {
     FILE *fp = NULL;
     fp = fopen(pFileName, "rb");
+#ifdef __WINDOWS
+    char *pConvertFormatRes = NULL;
+#endif
+    
     if(NULL == fp)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_OPEN_FILE);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_OPEN_FILE);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_FAIL_TO_OPEN_FILE, NULL);
+            DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         return STAT_ERR;
     }
     fseek(fp, 0, SEEK_SET);
@@ -446,7 +597,20 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     if(NULL == pNewFileName)
     {
         fclose(fp);
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_ERR_FAIL_TO_MALLOC, NULL);
+            DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         return STAT_FATAL_ERR;
     }
     
@@ -457,7 +621,20 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     NewFp = fopen(pNewFileName, "wb+");
     if(NULL == NewFp)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_CREATE_OPEN_FILE);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_CREATE_OPEN_FILE);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_FAIL_TO_CREATE_OPEN_FILE, NULL);
+            DISP_LOG("%s: %s\n", pNewFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         free(pNewFileName); //Must free after DISP_LOG
         fclose(fp);
         return STAT_ERR;
@@ -475,7 +652,20 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     pData = (uint8_t *)malloc(sizeof(uint8_t) * BASE_FILE_SIZE);
     if(NULL == pData)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_ERR_FAIL_TO_MALLOC, NULL);
+            DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         unlink(pNewFileName);
         free(pNewFileName); //Must free after unlink
         fclose(fp);
@@ -497,7 +687,20 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     }
     if(0 == PasswordLength)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pFileName, STR_PASSWORD_NULL);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pFileName, STR_PASSWORD_NULL);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_PASSWORD_NULL, NULL);
+            DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         unlink(pNewFileName);
         free(pData);
         free(pNewFileName); //Must free after unlink
@@ -521,7 +724,20 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     pBackupData = (uint8_t *)malloc(PasswordLength * sizeof(uint8_t));
     if(NULL == pBackupData)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pFileName, STR_ERR_FAIL_TO_MALLOC);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_ERR_FAIL_TO_MALLOC, NULL);
+            DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         unlink(pNewFileName);
         free(pData);
         free(pNewFileName); //Must free after unlink
@@ -539,7 +755,20 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         size = fread(pData, sizeof(uint8_t), BASE_FILE_SIZE, fp);
         if(size != BASE_FILE_SIZE)
         {
+#ifdef __LINUX
             DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
+#elif defined __WINDOWS
+            if(LAN_EN == g_LanguageFlag)
+            {
+                DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
+            }
+            else
+            {
+                pConvertFormatRes = UTF8ToANSI(STR_FAIL_TO_READ_FILE, NULL);
+                DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+                free(pConvertFormatRes);
+            }
+#endif
             unlink(pNewFileName);
             free(pData);
             free(pBackupData);
@@ -606,7 +835,20 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
         size = fwrite(pData, sizeof(uint8_t), BASE_FILE_SIZE, NewFp);
         if(BASE_FILE_SIZE != size)
         {
+#ifdef __LINUX
             DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
+#elif defined __WINDOWS
+            if(LAN_EN == g_LanguageFlag)
+            {
+                DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
+            }
+            else
+            {
+                pConvertFormatRes = UTF8ToANSI(STR_FAIL_TO_WRITE_FILE, NULL);
+                DISP_LOG("%s: %s\n", pNewFileName, pConvertFormatRes);
+                free(pConvertFormatRes);
+            }
+#endif
             unlink(pNewFileName);
             free(pData);
             free(pBackupData);
@@ -625,7 +867,20 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     size = fread(pData, sizeof(uint8_t), RestDataSize, fp);
     if(size != RestDataSize)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_READ_FILE);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_FAIL_TO_READ_FILE, NULL);
+            DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         unlink(pNewFileName);
         free(pData);
         free(pBackupData);
@@ -703,7 +958,20 @@ G_STATUS decrypt(char *pFileName, int FileNameLength, int64_t FileSize, int *pRa
     size = fwrite(pData, sizeof(uint8_t), RestDataSize, NewFp);
     if(size != RestDataSize)
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pNewFileName, STR_FAIL_TO_WRITE_FILE);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_FAIL_TO_WRITE_FILE, NULL);
+            DISP_LOG("%s: %s\n", pNewFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         unlink(pNewFileName);
         free(pData);
         free(pBackupData);
@@ -794,9 +1062,26 @@ static inline void DeleteEncyptSuffix(char *pFileName)
  */
 static inline G_STATUS RemoveFile(const char *pFileName)
 {
+#ifdef __WINDOWS
+    char *pConvertFormatRes;
+#endif
+    
     if(0 != unlink(pFileName))
     {
+#ifdef __LINUX
         DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_DELETE_OLD_FILE);
+#elif defined __WINDOWS
+        if(LAN_EN == g_LanguageFlag)
+        {
+            DISP_LOG("%s: %s\n", pFileName, STR_FAIL_TO_DELETE_OLD_FILE);
+        }
+        else
+        {
+            pConvertFormatRes = UTF8ToANSI(STR_FAIL_TO_DELETE_OLD_FILE, NULL);
+            DISP_LOG("%s: %s\n", pFileName, pConvertFormatRes);
+            free(pConvertFormatRes);
+        }
+#endif
         return STAT_ERR;
     }
 
